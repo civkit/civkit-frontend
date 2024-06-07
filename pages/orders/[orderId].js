@@ -66,6 +66,11 @@ const OrderDetails = () => {
       if (response.data.state === 'accepted') {
         if (type === 'makerHold') {
           setIsMakerHoldPaid(true);
+          if (order.type === 0) { // Buy Order
+            router.push(`/submit-payout?orderId=${orderId}`);
+          } else { // Sell Order
+            router.push(`/full-invoice?orderId=${orderId}`);
+          }
         }
         if (type === 'full') {
           setIsFullPaid(true);
@@ -119,7 +124,14 @@ const OrderDetails = () => {
         },
       });
       console.log('Chatroom Response:', response.data);
-      // Redirect or handle the chatroom opening as needed
+
+      const { makeChatUrl, acceptChatUrl } = response.data;
+      // Redirect based on the user's role
+      if (order.type === 0 && makeChatUrl) { // Buyer
+        router.push(makeChatUrl);
+      } else if (order.type === 1 && acceptChatUrl) { // Seller
+        router.push(acceptChatUrl);
+      }
     } catch (error) {
       console.error('Error creating or checking chatroom:', error);
     }

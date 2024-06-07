@@ -6,13 +6,8 @@ import styles from '/home/dave/civkit-frontend/styles/Orders.module.css'; // Imp
 const Orders = () => {
   const router = useRouter();
   const [orders, setOrders] = useState([]);
-  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setUserId(localStorage.getItem('userId'));
-    }
-
     const fetchOrders = async () => {
       try {
         const response = await axios.get('http://localhost:3000/api/orders', {
@@ -60,19 +55,12 @@ const Orders = () => {
         }
       );
       console.log('Chatroom Response:', response.data);
-      const { makeChatUrl, acceptChatUrl } = response.data;
+      const { makeChatUrl } = response.data;
 
-      // Redirect based on the user's role
-      const order = orders.find(order => order.order_id === orderId);
-      if (!order) {
-        console.error('Order not found');
-        return;
-      }
-
-      if (makeChatUrl && userId === order.customer_id) {
+      if (makeChatUrl) {
         router.push(makeChatUrl);
-      } else if (acceptChatUrl && userId === order.taker_customer_id) {
-        router.push(acceptChatUrl);
+      } else {
+        console.error('Chat URL not found');
       }
     } catch (error) {
       console.error('Error opening chat:', error);
