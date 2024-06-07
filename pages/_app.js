@@ -1,11 +1,12 @@
-// pages/_app.js
-import Layout from '../components/Layout';
+import NavBar from '../components/NavBar.js';
+import '/home/dave/civkit-frontend/styles/global.css';
 
 function MyApp({ Component, pageProps }) {
   return (
-    <Layout>
+    <>
+      <NavBar />
       <Component {...pageProps} />
-    </Layout>
+    </>
   );
 }
 

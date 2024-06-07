@@ -1,22 +1,22 @@
-// components/OrderBook.js
-import { useEffect, useState } from 'react';
+// pages/orders.js
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import axios from 'axios';
+import styles from '/home/dave/civkit-frontend/styles/Orders.module.css'; // Import CSS module
 
-export default function OrderBook() {
+const Orders = () => {
+  const router = useRouter();
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
     const fetchOrders = async () => {
-      const token = localStorage.getItem('token'); // Retrieve the token from local storage
-
       try {
         const response = await axios.get('http://localhost:3000/api/orders', {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-
-        setOrders(response.data.orders);
+        setOrders(response.data);
       } catch (error) {
         console.error('Error fetching orders:', error);
       }
@@ -25,16 +25,41 @@ export default function OrderBook() {
     fetchOrders();
   }, []);
 
+  const handleTakeOrder = async (orderId) => {
+    try {
+      await axios.post(
+        'http://localhost:3000/api/orders/take',
+        {
+          orderId,
+          takerDetails: { description: 'Detailed description for the taker' },
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }
+      );
+      router.push(`/take-order?orderId=${orderId}`);
+    } catch (error) {
+      console.error('Error taking order:', error);
+    }
+  };
+
   return (
-    <div>
+    <div className={styles.container}>
       <h1>Order Book</h1>
-      <ul>
+      <div className={styles.ordersList}>
         {orders.map((order) => (
-          <li key={order.order_id}>
-            {order.order_details} - {order.amount_msat} msat - {order.currency} - {order.payment_method} - {order.status}
-          </li>
+          <div key={order.order_id} className={styles.orderCard}>
+            <p><strong>Details:</strong> {order.order_details}</p>
+            <p><strong>Amount:</strong> {order.amount_msat} msat</p>
+            <p><strong>Currency:</strong> {order.currency}</p>
+            <p><strong>Payment Method:</strong> {order.payment_method}</p>
+            <p><strong>Status:</strong> {order.status}</p>
+            <button className={styles.takeOrderButton} onClick={() => handleTakeOrder(order.order_id)}>Take Order</button>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
-}
+};
+
+export default Orders;

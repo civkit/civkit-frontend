@@ -2,28 +2,27 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 
-const LoginForm = () => {
+const RegisterForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
 
-  const handleLogin = async (event) => {
+  const handleRegister = async (event) => {
     event.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3000/api/login', { username, password });
-      localStorage.setItem('token', response.data.token);
-      alert('Login successful!');
-      router.push('/orders'); // Redirect to orders page or any other page
+      await axios.post('http://localhost:3000/api/register', { username, password });
+      alert('Registration successful! Please log in.');
+      router.push('/login');
     } catch (error) {
-      console.error('Error logging in:', error);
-      alert('Login failed. Please try again.');
+      console.error('Error registering:', error);
+      alert('Registration failed. Please try again.');
     }
   };
 
   return (
     <div>
-      <h1>Login</h1>
-      <form onSubmit={handleLogin}>
+      <h1>Register</h1>
+      <form onSubmit={handleRegister}>
         <label>
           Username:
           <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
@@ -34,10 +33,10 @@ const LoginForm = () => {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
         <br />
-        <button type="submit">Login</button>
+        <button type="submit">Register</button>
       </form>
     </div>
   );
 };
 
-export default LoginForm;
+export default RegisterForm;

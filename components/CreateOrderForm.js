@@ -1,37 +1,37 @@
+// components/CreateOrderForm.js
+
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 
-export default function CreateOrderForm() {
+const CreateOrderForm = () => {
+  const [orderDetails, setOrderDetails] = useState('');
+  const [amountMsat, setAmountMsat] = useState('');
+  const [currency, setCurrency] = useState('USD');
+  const [paymentMethod, setPaymentMethod] = useState('Credit Card');
+  const [type, setType] = useState(0); // Default to Buy Order
   const router = useRouter();
-  const [orderDetails, setOrderDetails] = useState({
-    order_details: '',
-    amount_msat: 0,
-    currency: 'USD',
-    payment_method: '',
-    type: 0,
-    status: 'Pending'
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setOrderDetails({
-      ...orderDetails,
-      [name]: value
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3000/api/orders', orderDetails, {
+      const response = await axios.post('http://localhost:3000/api/orders', {
+        order_details: orderDetails,
+        amount_msat: parseInt(amountMsat),
+        currency,
+        payment_method: paymentMethod,
+        status: 'Pending',
+        type
+      }, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      const orderId = response.data.order.order_id;  // Adjusted to match response structure
-      router.push(`/orders/${orderId}`);
+
+      if (response.data.order) {
+        router.push(`/orders/${response.data.order.order_id}`);
+      }
     } catch (error) {
       console.error('Error creating order:', error);
     }
@@ -40,36 +40,31 @@ export default function CreateOrderForm() {
   return (
     <form onSubmit={handleSubmit}>
       <div>
-        <label>
-          Order Details:
-          <input type="text" name="order_details" value={orderDetails.order_details} onChange={handleChange} required />
-        </label>
+        <label>Order Details:</label>
+        <input type="text" value={orderDetails} onChange={(e) => setOrderDetails(e.target.value)} required />
       </div>
       <div>
-        <label>
-          Amount (msat):
-          <input type="number" name="amount_msat" value={orderDetails.amount_msat} onChange={handleChange} required />
-        </label>
+        <label>Amount (msat):</label>
+        <input type="number" value={amountMsat} onChange={(e) => setAmountMsat(e.target.value)} required />
       </div>
       <div>
-        <label>
-          Currency:
-          <input type="text" name="currency" value={orderDetails.currency} onChange={handleChange} required />
-        </label>
+        <label>Currency:</label>
+        <input type="text" value={currency} onChange={(e) => setCurrency(e.target.value)} required />
       </div>
       <div>
-        <label>
-          Payment Method:
-          <input type="text" name="payment_method" value={orderDetails.payment_method} onChange={handleChange} required />
-        </label>
+        <label>Payment Method:</label>
+        <input type="text" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} required />
       </div>
       <div>
-        <label>
-          Type (0 for buy, 1 for sell):
-          <input type="number" name="type" value={orderDetails.type} onChange={handleChange} required />
-        </label>
+        <label>Order Type:</label>
+        <select value={type} onChange={(e) => setType(parseInt(e.target.value))} required>
+          <option value={0}>Buy</option>
+          <option value={1}>Sell</option>
+        </select>
       </div>
       <button type="submit">Create Order</button>
     </form>
   );
-}
+};
+
+export default CreateOrderForm;
