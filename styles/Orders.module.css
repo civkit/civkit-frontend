@@ -1,49 +1,40 @@
 /* styles/Orders.module.css */
 .container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-  }
-  
-  .container h1 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #333;
-  }
-  
-  .ordersList {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  
-  .orderCard {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 15px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  }
-  
-  .orderCard p {
-    margin: 5px 0;
-  }
-  
-  .takeOrderButton {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    background-color: #0070f3;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    text-align: center;
-    margin-top: 10px;
-  }
-  
-  .takeOrderButton:hover {
-    background-color: #005bb5;
-  }
-  
+  padding: 20px;
+}
+
+.ordersList {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.orderCard {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 10px;
+  width: calc(33.333% - 20px);
+  box-sizing: border-box;
+}
+
+.takeOrderButton {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  margin-top: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.openChatButton {
+  background-color: #008CBA;
+  color: white;
+  padding: 10px 20px;
+  margin-top: 10px;
+  border: none;
+  cursor: pointer;
+  margin-left: 10px; /* Add some space between the buttons */
+}
+
+.takeOrderButton:hover, .openChatButton:hover {
+  opacity: 0.8;
+}

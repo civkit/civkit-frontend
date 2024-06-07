@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+"use client";
+import React, { useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import QRCode from 'qrcode.react';
+import { NDKContext } from '../../components/NDKContext';
 
 const OrderDetails = () => {
   const router = useRouter();
@@ -11,6 +13,7 @@ const OrderDetails = () => {
   const [fullInvoice, setFullInvoice] = useState(null);
   const [isMakerHoldPaid, setIsMakerHoldPaid] = useState(false);
   const [isFullPaid, setIsFullPaid] = useState(false);
+  const ndk = useContext(NDKContext);
 
   const fetchOrder = async () => {
     try {
@@ -66,10 +69,59 @@ const OrderDetails = () => {
         }
         if (type === 'full') {
           setIsFullPaid(true);
+          await signAndBroadcastOrder();
         }
       }
     } catch (error) {
       console.error('Error checking invoice status:', error);
+    }
+  };
+
+  const signAndBroadcastOrder = async () => {
+    try {
+      if (!order || !ndk || !ndk.signer) {
+        console.log("NDK or signer not ready.");
+        return;
+      }
+
+      console.log("Signing and broadcasting order...");
+
+      const orderContent = {
+        order_id: order.order_id,
+        details: order.order_details,
+        amount: order.amount_msat,
+        currency: order.currency,
+        payment_method: order.payment_method,
+        status: 'Paid'
+      };
+
+      const ndkEvent = new NDKEvent(ndk);
+      ndkEvent.kind = 1505; // Kind for order event
+      ndkEvent.content = JSON.stringify(orderContent);
+
+      await ndkEvent.sign();  // Explicitly sign the event
+      await ndkEvent.publish();
+      console.log('Published event:', ndkEvent);
+    } catch (error) {
+      console.error('Error signing and publishing event:', error);
+    }
+  };
+
+  const handleOpenChat = async () => {
+    try {
+      console.log(`Creating or checking chatroom for order ID: ${orderId}`);
+      const response = await axios.post('http://localhost:3000/api/check-and-create-chatroom', {
+        orderId,
+      }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      console.log('Chatroom Response:', response.data);
+      // Redirect or handle the chatroom opening as needed
+    } catch (error) {
+      console.error('Error creating or checking chatroom:', error);
     }
   };
 
@@ -120,13 +172,17 @@ const OrderDetails = () => {
         </>
       )}
 
-      {order.type === 1 && fullInvoice && (
+      {fullInvoice && (
         <>
           <h2>Full Amount Invoice</h2>
           <p>Invoice (Full): {fullInvoice.bolt11}</p>
           <QRCode value={fullInvoice.bolt11} />
           <p>Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
         </>
+      )}
+
+      {order.status === 'chat_open' && (
+        <button onClick={handleOpenChat}>Open Chat</button>
       )}
     </div>
   );

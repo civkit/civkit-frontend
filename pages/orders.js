@@ -1,4 +1,3 @@
-// pages/orders.js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
@@ -7,8 +6,13 @@ import styles from '/home/dave/civkit-frontend/styles/Orders.module.css'; // Imp
 const Orders = () => {
   const router = useRouter();
   const [orders, setOrders] = useState([]);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setUserId(localStorage.getItem('userId'));
+    }
+
     const fetchOrders = async () => {
       try {
         const response = await axios.get('http://localhost:3000/api/orders', {
@@ -43,6 +47,38 @@ const Orders = () => {
     }
   };
 
+  const handleOpenChat = async (orderId) => {
+    try {
+      const response = await axios.post(
+        'http://localhost:3000/api/check-and-create-chatroom',
+        { orderId },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      console.log('Chatroom Response:', response.data);
+      const { makeChatUrl, acceptChatUrl } = response.data;
+
+      // Redirect based on the user's role
+      const order = orders.find(order => order.order_id === orderId);
+      if (!order) {
+        console.error('Order not found');
+        return;
+      }
+
+      if (makeChatUrl && userId === order.customer_id) {
+        router.push(makeChatUrl);
+      } else if (acceptChatUrl && userId === order.taker_customer_id) {
+        router.push(acceptChatUrl);
+      }
+    } catch (error) {
+      console.error('Error opening chat:', error);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <h1>Order Book</h1>
@@ -54,7 +90,11 @@ const Orders = () => {
             <p><strong>Currency:</strong> {order.currency}</p>
             <p><strong>Payment Method:</strong> {order.payment_method}</p>
             <p><strong>Status:</strong> {order.status}</p>
+            <p><strong>Order Type:</strong> {order.type === 0 ? 'Buy' : 'Sell'}</p>
             <button className={styles.takeOrderButton} onClick={() => handleTakeOrder(order.order_id)}>Take Order</button>
+            {order.status === 'chat_open' && (
+              <button className={styles.openChatButton} onClick={() => handleOpenChat(order.order_id)}>Open Chat</button>
+            )}
           </div>
         ))}
       </div>
