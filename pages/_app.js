@@ -1,6 +1,6 @@
-// pages/_app.js
-import Layout from '../components/Layout';
+import dynamic from 'next/dynamic'
 
+const Layout = dynamic(() => import('@/components/Layout'), { ssr: false })
 function MyApp({ Component, pageProps }) {
   return (
     <Layout>
