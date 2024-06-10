@@ -1,5 +1,3 @@
-// components/CreateOrderForm.js
-
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
@@ -15,14 +13,16 @@ const CreateOrderForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3000/api/orders', {
+      const orderData = {
         order_details: orderDetails,
         amount_msat: parseInt(amountMsat),
         currency,
         payment_method: paymentMethod,
         status: 'Pending',
         type
-      }, {
+      };
+
+      const response = await axios.post('http://localhost:3000/api/orders', orderData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -30,6 +30,45 @@ const CreateOrderForm = () => {
       });
 
       if (response.data.order) {
+        // Sign the event using nos2x
+        if (window.nostr) {
+          const event = {
+            kind: 1, // Event kind, you can set this to a relevant kind for your application
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [],
+            content: JSON.stringify(orderData)
+          };
+
+          try {
+            const signedEvent = await window.nostr.signEvent(event);
+            console.log('Signed Event:', signedEvent);
+
+            // Send the signed event to your relay using WebSocket
+            const relayURL = 'ws://localhost:7000'; // Change to your actual relay URL
+
+            const relayWebSocket = new WebSocket(relayURL);
+
+            relayWebSocket.onopen = () => {
+              const message = JSON.stringify(["EVENT", signedEvent]);
+              relayWebSocket.send(message);
+              console.log('Signed event sent to relay:', message);
+            };
+
+            relayWebSocket.onerror = (err) => {
+              console.error('WebSocket error:', err);
+            };
+
+            relayWebSocket.onclose = () => {
+              console.log('WebSocket connection closed');
+            };
+
+          } catch (signError) {
+            console.error('Error signing event:', signError);
+          }
+        } else {
+          console.error('nos2x extension is not available.');
+        }
+
         router.push(`/orders/${response.data.order.order_id}`);
       }
     } catch (error) {
