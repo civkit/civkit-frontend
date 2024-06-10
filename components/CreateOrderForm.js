@@ -33,7 +33,7 @@ const CreateOrderForm = () => {
         // Sign the event using nos2x
         if (window.nostr) {
           const event = {
-            kind: 1, // Event kind, you can set this to a relevant kind for your application
+            kind: 1506, // Event kind, you can set this to a relevant kind for your application
             created_at: Math.floor(Date.now() / 1000),
             tags: [],
             content: JSON.stringify(orderData)
