@@ -1,0 +1,13 @@
+diff --git a/node_modules/@nostr-dev-kit/ndk-react/dist/ndk-react.es.js b/node_modules/@nostr-dev-kit/ndk-react/dist/ndk-react.es.js
+index b8ffa31..1a15a55 100644
+--- a/node_modules/@nostr-dev-kit/ndk-react/dist/ndk-react.es.js
++++ b/node_modules/@nostr-dev-kit/ndk-react/dist/ndk-react.es.js
+@@ -9113,7 +9113,7 @@ function hd() {
+   }(pn)), pn;
+ }
+ var dd = cr;
+-dd.is_node() && (S.WebSocket = hd().WebSocket);
++// dd.is_node() && (S.WebSocket = hd().WebSocket);
+ BigInt(1e3), BigInt(1e6), BigInt(1e9), BigInt(1e12);
+ BigInt("2100000000000000000");
+ BigInt(1e11);

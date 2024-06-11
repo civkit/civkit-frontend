@@ -6,14 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@nostr-dev-kit/ndk": "^2.8.2",
+    "@nostr-dev-kit/ndk-react": "^0.1.1",
     "axios": "^1.7.2",
     "cors": "^2.8.5",
     "ndk": "^0.1.1-outdated",
     "next": "14.2.3",
+    "nostr-tools": "^2.7.0",
+    "patch-package": "^8.0.0",
     "qrcode": "^1.5.3",
     "qrcode.react": "^3.1.0",
     "react": "^18",

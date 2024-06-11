@@ -1,3 +1,4 @@
+// pages/orders.js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
@@ -6,6 +7,7 @@ import styles from '/home/dave/civkit-frontend/styles/Orders.module.css'; // Imp
 const Orders = () => {
   const router = useRouter();
   const [orders, setOrders] = useState([]);
+  const [chatUrls, setChatUrls] = useState(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -55,16 +57,14 @@ const Orders = () => {
         }
       );
       console.log('Chatroom Response:', response.data);
-      const { makeChatUrl } = response.data;
-
-      if (makeChatUrl) {
-        router.push(makeChatUrl);
-      } else {
-        console.error('Chat URL not found');
-      }
+      setChatUrls(response.data);
     } catch (error) {
       console.error('Error opening chat:', error);
     }
+  };
+
+  const closeModal = () => {
+    setChatUrls(null);
   };
 
   return (
@@ -86,6 +86,17 @@ const Orders = () => {
           </div>
         ))}
       </div>
+
+      {chatUrls && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <h2>Chatroom URLs</h2>
+            <p><strong>Make Offer URL:</strong> <a href={chatUrls.makeChatUrl} target="_blank" rel="noopener noreferrer">{chatUrls.makeChatUrl}</a></p>
+            <p><strong>Accept Offer URL:</strong> <a href={chatUrls.acceptChatUrl} target="_blank" rel="noopener noreferrer">{chatUrls.acceptChatUrl}</a></p>
+            <button onClick={closeModal}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
