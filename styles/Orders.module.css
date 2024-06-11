@@ -18,7 +18,7 @@
 
 .takeOrderButton {
   background-color: #4CAF50;
-  color: white;
+  color: rgb(29, 28, 28);
   padding: 10px 20px;
   margin-top: 10px;
   border: none;
@@ -37,4 +37,44 @@
 
 .takeOrderButton:hover, .openChatButton:hover {
   opacity: 0.8;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modalContent {
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.modalContent a {
+  word-break: break-all;
+  color: blue; /* Makes links blue and readable */
+  text-decoration: underline; /* Adds underline to make links more distinguishable */
+
+}
+
+.modalContent button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #0070f3;
+  color: black;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modalContent button:hover {
+  background-color: #005bb5;
 }
