@@ -1,5 +1,5 @@
 import NavBar from '../components/NavBar.js';
-import '/home/dave/civkit-frontend/styles/global.css';
+import '../styles/global.css';
 import dynamic from 'next/dynamic'
 
 const Layout = dynamic(() => import('@/components/Layout'), { ssr: false })
