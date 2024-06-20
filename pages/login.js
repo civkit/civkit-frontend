@@ -1,3 +1,4 @@
+// pages/login.js
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
@@ -13,7 +14,7 @@ const LoginForm = () => {
       const response = await axios.post('http://localhost:3000/api/login', { username, password });
       localStorage.setItem('token', response.data.token);
       alert('Login successful!');
-      router.push('/orders'); // Redirect to orders page or any other page
+      router.push('/register'); // Redirect to register page
     } catch (error) {
       console.error('Error logging in:', error);
       alert('Login failed. Please try again.');

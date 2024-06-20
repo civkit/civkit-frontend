@@ -1,3 +1,4 @@
+// pages/register.js
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
@@ -5,14 +6,19 @@ import { useRouter } from 'next/router';
 const RegisterForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [invoice, setInvoice] = useState('');
   const router = useRouter();
 
   const handleRegister = async (event) => {
     event.preventDefault();
     try {
-      await axios.post('http://localhost:3000/api/register', { username, password });
-      alert('Registration successful! Please log in.');
-      router.push('/login');
+      const response = await axios.post('http://localhost:3000/api/register', { username, password }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      setInvoice(response.data.invoice);
+      router.push(`/registerPayment?username=${username}`); // Redirect to payment page
     } catch (error) {
       console.error('Error registering:', error);
       alert('Registration failed. Please try again.');
