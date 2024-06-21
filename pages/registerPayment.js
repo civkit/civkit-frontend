@@ -1,4 +1,5 @@
 // pages/registerPayment.js
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
@@ -8,7 +9,9 @@ const RegisterPayment = () => {
   const router = useRouter();
   const { username } = router.query;
   const [invoice, setInvoice] = useState('');
-  const [isPaid, setIsPaid] = useState(false);
+  const [paymentHash, setPaymentHash] = useState('');
+  const [status, setstatus] = useState('');
+  const [isFullPaid, setIsFullPaid] = useState(false);
 
   const fetchInvoice = async () => {
     try {
@@ -17,9 +20,31 @@ const RegisterPayment = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      setInvoice(response.data.invoice);
+      const { invoice, payment_hash, status } = response.data;
+      console.log('Fetched invoice:', invoice);
+      setInvoice(invoice);
+      setPaymentHash(payment_hash);
+      setstatus(status)
     } catch (error) {
       console.error('Error fetching invoice:', error);
+    }
+  };
+
+  const checkInvoiceStatus = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/get-invoice', { username }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      console.log('Invoice status response:', response.data);
+
+      if (response.data.status === 'complete') {
+        setIsFullPaid(true);
+      }
+    } catch (error) {
+      console.error('Error checking invoice status:', error);
     }
   };
 
@@ -30,26 +55,20 @@ const RegisterPayment = () => {
   }, [username]);
 
   useEffect(() => {
-    if (invoice) {
-      const interval = setInterval(async () => {
-        try {
-          const response = await axios.post('http://localhost:3000/api/fullinvoicelookup', { payment_hash: invoice.payment_hash }, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          });
-          if (response.data.status === 'paid') {
-            setIsPaid(true);
-            clearInterval(interval);
-          }
-        } catch (error) {
-          console.error('Error checking invoice status:', error);
-        }
+    if (paymentHash && !isFullPaid) {
+      const interval = setInterval(() => {
+        checkInvoiceStatus();
       }, 5000);
-
       return () => clearInterval(interval);
     }
-  }, [invoice]);
+  }, [paymentHash, isFullPaid]);
+
+  useEffect(() => {
+    if (isFullPaid) {
+      router.push('/login');  // Redirect to the registration page
+    }
+  }, [isFullPaid, router]);
+
 
   if (!invoice) {
     return <div>Loading...</div>;
@@ -61,8 +80,8 @@ const RegisterPayment = () => {
         <h1 className="text-2xl font-bold mb-4">Complete Your Registration</h1>
         <p className="mb-4">Please pay the following invoice to complete your registration:</p>
         <QRCode value={invoice} />
-        <p className="mt-4">{invoice}</p>
-        <p>Status: {isPaid ? 'Paid' : 'Not Paid'}</p>
+        <p className="mt-4 break-all">{invoice}</p>
+        <p>Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
       </div>
     </div>
   );
