@@ -1,6 +1,8 @@
-/* styles/Orders.module.css */
 .container {
   padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .ordersList {
@@ -9,7 +11,7 @@
 }
 
 .orderCard {
-  border: 1px solid #ccc;
+  border: 1px solid var(--primary-color);
   padding: 10px;
   margin: 10px;
   width: calc(33.333% - 20px);
@@ -17,25 +19,34 @@
 }
 
 .takeOrderButton {
-  background-color: #4CAF50;
-  color: rgb(29, 28, 28);
+  background-color: var(--primary-color);
+  color: #121212;
   padding: 10px 20px;
   margin-top: 10px;
   border: none;
   cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.takeOrderButton:hover {
+  background-color: var(--button-hover-color);
+  transform: scale(1.05);
 }
 
 .openChatButton {
-  background-color: #008CBA;
+  background-color: var(--button-hover-color);
   color: white;
   padding: 10px 20px;
   margin-top: 10px;
   border: none;
   cursor: pointer;
   margin-left: 10px; /* Add some space between the buttons */
+  border-radius: 4px;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
-.takeOrderButton:hover, .openChatButton:hover {
+.openChatButton:hover {
   opacity: 0.8;
 }
 
@@ -52,29 +63,31 @@
 }
 
 .modalContent {
-  background: white;
+  background: #1a1a1a;
   padding: 20px;
-  border-radius: 5px;
+  border-radius: 8px;
   text-align: center;
+  color: var(--foreground-color);
 }
 
 .modalContent a {
   word-break: break-all;
-  color: blue; /* Makes links blue and readable */
+  color: var(--primary-color); /* Makes links blue and readable */
   text-decoration: underline; /* Adds underline to make links more distinguishable */
-
 }
 
 .modalContent button {
   margin-top: 10px;
   padding: 10px 20px;
-  background-color: #0070f3;
-  color: black;
+  background-color: var(--primary-color);
+  color: #121212;
   border: none;
-  border-radius: 5px;
+  border-radius: 4px;
   cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .modalContent button:hover {
-  background-color: #005bb5;
+  background-color: var(--button-hover-color);
+  transform: scale(1.05);
 }

@@ -13,6 +13,7 @@
     "@nostr-dev-kit/ndk": "^2.8.2",
     "@nostr-dev-kit/ndk-react": "^0.1.1",
     "axios": "^1.7.2",
+    "bootstrap": "^5.3.3",
     "cors": "^2.8.5",
     "ndk": "^0.1.1-outdated",
     "next": "14.2.3",

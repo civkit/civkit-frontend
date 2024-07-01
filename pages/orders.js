@@ -1,8 +1,6 @@
-// pages/orders.js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import styles from '../styles/Orders.module.css'; // Import CSS module
 
 const Orders = () => {
   const router = useRouter();
@@ -17,7 +15,13 @@ const Orders = () => {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        setOrders(response.data);
+        console.log('Orders fetched:', response.data);
+        // Check if the response has a data object and orders inside it
+        if (response.data && response.data.orders) {
+          setOrders(response.data.orders);
+        } else {
+          setOrders(response.data); // Assuming response.data is an array if it doesn't have orders property
+        }
       } catch (error) {
         console.error('Error fetching orders:', error);
       }
@@ -68,32 +72,56 @@ const Orders = () => {
   };
 
   return (
-    <div className={styles.container}>
-      <h1>Order Book</h1>
-      <div className={styles.ordersList}>
-        {orders.map((order) => (
-          <div key={order.order_id} className={styles.orderCard}>
-            <p><strong>Details:</strong> {order.order_details}</p>
-            <p><strong>Amount:</strong> {order.amount_msat} msat</p>
-            <p><strong>Currency:</strong> {order.currency}</p>
-            <p><strong>Payment Method:</strong> {order.payment_method}</p>
-            <p><strong>Status:</strong> {order.status}</p>
-            <p><strong>Order Type:</strong> {order.type === 0 ? 'Buy' : 'Sell'}</p>
-            <button className={styles.takeOrderButton} onClick={() => handleTakeOrder(order.order_id)}>Take Order</button>
-            {order.status === 'chat_open' && (
-              <button className={styles.openChatButton} onClick={() => handleOpenChat(order.order_id)}>Open Chat</button>
-            )}
-          </div>
-        ))}
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl">
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Order Book</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {orders.length > 0 ? (
+            orders.map((order) => (
+              <div key={order.order_id} className="bg-white p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg font-bold mb-2 text-gray-700">Order #{order.order_id}</h3>
+                <p className="text-gray-700"><strong>Details:</strong> {order.order_details}</p>
+                <p className="text-gray-700"><strong>Amount:</strong> {order.amount_msat} msat</p>
+                <p className="text-gray-700"><strong>Currency:</strong> {order.currency}</p>
+                <p className="text-gray-700"><strong>Payment Method:</strong> {order.payment_method}</p>
+                <p className="text-gray-700"><strong>Status:</strong> {order.status}</p>
+                <p className="text-gray-700"><strong>Order Type:</strong> {order.type === 0 ? 'Buy' : 'Sell'}</p>
+                <div className="flex justify-between items-center mt-4">
+                  <button
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    onClick={() => handleTakeOrder(order.order_id)}
+                  >
+                    Take Order
+                  </button>
+                  {order.status === 'chat_open' && (
+                    <button
+                      className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                      onClick={() => handleOpenChat(order.order_id)}
+                    >
+                      Open Chat
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-gray-700">No orders found.</p>
+          )}
+        </div>
       </div>
 
       {chatUrls && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <h2>Chatroom URLs</h2>
-            <p><strong>Make Offer URL:</strong> <a href={chatUrls.makeChatUrl} target="_blank" rel="noopener noreferrer">{chatUrls.makeChatUrl}</a></p>
-            <p><strong>Accept Offer URL:</strong> <a href={chatUrls.acceptChatUrl} target="_blank" rel="noopener noreferrer">{chatUrls.acceptChatUrl}</a></p>
-            <button onClick={closeModal}>Close</button>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-8 rounded-lg shadow-lg">
+            <h2 className="text-2xl font-bold mb-4 text-center text-blue-600">Chatroom URLs</h2>
+            <p className="text-gray-700"><strong>Make Offer URL:</strong> <a href={chatUrls.makeChatUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">{chatUrls.makeChatUrl}</a></p>
+            <p className="text-gray-700"><strong>Accept Offer URL:</strong> <a href={chatUrls.acceptChatUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">{chatUrls.acceptChatUrl}</a></p>
+            <button
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded mt-4 focus:outline-none focus:shadow-outline"
+              onClick={closeModal}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

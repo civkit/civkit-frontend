@@ -1,8 +1,6 @@
-import NavBar from '../components/NavBar.js';
-import '../styles/global.css';
-import dynamic from 'next/dynamic'
+import 'tailwindcss/tailwind.css';
+import NavBar from '../components/NavBar';
 
-const Layout = dynamic(() => import('@/components/Layout'), { ssr: false })
 function MyApp({ Component, pageProps }) {
   return (
     <>

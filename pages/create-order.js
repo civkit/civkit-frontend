@@ -1,4 +1,3 @@
-// pages/create-order.js
 import { useRouter } from 'next/router';
 import CreateOrderForm from '../components/CreateOrderForm';
 
@@ -11,7 +10,6 @@ export default function CreateOrderPage() {
 
   return (
     <div>
-      <h1>Create Order</h1>
       <CreateOrderForm onOrderCreated={handleOrderCreated} />
     </div>
   );
