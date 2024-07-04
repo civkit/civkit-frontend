@@ -71,7 +71,7 @@ const TakeOrder = () => {
       }
       console.log(`Invoice status response for ${type} invoice:`, response.data);
 
-      if (response.data.state === 'accepted') {
+      if (response.data.state === 'ACCEPTED') {
         if (type === 'takerHold') {
           setIsTakerHoldPaid(true);
         }
@@ -116,36 +116,46 @@ const TakeOrder = () => {
   }, [isTakerHoldPaid, fullInvoice, orderId, router]);
 
   if (!order) {
-    return <div>Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
   }
 
   return (
-    <div>
-      <h1>Order Details</h1>
-      <p>Order ID: {order.order_id}</p>
-      <p>Details: {order.order_details}</p>
-      <p>Amount: {order.amount_msat}</p>
-      <p>Currency: {order.currency}</p>
-      <p>Payment Method: {order.payment_method}</p>
-      <p>Status: {order.status}</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Order Details</h1>
+        <p><span className="font-bold">Order ID:</span> {order.order_id}</p>
+        <p><span className="font-bold">Details:</span> {order.order_details}</p>
+        <p><span className="font-bold">Amount:</span> {order.amount_msat}</p>
+        <p><span className="font-bold">Currency:</span> {order.currency}</p>
+        <p><span className="font-bold">Payment Method:</span> {order.payment_method}</p>
+        <p><span className="font-bold">Status:</span> {order.status}</p>
 
-      {takerHoldInvoice && (
-        <>
-          <h2>Taker Hold Invoice</h2>
-          <p>Invoice (Hold): {takerHoldInvoice.bolt11}</p>
-          <QRCode value={takerHoldInvoice.bolt11} />
-          <p>Status: {isTakerHoldPaid ? 'Paid' : 'Not Paid'}</p>
-        </>
-      )}
+        {takerHoldInvoice && (
+          <>
+            <h2 className="text-xl font-semibold mt-4">Taker Hold Invoice</h2>
+            <div className="bg-gray-100 p-2 rounded break-words">
+              <p className="text-xs">{takerHoldInvoice.bolt11}</p>
+            </div>
+            <div className="flex justify-center my-4">
+              <QRCode value={takerHoldInvoice.bolt11} />
+            </div>
+            <p>Status: {isTakerHoldPaid ? 'Paid' : 'Not Paid'}</p>
+          </>
+        )}
 
-      {order.type === 1 && fullInvoice && (
-        <>
-          <h2>Full Amount Invoice</h2>
-          <p>Invoice (Full): {fullInvoice.bolt11}</p>
-          <QRCode value={fullInvoice.bolt11} />
-          <p>Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
-        </>
-      )}
+        {order.type === 1 && fullInvoice && (
+          <>
+            <h2 className="text-xl font-semibold mt-4">Full Amount Invoice</h2>
+            <div className="bg-gray-100 p-2 rounded break-words">
+              <p className="text-xs">{fullInvoice.bolt11}</p>
+            </div>
+            <div className="flex justify-center my-4">
+              <QRCode value={fullInvoice.bolt11} />
+            </div>
+            <p>Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
+          </>
+        )}
+      </div>
     </div>
   );
 };

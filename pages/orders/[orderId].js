@@ -63,7 +63,7 @@ const OrderDetails = () => {
       });
       console.log(`Invoice status response for ${type} invoice:`, response.data);
 
-      if (response.data.state === 'accepted') {
+      if (response.data.state === 'ACCEPTED') {
         if (type === 'makerHold') {
           setIsMakerHoldPaid(true);
           if (order.type === 0) { // Buy Order
@@ -162,40 +162,53 @@ const OrderDetails = () => {
   }, [fullInvoice]);
 
   if (!order) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
   }
 
   return (
-    <div>
-      <h1>Order Details</h1>
-      <p>Order ID: {order.order_id}</p>
-      <p>Details: {order.order_details}</p>
-      <p>Amount: {order.amount_msat}</p>
-      <p>Currency: {order.currency}</p>
-      <p>Payment Method: {order.payment_method}</p>
-      <p>Status: {order.status}</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
+        <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Order Details</h1>
+        <p className="mb-4"><span className="font-bold text-gray-700">Order ID:</span> {order.order_id}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Details:</span> {order.order_details}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Amount:</span> {order.amount_msat}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Currency:</span> {order.currency}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Payment Method:</span> {order.payment_method}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Status:</span> {order.status}</p>
 
-      {makerHoldInvoice && (
-        <>
-          <h2>Maker Hold Invoice</h2>
-          <p>Invoice (Hold): {makerHoldInvoice.bolt11}</p>
-          <QRCode value={makerHoldInvoice.bolt11} />
-          <p>Status: {isMakerHoldPaid ? 'Paid' : 'Not Paid'}</p>
-        </>
-      )}
+        {makerHoldInvoice && (
+          <>
+            <h2 className="text-xl font-bold mb-4 text-blue-600">Maker Hold Invoice</h2>
+            <p className="mb-4 break-words"><span className="font-bold text-gray-700">Invoice (Hold):</span> {makerHoldInvoice.bolt11}</p>
+            <div className="flex justify-center mb-4">
+              <QRCode value={makerHoldInvoice.bolt11} />
+            </div>
+            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {isMakerHoldPaid ? 'Paid' : 'Not Paid'}</p>
+          </>
+        )}
 
-      {fullInvoice && (
-        <>
-          <h2>Full Amount Invoice</h2>
-          <p>Invoice (Full): {fullInvoice.bolt11}</p>
-          <QRCode value={fullInvoice.bolt11} />
-          <p>Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
-        </>
-      )}
+        {fullInvoice && (
+          <>
+            <h2 className="text-xl font-bold mb-4 text-blue-600">Full Amount Invoice</h2>
+            <p className="mb-4 break-words"><span className="font-bold text-gray-700">Invoice (Full):</span> {fullInvoice.bolt11}</p>
+            <div className="flex justify-center mb-4">
+              <QRCode value={fullInvoice.bolt11} />
+            </div>
+            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {isFullPaid ? 'Paid' : 'Not Paid'}</p>
+          </>
+        )}
 
-      {order.status === 'chat_open' && (
-        <button onClick={handleOpenChat}>Open Chat</button>
-      )}
+        {order.status === 'chat_open' && (
+          <div className="flex justify-center">
+            <button
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              onClick={handleOpenChat}
+            >
+              Open Chat
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
