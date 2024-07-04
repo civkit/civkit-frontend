@@ -8,7 +8,7 @@ function NDKContextWrapper({ children }: { children: React.ReactNode }) {
     return
   }
   return (
-    <NDKProvider relayUrls={["ws://localhost:8008"]}>
+    <NDKProvider relayUrls={["ws://localhost:7000"]}>
       {children}
     </NDKProvider>
   )

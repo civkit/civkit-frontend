@@ -13,6 +13,7 @@ const OrderDetails = () => {
   const [fullInvoice, setFullInvoice] = useState(null);
   const [isMakerHoldPaid, setIsMakerHoldPaid] = useState(false);
   const [isFullPaid, setIsFullPaid] = useState(false);
+  const [isSigning, setIsSigning] = useState(false); // Flag to prevent multiple sign attempts
   const ndk = useContext(NDKContext);
 
   const fetchOrder = async () => {
@@ -64,17 +65,24 @@ const OrderDetails = () => {
       console.log(`Invoice status response for ${type} invoice:`, response.data);
 
       if (response.data.state === 'ACCEPTED') {
-        if (type === 'makerHold') {
+        if (type === 'makerHold' && !isMakerHoldPaid) {
           setIsMakerHoldPaid(true);
+          console.log('Maker hold invoice paid.');
+          if (!isSigning) {
+            await signAndBroadcastOrder('Maker hold invoice paid.');  // Sign and broadcast when the maker hold invoice is paid
+          }
           if (order.type === 0) { // Buy Order
             router.push(`/submit-payout?orderId=${orderId}`);
           } else { // Sell Order
             router.push(`/full-invoice?orderId=${orderId}`);
           }
         }
-        if (type === 'full') {
+        if (type === 'full' && !isFullPaid) {
           setIsFullPaid(true);
-          await signAndBroadcastOrder();
+          console.log('Full invoice paid.');
+          if (!isSigning) {
+            await signAndBroadcastOrder('Full invoice paid.');
+          }
         }
       }
     } catch (error) {
@@ -82,10 +90,17 @@ const OrderDetails = () => {
     }
   };
 
-  const signAndBroadcastOrder = async () => {
+  const signAndBroadcastOrder = async (statusMessage) => {
+    if (isSigning) {
+      console.log("Already signing, skipping this attempt.");
+      return;
+    }
+    setIsSigning(true);
+
     try {
-      if (!order || !ndk || !ndk.signer) {
+      if (!order || !window.nostr) {
         console.log("NDK or signer not ready.");
+        setIsSigning(false);
         return;
       }
 
@@ -97,18 +112,46 @@ const OrderDetails = () => {
         amount: order.amount_msat,
         currency: order.currency,
         payment_method: order.payment_method,
-        status: 'Paid'
+        status: statusMessage
       };
 
-      const ndkEvent = new NDKEvent(ndk);
-      ndkEvent.kind = 1505; // Kind for order event
-      ndkEvent.content = JSON.stringify(orderContent);
+      const event = {
+        kind: 1505, // Event kind set to 1505
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: JSON.stringify(orderContent),
+      };
 
-      await ndkEvent.sign();  // Explicitly sign the event
-      await ndkEvent.publish();
-      console.log('Published event:', ndkEvent);
+      try {
+        const signedEvent = await window.nostr.signEvent(event);
+        console.log('Signed Event:', signedEvent);
+
+        // Send the signed event to your relay using WebSocket
+        const relayURL = 'ws://localhost:7000'; // Change to your actual relay URL
+
+        const relayWebSocket = new WebSocket(relayURL);
+
+        relayWebSocket.onopen = () => {
+          const message = JSON.stringify(['EVENT', signedEvent]);
+          relayWebSocket.send(message);
+          console.log('Signed event sent to relay:', message);
+        };
+
+        relayWebSocket.onerror = (err) => {
+          console.error('WebSocket error:', err);
+        };
+
+        relayWebSocket.onclose = () => {
+          console.log('WebSocket connection closed');
+        };
+
+      } catch (signError) {
+        console.error('Error signing event:', signError);
+      }
     } catch (error) {
       console.error('Error signing and publishing event:', error);
+    } finally {
+      setIsSigning(false);
     }
   };
 
@@ -160,6 +203,12 @@ const OrderDetails = () => {
       return () => clearInterval(interval);
     }
   }, [fullInvoice]);
+
+  useEffect(() => {
+    if (isFullPaid && !isSigning) {
+      signAndBroadcastOrder('Full invoice paid.');
+    }
+  }, [isFullPaid]);
 
   if (!order) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
