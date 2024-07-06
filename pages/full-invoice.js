@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import QRCode from 'qrcode.react';
-import styles from '../styles/FullInvoice.module.css';
 
 const FullInvoice = () => {
   const router = useRouter();
@@ -82,15 +81,24 @@ const FullInvoice = () => {
   }, []);
 
   if (!fullInvoice) {
-    return <div>Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
   }
 
   return (
-    <div className={styles.container}>
-      <h1>Full Invoice Details</h1>
-      <p>Invoice (Full): {fullInvoice.bolt11}</p>
-      <QRCode value={fullInvoice.bolt11} />
-      <p>Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Full Invoice Details</h1>
+        <div className="mb-4">
+          <label className="block text-gray-700 font-bold mb-2">Invoice (Full):</label>
+          <div className="bg-gray-100 p-2 rounded break-words">
+            <p className="text-xs">{fullInvoice.bolt11}</p>
+          </div>
+        </div>
+        <div className="flex justify-center my-4">
+          <QRCode value={fullInvoice.bolt11} />
+        </div>
+        <p className="text-center font-bold">Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
+      </div>
     </div>
   );
 };

@@ -1,22 +1,26 @@
 .container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-  }
-  
-  .container h1 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #333;
-  }
-  
-  .container p {
-    text-align: center;
-  }
-  
-  .container .QRCode {
-    display: block;
-    margin: 0 auto;
-  }
-  
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Roboto', Arial, sans-serif;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.container h1 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--primary-color);
+  font-family: 'Orbitron', sans-serif;
+  text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color);
+}
+
+.container p {
+  text-align: center;
+}
+
+.container .QRCode {
+  display: block;
+  margin: 0 auto;
+}

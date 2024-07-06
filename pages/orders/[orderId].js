@@ -13,6 +13,7 @@ const OrderDetails = () => {
   const [fullInvoice, setFullInvoice] = useState(null);
   const [isMakerHoldPaid, setIsMakerHoldPaid] = useState(false);
   const [isFullPaid, setIsFullPaid] = useState(false);
+  const [isSigning, setIsSigning] = useState(false); // Flag to prevent multiple sign attempts
   const ndk = useContext(NDKContext);
 
   const fetchOrder = async () => {
@@ -63,18 +64,25 @@ const OrderDetails = () => {
       });
       console.log(`Invoice status response for ${type} invoice:`, response.data);
 
-      if (response.data.state === 'accepted') {
-        if (type === 'makerHold') {
+      if (response.data.state === 'ACCEPTED') {
+        if (type === 'makerHold' && !isMakerHoldPaid) {
           setIsMakerHoldPaid(true);
+          console.log('Maker hold invoice paid.');
+          if (!isSigning) {
+            await signAndBroadcastOrder('Maker hold invoice paid.');  // Sign and broadcast when the maker hold invoice is paid
+          }
           if (order.type === 0) { // Buy Order
             router.push(`/submit-payout?orderId=${orderId}`);
           } else { // Sell Order
             router.push(`/full-invoice?orderId=${orderId}`);
           }
         }
-        if (type === 'full') {
+        if (type === 'full' && !isFullPaid) {
           setIsFullPaid(true);
-          await signAndBroadcastOrder();
+          console.log('Full invoice paid.');
+          if (!isSigning) {
+            await signAndBroadcastOrder('Full invoice paid.');
+          }
         }
       }
     } catch (error) {
@@ -82,10 +90,17 @@ const OrderDetails = () => {
     }
   };
 
-  const signAndBroadcastOrder = async () => {
+  const signAndBroadcastOrder = async (statusMessage) => {
+    if (isSigning) {
+      console.log("Already signing, skipping this attempt.");
+      return;
+    }
+    setIsSigning(true);
+
     try {
-      if (!order || !ndk || !ndk.signer) {
+      if (!order || !window.nostr) {
         console.log("NDK or signer not ready.");
+        setIsSigning(false);
         return;
       }
 
@@ -97,18 +112,46 @@ const OrderDetails = () => {
         amount: order.amount_msat,
         currency: order.currency,
         payment_method: order.payment_method,
-        status: 'Paid'
+        status: statusMessage
       };
 
-      const ndkEvent = new NDKEvent(ndk);
-      ndkEvent.kind = 1505; // Kind for order event
-      ndkEvent.content = JSON.stringify(orderContent);
+      const event = {
+        kind: 1505, // Event kind set to 1505
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: JSON.stringify(orderContent),
+      };
 
-      await ndkEvent.sign();  // Explicitly sign the event
-      await ndkEvent.publish();
-      console.log('Published event:', ndkEvent);
+      try {
+        const signedEvent = await window.nostr.signEvent(event);
+        console.log('Signed Event:', signedEvent);
+
+        // Send the signed event to your relay using WebSocket
+        const relayURL = 'ws://localhost:7000'; // Change to your actual relay URL
+
+        const relayWebSocket = new WebSocket(relayURL);
+
+        relayWebSocket.onopen = () => {
+          const message = JSON.stringify(['EVENT', signedEvent]);
+          relayWebSocket.send(message);
+          console.log('Signed event sent to relay:', message);
+        };
+
+        relayWebSocket.onerror = (err) => {
+          console.error('WebSocket error:', err);
+        };
+
+        relayWebSocket.onclose = () => {
+          console.log('WebSocket connection closed');
+        };
+
+      } catch (signError) {
+        console.error('Error signing event:', signError);
+      }
     } catch (error) {
       console.error('Error signing and publishing event:', error);
+    } finally {
+      setIsSigning(false);
     }
   };
 
@@ -161,41 +204,60 @@ const OrderDetails = () => {
     }
   }, [fullInvoice]);
 
+  useEffect(() => {
+    if (isFullPaid && !isSigning) {
+      signAndBroadcastOrder('Full invoice paid.');
+    }
+  }, [isFullPaid]);
+
   if (!order) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
   }
 
   return (
-    <div>
-      <h1>Order Details</h1>
-      <p>Order ID: {order.order_id}</p>
-      <p>Details: {order.order_details}</p>
-      <p>Amount: {order.amount_msat}</p>
-      <p>Currency: {order.currency}</p>
-      <p>Payment Method: {order.payment_method}</p>
-      <p>Status: {order.status}</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
+        <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Order Details</h1>
+        <p className="mb-4"><span className="font-bold text-gray-700">Order ID:</span> {order.order_id}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Details:</span> {order.order_details}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Amount:</span> {order.amount_msat}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Currency:</span> {order.currency}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Payment Method:</span> {order.payment_method}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Status:</span> {order.status}</p>
 
-      {makerHoldInvoice && (
-        <>
-          <h2>Maker Hold Invoice</h2>
-          <p>Invoice (Hold): {makerHoldInvoice.bolt11}</p>
-          <QRCode value={makerHoldInvoice.bolt11} />
-          <p>Status: {isMakerHoldPaid ? 'Paid' : 'Not Paid'}</p>
-        </>
-      )}
+        {makerHoldInvoice && (
+          <>
+            <h2 className="text-xl font-bold mb-4 text-blue-600">Maker Hold Invoice</h2>
+            <p className="mb-4 break-words"><span className="font-bold text-gray-700">Invoice (Hold):</span> {makerHoldInvoice.bolt11}</p>
+            <div className="flex justify-center mb-4">
+              <QRCode value={makerHoldInvoice.bolt11} />
+            </div>
+            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {isMakerHoldPaid ? 'Paid' : 'Not Paid'}</p>
+          </>
+        )}
 
-      {fullInvoice && (
-        <>
-          <h2>Full Amount Invoice</h2>
-          <p>Invoice (Full): {fullInvoice.bolt11}</p>
-          <QRCode value={fullInvoice.bolt11} />
-          <p>Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
-        </>
-      )}
+        {fullInvoice && (
+          <>
+            <h2 className="text-xl font-bold mb-4 text-blue-600">Full Amount Invoice</h2>
+            <p className="mb-4 break-words"><span className="font-bold text-gray-700">Invoice (Full):</span> {fullInvoice.bolt11}</p>
+            <div className="flex justify-center mb-4">
+              <QRCode value={fullInvoice.bolt11} />
+            </div>
+            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {isFullPaid ? 'Paid' : 'Not Paid'}</p>
+          </>
+        )}
 
-      {order.status === 'chat_open' && (
-        <button onClick={handleOpenChat}>Open Chat</button>
-      )}
+        {order.status === 'chat_open' && (
+          <div className="flex justify-center">
+            <button
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              onClick={handleOpenChat}
+            >
+              Open Chat
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

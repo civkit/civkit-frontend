@@ -26,7 +26,7 @@ const SubmitPayout = () => {
       if (response.data.message) {
         setSuccessMessage('Payout submitted successfully.');
         setTimeout(() => {
-          router.push(`/order-details?orderId=${orderId}`);
+          router.push(`/orders`);
         }, 2000);
       }
     } catch (error) {
@@ -36,23 +36,36 @@ const SubmitPayout = () => {
   };
 
   return (
-    <div className="container">
-      <h1>Submit Payout</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Lightning Invoice:</label>
-          <input
-            type="text"
-            value={lnInvoice}
-            onChange={(e) => setLnInvoice(e.target.value)}
-            placeholder="Paste your Lightning Network invoice here"
-            required
-          />
-        </div>
-        {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-        {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
-        <button type="submit">Submit Payout</button>
-      </form>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Submit Payout</h1>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="lnInvoice">
+              Lightning Invoice:
+            </label>
+            <input
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              type="text"
+              id="lnInvoice"
+              value={lnInvoice}
+              onChange={(e) => setLnInvoice(e.target.value)}
+              placeholder="Paste your Lightning Network invoice here"
+              required
+            />
+          </div>
+          {errorMessage && <p className="text-red-500 text-xs italic">{errorMessage}</p>}
+          {successMessage && <p className="text-green-500 text-xs italic">{successMessage}</p>}
+          <div className="flex items-center justify-between">
+            <button
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              type="submit"
+            >
+              Submit Payout
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
