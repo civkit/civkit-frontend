@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import QRCode from 'qrcode.react';
+import { NDKContext } from '../components/NDKContext';
 
 const TakeOrder = () => {
   const router = useRouter();
@@ -11,6 +12,8 @@ const TakeOrder = () => {
   const [fullInvoice, setFullInvoice] = useState(null);
   const [isTakerHoldPaid, setIsTakerHoldPaid] = useState(false);
   const [isFullPaid, setIsFullPaid] = useState(false);
+  const [isSigning, setIsSigning] = useState(false); // Flag to prevent multiple sign attempts
+  const ndk = useContext(NDKContext);
 
   const fetchOrder = async () => {
     try {
@@ -84,6 +87,71 @@ const TakeOrder = () => {
     }
   };
 
+  const signAndBroadcastOrder = async (statusMessage) => {
+    if (isSigning) {
+      console.log("Already signing, skipping this attempt.");
+      return;
+    }
+    setIsSigning(true);
+
+    try {
+      if (!order || !window.nostr) {
+        console.log("NDK or signer not ready.");
+        setIsSigning(false);
+        return;
+      }
+
+      console.log("Signing and broadcasting order...");
+
+      const orderContent = {
+        order_id: order.order_id,
+        details: order.order_details,
+        amount: order.amount_msat,
+        currency: order.currency,
+        payment_method: order.payment_method,
+        status: statusMessage,
+      };
+
+      const event = {
+        kind: 1506, // New event kind set to 1506 for taker events
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: JSON.stringify(orderContent),
+      };
+
+      try {
+        const signedEvent = await window.nostr.signEvent(event);
+        console.log('Signed Event:', signedEvent);
+
+        // Send the signed event to your relay using WebSocket
+        const relayURL = 'ws://localhost:7000'; // Change to your actual relay URL
+
+        const relayWebSocket = new WebSocket(relayURL);
+
+        relayWebSocket.onopen = () => {
+          const message = JSON.stringify(['EVENT', signedEvent]);
+          relayWebSocket.send(message);
+          console.log('Signed event sent to relay:', message);
+        };
+
+        relayWebSocket.onerror = (err) => {
+          console.error('WebSocket error:', err);
+        };
+
+        relayWebSocket.onclose = () => {
+          console.log('WebSocket connection closed');
+        };
+
+      } catch (signError) {
+        console.error('Error signing event:', signError);
+      }
+    } catch (error) {
+      console.error('Error signing and publishing event:', error);
+    } finally {
+      setIsSigning(false);
+    }
+  };
+
   useEffect(() => {
     if (orderId) {
       fetchOrder();
@@ -109,11 +177,20 @@ const TakeOrder = () => {
   }, [fullInvoice]);
 
   useEffect(() => {
-    if (isTakerHoldPaid && fullInvoice) {
-      // Redirect to the full invoice display page when the taker hold invoice is paid
-      router.push(`/full-invoice?orderId=${orderId}`);
+    if (isTakerHoldPaid && !isSigning) {
+      signAndBroadcastOrder('Taker hold invoice paid.');
+      if (fullInvoice) {
+        // Redirect to the full invoice display page when the taker hold invoice is paid
+        router.push(`/full-invoice?orderId=${orderId}`);
+      }
     }
   }, [isTakerHoldPaid, fullInvoice, orderId, router]);
+
+  useEffect(() => {
+    if (isFullPaid && !isSigning) {
+      signAndBroadcastOrder('Full invoice paid.');
+    }
+  }, [isFullPaid]);
 
   if (!order) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
