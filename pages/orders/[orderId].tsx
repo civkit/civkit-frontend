@@ -5,12 +5,39 @@ import axios from 'axios';
 import QRCode from 'qrcode.react';
 import { NDKContext } from '../../components/NDKContext';
 
-const OrderDetails = () => {
+type Order = {
+  order_id: number;
+  order_details: string;
+  amount_msat: number;
+  currency: string;
+  payment_method: string;
+  status: string;
+  type: number;
+};
+
+type Invoice = {
+  invoice_type: string;
+  user_type?: string;
+  bolt11: string;
+  payment_hash: string;
+};
+
+type NostrEvent = {
+  kind: number;
+  created_at: number;
+  tags: string[][];
+  content: string;
+  pubkey?: string;
+  id?: string;
+  sig?: string;
+};
+
+const OrderDetails: React.FC = () => {
   const router = useRouter();
   const { orderId } = router.query;
-  const [order, setOrder] = useState(null);
-  const [makerHoldInvoice, setMakerHoldInvoice] = useState(null);
-  const [fullInvoice, setFullInvoice] = useState(null);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [makerHoldInvoice, setMakerHoldInvoice] = useState<Invoice | null>(null);
+  const [fullInvoice, setFullInvoice] = useState<Invoice | null>(null);
   const [isMakerHoldPaid, setIsMakerHoldPaid] = useState(false);
   const [isFullPaid, setIsFullPaid] = useState(false);
   const [isSigning, setIsSigning] = useState(false); // Flag to prevent multiple sign attempts
@@ -19,7 +46,7 @@ const OrderDetails = () => {
   const fetchOrder = async () => {
     try {
       console.log(`Fetching order with ID: ${orderId}`);
-      const orderResponse = await axios.get(`http://localhost:3000/api/orders/${orderId}`, {
+      const orderResponse = await axios.get<Order>(`http://localhost:3000/api/orders/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -28,7 +55,7 @@ const OrderDetails = () => {
       console.log('Order Response:', orderResponse.data);
 
       console.log(`Fetching invoices for order ID: ${orderId}`);
-      const invoicesResponse = await axios.get(`http://localhost:3000/api/invoice/${orderId}`, {
+      const invoicesResponse = await axios.get<Invoice[]>(`http://localhost:3000/api/invoice/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -42,8 +69,8 @@ const OrderDetails = () => {
       const makerHold = invoices.find(invoice => invoice.invoice_type === 'hold' && (!invoice.user_type || invoice.user_type === ''));
       const fullInv = invoices.find(invoice => invoice.invoice_type === 'full' && invoice.user_type === '');
 
-      setMakerHoldInvoice(makerHold);
-      setFullInvoice(fullInv);
+      setMakerHoldInvoice(makerHold || null);
+      setFullInvoice(fullInv || null);
 
       console.log('Maker Hold Invoice:', makerHold);
       console.log('Full Invoice:', fullInv);
@@ -52,10 +79,10 @@ const OrderDetails = () => {
     }
   };
 
-  const checkInvoiceStatus = async (paymentHash, type) => {
+  const checkInvoiceStatus = async (paymentHash: string, type: 'makerHold' | 'full') => {
     try {
       console.log(`Checking invoice status for payment hash: ${paymentHash}`);
-      const response = await axios.post('http://localhost:3000/api/holdinvoicelookup', {
+      const response = await axios.post(`http://localhost:3000/api/holdinvoicelookup`, {
         payment_hash: paymentHash,
       }, {
         headers: {
@@ -69,9 +96,9 @@ const OrderDetails = () => {
           setIsMakerHoldPaid(true);
           console.log('Maker hold invoice paid.');
           if (!isSigning) {
-            await signAndBroadcastOrder('Maker hold invoice paid.');  // Sign and broadcast when the maker hold invoice is paid
+            await signAndBroadcastOrder('Maker hold invoice paid.');
           }
-          if (order.type === 0) { // Buy Order
+          if (order?.type === 0) { // Buy Order
             router.push(`/submit-payout?orderId=${orderId}`);
           } else { // Sell Order
             router.push(`/full-invoice?orderId=${orderId}`);
@@ -90,7 +117,7 @@ const OrderDetails = () => {
     }
   };
 
-  const signAndBroadcastOrder = async (statusMessage) => {
+  const signAndBroadcastOrder = async (statusMessage: string) => {
     if (isSigning) {
       console.log("Already signing, skipping this attempt.");
       return;
@@ -112,10 +139,10 @@ const OrderDetails = () => {
         amount: order.amount_msat,
         currency: order.currency,
         payment_method: order.payment_method,
-        status: statusMessage
+        status: statusMessage,
       };
 
-      const event = {
+      const event: NostrEvent = {
         kind: 1505, // Event kind set to 1505
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
@@ -158,7 +185,7 @@ const OrderDetails = () => {
   const handleOpenChat = async () => {
     try {
       console.log(`Creating or checking chatroom for order ID: ${orderId}`);
-      const response = await axios.post('http://localhost:3000/api/check-and-create-chatroom', {
+      const response = await axios.post(`http://localhost:3000/api/check-and-create-chatroom`, {
         orderId,
       }, {
         headers: {
@@ -170,9 +197,9 @@ const OrderDetails = () => {
 
       const { makeChatUrl, acceptChatUrl } = response.data;
       // Redirect based on the user's role
-      if (order.type === 0 && makeChatUrl) { // Buyer
+      if (order?.type === 0 && makeChatUrl) { // Buyer
         router.push(makeChatUrl);
-      } else if (order.type === 1 && acceptChatUrl) { // Seller
+      } else if (order?.type === 1 && acceptChatUrl) { // Seller
         router.push(acceptChatUrl);
       }
     } catch (error) {
@@ -187,7 +214,7 @@ const OrderDetails = () => {
   }, [orderId]);
 
   useEffect(() => {
-    if (makerHoldInvoice && makerHoldInvoice.payment_hash) {
+    if (makerHoldInvoice?.payment_hash) {
       const interval = setInterval(() => {
         checkInvoiceStatus(makerHoldInvoice.payment_hash, 'makerHold');
       }, 5000);
@@ -196,7 +223,7 @@ const OrderDetails = () => {
   }, [makerHoldInvoice]);
 
   useEffect(() => {
-    if (fullInvoice && fullInvoice.payment_hash) {
+    if (fullInvoice?.payment_hash) {
       const interval = setInterval(() => {
         checkInvoiceStatus(fullInvoice.payment_hash, 'full');
       }, 5000);
