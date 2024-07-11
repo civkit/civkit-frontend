@@ -16,10 +16,17 @@ type Order = {
 };
 
 type Invoice = {
-  invoice_type: string;
-  user_type?: string;
+  invoice_id: number;
+  order_id: number;
   bolt11: string;
+  amount_msat: string;
+  description: string;
+  status: string | null;
+  created_at: Date;
+  expires_at: Date;
   payment_hash: string;
+  invoice_type: string;
+  user_type: string | null;
 };
 
 type NostrEvent = {
