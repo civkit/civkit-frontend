@@ -24,6 +24,9 @@ const CreateOrderForm = ({ onOrderCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const timestamp = Date.now(); // Generate a unique timestamp
+      const uniqueLabel = `order_${timestamp}`; // Create a unique label using the timestamp
+
       const orderData = {
         order_details: orderDetails,
         amount_msat: parseInt(amountMsat),
@@ -33,7 +36,20 @@ const CreateOrderForm = ({ onOrderCreated }) => {
         type,
       };
 
+      // Post order data to create the order
       const response = await axios.post('http://localhost:3000/api/orders', orderData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      // Post hold invoice with unique label
+      await axios.post('http://localhost:3000/api/holdinvoice', {
+        amount_msat: parseInt(amountMsat),
+        label: uniqueLabel,
+        description: orderDetails
+      }, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -42,6 +58,7 @@ const CreateOrderForm = ({ onOrderCreated }) => {
 
       if (response.data.order) {
         onOrderCreated(response.data.order);
+        router.push(`/orders/${response.data.order.order_id}`); // Redirect to the order details page
       }
     } catch (error) {
       console.error('Error creating order:', error);

@@ -45,9 +45,7 @@ const OrderDetails: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [makerHoldInvoice, setMakerHoldInvoice] = useState<Invoice | null>(null);
   const [fullInvoice, setFullInvoice] = useState<Invoice | null>(null);
-  const [isMakerHoldPaid, setIsMakerHoldPaid] = useState(false);
-  const [isFullPaid, setIsFullPaid] = useState(false);
-  const [isSigning, setIsSigning] = useState(false); // Flag to prevent multiple sign attempts
+  const [isSigning, setIsSigning] = useState(false);
   const ndk = useContext(NDKContext);
 
   const fetchOrder = async () => {
@@ -58,8 +56,8 @@ const OrderDetails: React.FC = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
+      console.log('Received order data:', orderResponse.data);
       setOrder(orderResponse.data);
-      console.log('Order Response:', orderResponse.data);
 
       console.log(`Fetching invoices for order ID: ${orderId}`);
       const invoicesResponse = await axios.get<Invoice[]>(`http://localhost:3000/api/invoice/${orderId}`, {
@@ -67,20 +65,17 @@ const OrderDetails: React.FC = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      console.log('Invoices Response:', invoicesResponse.data);
+      console.log('Received invoices data:', invoicesResponse.data);
 
       const invoices = Array.isArray(invoicesResponse.data) ? invoicesResponse.data : [invoicesResponse.data];
-
-      console.log('Processed Invoices:', invoices);
 
       const makerHold = invoices.find(invoice => invoice.invoice_type === 'hold' && (!invoice.user_type || invoice.user_type === ''));
       const fullInv = invoices.find(invoice => invoice.invoice_type === 'full' && invoice.user_type === '');
 
+      console.log('Setting maker hold invoice:', makerHold);
       setMakerHoldInvoice(makerHold || null);
+      console.log('Setting full invoice:', fullInv);
       setFullInvoice(fullInv || null);
-
-      console.log('Maker Hold Invoice:', makerHold);
-      console.log('Full Invoice:', fullInv);
     } catch (error) {
       console.error('Error fetching order or invoice:', error);
     }
@@ -98,26 +93,19 @@ const OrderDetails: React.FC = () => {
       });
       console.log(`Invoice status response for ${type} invoice:`, response.data);
 
-      if (response.data.state === 'ACCEPTED') {
-        if (type === 'makerHold' && !isMakerHoldPaid) {
-          setIsMakerHoldPaid(true);
-          console.log('Maker hold invoice paid.');
-          if (!isSigning) {
-            await signAndBroadcastOrder('Maker hold invoice paid.');
-          }
-          if (order?.type === 0) { // Buy Order
-            router.push(`/submit-payout?orderId=${orderId}`);
-          } else { // Sell Order
-            router.push(`/full-invoice?orderId=${orderId}`);
-          }
+      if (response.data.state === 'paid') {
+        console.log(`${type} invoice paid.`);
+        if (!isSigning) {
+          await signAndBroadcastOrder(`${type} invoice paid.`);
         }
-        if (type === 'full' && !isFullPaid) {
-          setIsFullPaid(true);
-          console.log('Full invoice paid.');
-          if (!isSigning) {
-            await signAndBroadcastOrder('Full invoice paid.');
-          }
+        if (type === 'makerHold' && order?.type === 0) { // Buy Order
+          router.push(`/submit-payout?orderId=${orderId}`);
+        } else if (type === 'makerHold' && order?.type === 1) { // Sell Order
+          router.push(`/full-invoice?orderId=${orderId}`);
         }
+        
+        // Fetch updated order and invoice data
+        await fetchOrder();
       }
     } catch (error) {
       console.error('Error checking invoice status:', error);
@@ -134,7 +122,6 @@ const OrderDetails: React.FC = () => {
     try {
       if (!order || !window.nostr) {
         console.log("NDK or signer not ready.");
-        setIsSigning(false);
         return;
       }
 
@@ -150,7 +137,7 @@ const OrderDetails: React.FC = () => {
       };
 
       const event: NostrEvent = {
-        kind: 1505, // Event kind set to 1505
+        kind: 1505,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: JSON.stringify(orderContent),
@@ -160,9 +147,7 @@ const OrderDetails: React.FC = () => {
         const signedEvent = await window.nostr.signEvent(event);
         console.log('Signed Event:', signedEvent);
 
-        // Send the signed event to your relay using WebSocket
-        const relayURL = 'ws://localhost:7000'; // Change to your actual relay URL
-
+        const relayURL = 'ws://localhost:7000';
         const relayWebSocket = new WebSocket(relayURL);
 
         relayWebSocket.onopen = () => {
@@ -203,7 +188,6 @@ const OrderDetails: React.FC = () => {
       console.log('Chatroom Response:', response.data);
 
       const { makeChatUrl, acceptChatUrl } = response.data;
-      // Redirect based on the user's role
       if (order?.type === 0 && makeChatUrl) { // Buyer
         router.push(makeChatUrl);
       } else if (order?.type === 1 && acceptChatUrl) { // Seller
@@ -217,6 +201,8 @@ const OrderDetails: React.FC = () => {
   useEffect(() => {
     if (orderId) {
       fetchOrder();
+      const interval = setInterval(fetchOrder, 10000); // Refresh every 10 seconds
+      return () => clearInterval(interval);
     }
   }, [orderId]);
 
@@ -237,12 +223,6 @@ const OrderDetails: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [fullInvoice]);
-
-  useEffect(() => {
-    if (isFullPaid && !isSigning) {
-      signAndBroadcastOrder('Full invoice paid.');
-    }
-  }, [isFullPaid]);
 
   if (!order) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
@@ -266,7 +246,7 @@ const OrderDetails: React.FC = () => {
             <div className="flex justify-center mb-4">
               <QRCode value={makerHoldInvoice.bolt11} />
             </div>
-            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {isMakerHoldPaid ? 'Paid' : 'Not Paid'}</p>
+            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {makerHoldInvoice.status === 'paid' ? 'Paid' : 'Not Paid'}</p>
           </>
         )}
 
@@ -277,7 +257,7 @@ const OrderDetails: React.FC = () => {
             <div className="flex justify-center mb-4">
               <QRCode value={fullInvoice.bolt11} />
             </div>
-            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {isFullPaid ? 'Paid' : 'Not Paid'}</p>
+            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {fullInvoice.status === 'paid' ? 'Paid' : 'Not Paid'}</p>
           </>
         )}
 
