@@ -7,56 +7,26 @@ const FullInvoice = () => {
   const router = useRouter();
   const { orderId } = router.query;
   const [fullInvoice, setFullInvoice] = useState(null);
-  const [isFullPaid, setIsFullPaid] = useState(false);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const fetchFullInvoice = async () => {
+    setLoading(true);
     try {
+      setError(null);
+      console.log(`Fetching full invoice for order ID: ${orderId}`);
       const response = await axios.get(`http://localhost:3000/api/full-invoice/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      setFullInvoice(response.data);
-      // Check the status immediately after fetching
-      if (response.data.payment_hash) {
-        await checkInvoiceStatus(response.data.payment_hash);
-      }
+      console.log('Full invoice response:', response.data);
+      setFullInvoice(response.data.invoice);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching full invoice:', error);
-    }
-  };
-
-  const checkInvoiceStatus = async (paymentHash) => {
-    try {
-      const response = await axios.post('http://localhost:3000/api/fullinvoicelookup', {
-        payment_hash: paymentHash,
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      // Log the response to ensure we are receiving the correct state
-      console.log('Invoice status response:', response.data);
-
-      if (response.data.status === 'paid') {
-        setIsFullPaid(true);
-      }
-    } catch (error) {
-      console.error('Error checking invoice status:', error);
-    }
-  };
-
-  const syncInvoices = async () => {
-    try {
-      await axios.post('http://localhost:3000/api/sync-invoices', {}, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      await fetchFullInvoice();  // Re-fetch the invoice to update its status
-    } catch (error) {
-      console.error('Error syncing invoices:', error);
+      setError(`Failed to fetch full invoice: ${error.message}`);
+      setLoading(false);
     }
   };
 
@@ -66,22 +36,16 @@ const FullInvoice = () => {
     }
   }, [orderId]);
 
-  useEffect(() => {
-    if (fullInvoice && fullInvoice.payment_hash && !isFullPaid) {
-      const interval = setInterval(() => {
-        checkInvoiceStatus(fullInvoice.payment_hash);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [fullInvoice, isFullPaid]);
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
+  }
 
-  useEffect(() => {
-    const syncInterval = setInterval(syncInvoices, 60000);  // Sync invoices every 60 seconds
-    return () => clearInterval(syncInterval);
-  }, []);
+  if (error) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-100">{error}</div>;
+  }
 
   if (!fullInvoice) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-100">No invoice data available.</div>;
   }
 
   return (
@@ -97,7 +61,18 @@ const FullInvoice = () => {
         <div className="flex justify-center my-4">
           <QRCode value={fullInvoice.bolt11} />
         </div>
-        <p className="text-center font-bold">Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
+        <div className="mt-4">
+          <p><strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000} sats</p>
+          <p><strong>Status:</strong> {fullInvoice.status}</p>
+          <p><strong>Created At:</strong> {new Date(fullInvoice.created_at).toLocaleString()}</p>
+          <p><strong>Expires At:</strong> {new Date(fullInvoice.expires_at).toLocaleString()}</p>
+        </div>
+        <button 
+          onClick={fetchFullInvoice} 
+          className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
+        >
+          Refresh Invoice Status
+        </button>
       </div>
     </div>
   );

@@ -12,7 +12,7 @@ const TakeOrder = () => {
   const [fullInvoice, setFullInvoice] = useState(null);
   const [isTakerHoldPaid, setIsTakerHoldPaid] = useState(false);
   const [isFullPaid, setIsFullPaid] = useState(false);
-  const [isSigning, setIsSigning] = useState(false); // Flag to prevent multiple sign attempts
+  const [isSigning, setIsSigning] = useState(false);
   const ndk = useContext(NDKContext);
 
   const fetchOrder = async () => {
@@ -74,19 +74,23 @@ const TakeOrder = () => {
       }
       console.log(`Invoice status response for ${type} invoice:`, response.data);
 
-      if (response.data.state === 'ACCEPTED') {
+      if (response.data.status === 'paid' || response.data.state === 'ACCEPTED') {
+        console.log(`${type} invoice is paid.`);
         if (type === 'takerHold') {
           setIsTakerHoldPaid(true);
         }
         if (type === 'full') {
           setIsFullPaid(true);
         }
+        // Fetch updated order data
+        await fetchOrder();
+      } else {
+        console.log(`${type} invoice is not paid. Current status:`, response.data.status || response.data.state);
       }
     } catch (error) {
       console.error('Error checking invoice status:', error);
     }
   };
-
   const signAndBroadcastOrder = async (statusMessage) => {
     if (isSigning) {
       console.log("Already signing, skipping this attempt.");
@@ -159,24 +163,33 @@ const TakeOrder = () => {
   }, [orderId]);
 
   useEffect(() => {
+    let interval;
     if (takerHoldInvoice && takerHoldInvoice.payment_hash) {
-      const interval = setInterval(() => {
+      console.log('Setting up interval for takerHoldInvoice');
+      interval = setInterval(() => {
         checkInvoiceStatus(takerHoldInvoice.payment_hash, 'takerHold');
       }, 5000);
-      return () => clearInterval(interval);
     }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [takerHoldInvoice]);
 
   useEffect(() => {
+    let interval;
     if (fullInvoice && fullInvoice.payment_hash) {
-      const interval = setInterval(() => {
+      console.log('Setting up interval for fullInvoice');
+      interval = setInterval(() => {
         checkInvoiceStatus(fullInvoice.payment_hash, 'full');
       }, 5000);
-      return () => clearInterval(interval);
     }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [fullInvoice]);
 
   useEffect(() => {
+    console.log('isTakerHoldPaid changed:', isTakerHoldPaid);
     if (isTakerHoldPaid && !isSigning) {
       signAndBroadcastOrder('Taker hold invoice paid.');
       if (fullInvoice) {
@@ -187,6 +200,7 @@ const TakeOrder = () => {
   }, [isTakerHoldPaid, fullInvoice, orderId, router]);
 
   useEffect(() => {
+    console.log('isFullPaid changed:', isFullPaid);
     if (isFullPaid && !isSigning) {
       signAndBroadcastOrder('Full invoice paid.');
     }
@@ -232,6 +246,13 @@ const TakeOrder = () => {
             <p>Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
           </>
         )}
+
+        <button 
+          onClick={fetchOrder} 
+          className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Refresh Order Status
+        </button>
       </div>
     </div>
   );
