@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import QRCode from 'qrcode.react';
+import { NDKContext } from '../components/NDKContext';
 
 const TakeOrder = () => {
   const router = useRouter();
@@ -11,6 +12,8 @@ const TakeOrder = () => {
   const [fullInvoice, setFullInvoice] = useState(null);
   const [isTakerHoldPaid, setIsTakerHoldPaid] = useState(false);
   const [isFullPaid, setIsFullPaid] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
+  const ndk = useContext(NDKContext);
 
   const fetchOrder = async () => {
     try {
@@ -71,16 +74,85 @@ const TakeOrder = () => {
       }
       console.log(`Invoice status response for ${type} invoice:`, response.data);
 
-      if (response.data.state === 'ACCEPTED') {
+      if (response.data.status === 'paid' || response.data.state === 'ACCEPTED') {
+        console.log(`${type} invoice is paid.`);
         if (type === 'takerHold') {
           setIsTakerHoldPaid(true);
         }
         if (type === 'full') {
           setIsFullPaid(true);
         }
+        // Fetch updated order data
+        await fetchOrder();
+      } else {
+        console.log(`${type} invoice is not paid. Current status:`, response.data.status || response.data.state);
       }
     } catch (error) {
       console.error('Error checking invoice status:', error);
+    }
+  };
+  const signAndBroadcastOrder = async (statusMessage) => {
+    if (isSigning) {
+      console.log("Already signing, skipping this attempt.");
+      return;
+    }
+    setIsSigning(true);
+
+    try {
+      if (!order || !window.nostr) {
+        console.log("NDK or signer not ready.");
+        setIsSigning(false);
+        return;
+      }
+
+      console.log("Signing and broadcasting order...");
+
+      const orderContent = {
+        order_id: order.order_id,
+        details: order.order_details,
+        amount: order.amount_msat,
+        currency: order.currency,
+        payment_method: order.payment_method,
+        status: statusMessage,
+      };
+
+      const event = {
+        kind: 1506, // New event kind set to 1506 for taker events
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: JSON.stringify(orderContent),
+      };
+
+      try {
+        const signedEvent = await window.nostr.signEvent(event);
+        console.log('Signed Event:', signedEvent);
+
+        // Send the signed event to your relay using WebSocket
+        const relayURL = 'ws://localhost:7000'; // Change to your actual relay URL
+
+        const relayWebSocket = new WebSocket(relayURL);
+
+        relayWebSocket.onopen = () => {
+          const message = JSON.stringify(['EVENT', signedEvent]);
+          relayWebSocket.send(message);
+          console.log('Signed event sent to relay:', message);
+        };
+
+        relayWebSocket.onerror = (err) => {
+          console.error('WebSocket error:', err);
+        };
+
+        relayWebSocket.onclose = () => {
+          console.log('WebSocket connection closed');
+        };
+
+      } catch (signError) {
+        console.error('Error signing event:', signError);
+      }
+    } catch (error) {
+      console.error('Error signing and publishing event:', error);
+    } finally {
+      setIsSigning(false);
     }
   };
 
@@ -91,29 +163,48 @@ const TakeOrder = () => {
   }, [orderId]);
 
   useEffect(() => {
+    let interval;
     if (takerHoldInvoice && takerHoldInvoice.payment_hash) {
-      const interval = setInterval(() => {
+      console.log('Setting up interval for takerHoldInvoice');
+      interval = setInterval(() => {
         checkInvoiceStatus(takerHoldInvoice.payment_hash, 'takerHold');
       }, 5000);
-      return () => clearInterval(interval);
     }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [takerHoldInvoice]);
 
   useEffect(() => {
+    let interval;
     if (fullInvoice && fullInvoice.payment_hash) {
-      const interval = setInterval(() => {
+      console.log('Setting up interval for fullInvoice');
+      interval = setInterval(() => {
         checkInvoiceStatus(fullInvoice.payment_hash, 'full');
       }, 5000);
-      return () => clearInterval(interval);
     }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [fullInvoice]);
 
   useEffect(() => {
-    if (isTakerHoldPaid && fullInvoice) {
-      // Redirect to the full invoice display page when the taker hold invoice is paid
-      router.push(`/full-invoice?orderId=${orderId}`);
+    console.log('isTakerHoldPaid changed:', isTakerHoldPaid);
+    if (isTakerHoldPaid && !isSigning) {
+      signAndBroadcastOrder('Taker hold invoice paid.');
+      if (fullInvoice) {
+        // Redirect to the full invoice display page when the taker hold invoice is paid
+        router.push(`/full-invoice?orderId=${orderId}`);
+      }
     }
   }, [isTakerHoldPaid, fullInvoice, orderId, router]);
+
+  useEffect(() => {
+    console.log('isFullPaid changed:', isFullPaid);
+    if (isFullPaid && !isSigning) {
+      signAndBroadcastOrder('Full invoice paid.');
+    }
+  }, [isFullPaid]);
 
   if (!order) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
@@ -155,6 +246,13 @@ const TakeOrder = () => {
             <p>Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
           </>
         )}
+
+        <button 
+          onClick={fetchOrder} 
+          className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Refresh Order Status
+        </button>
       </div>
     </div>
   );

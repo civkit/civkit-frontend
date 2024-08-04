@@ -14,7 +14,7 @@ const SubmitPayout = () => {
     e.preventDefault();
     try {
       const response = await axios.post('http://localhost:3000/api/payouts/submit', {
-        order_id: orderId,
+        order_id: parseInt(orderId),
         ln_invoice: lnInvoice,
       }, {
         headers: {

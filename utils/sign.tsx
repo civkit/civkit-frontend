@@ -1,4 +1,6 @@
+// @ts-expect-error TS(2792): Cannot find module '@noble/hashes/sha256'. Did you... Remove this comment to see the full error message
 import { sha256 } from '@noble/hashes/sha256';
+// @ts-expect-error TS(2792): Cannot find module '@noble/curves/secp256k1'. Did ... Remove this comment to see the full error message
 import { schnorr } from '@noble/curves/secp256k1';
 
 

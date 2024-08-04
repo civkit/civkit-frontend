@@ -5,57 +5,86 @@ import axios from 'axios';
 import QRCode from 'qrcode.react';
 import { NDKContext } from '../../components/NDKContext';
 
-const OrderDetails = () => {
+type Order = {
+  order_id: number;
+  order_details: string;
+  amount_msat: number;
+  currency: string;
+  payment_method: string;
+  status: string;
+  type: number;
+};
+
+type Invoice = {
+  invoice_id: number;
+  order_id: number;
+  bolt11: string;
+  amount_msat: string;
+  description: string;
+  status: string | null;
+  created_at: Date;
+  expires_at: Date;
+  payment_hash: string;
+  invoice_type: string;
+  user_type: string | null;
+};
+
+type NostrEvent = {
+  kind: number;
+  created_at: number;
+  tags: string[][];
+  content: string;
+  pubkey?: string;
+  id?: string;
+  sig?: string;
+};
+
+const OrderDetails: React.FC = () => {
   const router = useRouter();
   const { orderId } = router.query;
-  const [order, setOrder] = useState(null);
-  const [makerHoldInvoice, setMakerHoldInvoice] = useState(null);
-  const [fullInvoice, setFullInvoice] = useState(null);
-  const [isMakerHoldPaid, setIsMakerHoldPaid] = useState(false);
-  const [isFullPaid, setIsFullPaid] = useState(false);
-  const [isSigning, setIsSigning] = useState(false); // Flag to prevent multiple sign attempts
+  const [order, setOrder] = useState<Order | null>(null);
+  const [makerHoldInvoice, setMakerHoldInvoice] = useState<Invoice | null>(null);
+  const [fullInvoice, setFullInvoice] = useState<Invoice | null>(null);
+  const [isSigning, setIsSigning] = useState(false);
   const ndk = useContext(NDKContext);
 
   const fetchOrder = async () => {
     try {
       console.log(`Fetching order with ID: ${orderId}`);
-      const orderResponse = await axios.get(`http://localhost:3000/api/orders/${orderId}`, {
+      const orderResponse = await axios.get<Order>(`http://localhost:3000/api/orders/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
+      console.log('Received order data:', orderResponse.data);
       setOrder(orderResponse.data);
-      console.log('Order Response:', orderResponse.data);
 
       console.log(`Fetching invoices for order ID: ${orderId}`);
-      const invoicesResponse = await axios.get(`http://localhost:3000/api/invoice/${orderId}`, {
+      const invoicesResponse = await axios.get<Invoice[]>(`http://localhost:3000/api/invoice/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      console.log('Invoices Response:', invoicesResponse.data);
+      console.log('Received invoices data:', invoicesResponse.data);
 
       const invoices = Array.isArray(invoicesResponse.data) ? invoicesResponse.data : [invoicesResponse.data];
-
-      console.log('Processed Invoices:', invoices);
 
       const makerHold = invoices.find(invoice => invoice.invoice_type === 'hold' && (!invoice.user_type || invoice.user_type === ''));
       const fullInv = invoices.find(invoice => invoice.invoice_type === 'full' && invoice.user_type === '');
 
-      setMakerHoldInvoice(makerHold);
-      setFullInvoice(fullInv);
-
-      console.log('Maker Hold Invoice:', makerHold);
-      console.log('Full Invoice:', fullInv);
+      console.log('Setting maker hold invoice:', makerHold);
+      setMakerHoldInvoice(makerHold || null);
+      console.log('Setting full invoice:', fullInv);
+      setFullInvoice(fullInv || null);
     } catch (error) {
       console.error('Error fetching order or invoice:', error);
     }
   };
 
-  const checkInvoiceStatus = async (paymentHash, type) => {
+  const checkInvoiceStatus = async (paymentHash: string, type: 'makerHold' | 'full') => {
     try {
       console.log(`Checking invoice status for payment hash: ${paymentHash}`);
-      const response = await axios.post('http://localhost:3000/api/holdinvoicelookup', {
+      const response = await axios.post(`http://localhost:3000/api/holdinvoicelookup`, {
         payment_hash: paymentHash,
       }, {
         headers: {
@@ -63,34 +92,37 @@ const OrderDetails = () => {
         },
       });
       console.log(`Invoice status response for ${type} invoice:`, response.data);
-
-      if (response.data.state === 'ACCEPTED') {
-        if (type === 'makerHold' && !isMakerHoldPaid) {
-          setIsMakerHoldPaid(true);
-          console.log('Maker hold invoice paid.');
-          if (!isSigning) {
-            await signAndBroadcastOrder('Maker hold invoice paid.');  // Sign and broadcast when the maker hold invoice is paid
-          }
-          if (order.type === 0) { // Buy Order
-            router.push(`/submit-payout?orderId=${orderId}`);
-          } else { // Sell Order
-            router.push(`/full-invoice?orderId=${orderId}`);
-          }
+  
+      console.log(`Invoice state: ${response.data.state}`);
+      if (response.data.state === 'paid') {
+        console.log(`${type} invoice paid.`);
+        if (!isSigning) {
+          await signAndBroadcastOrder(`${type} invoice paid.`);
         }
-        if (type === 'full' && !isFullPaid) {
-          setIsFullPaid(true);
-          console.log('Full invoice paid.');
-          if (!isSigning) {
-            await signAndBroadcastOrder('Full invoice paid.');
+        console.log(`Order type: ${order?.type}`);
+        if (type === 'makerHold') {
+          if (order?.type === 0) { // Buy Order
+            console.log(`Redirecting to /orders`);
+            window.location.href = '/orders';
+          } else if (order?.type === 1) { // Sell Order
+            console.log(`Redirecting to /full-invoice?orderId=${orderId}`);
+            window.location.href = `/full-invoice?orderId=${orderId}`;
+          } else {
+            console.error(`Unexpected order type: ${order?.type}`);
           }
+        } else if (type === 'full') {
+          console.log(`Redirecting to /orders`);
+          window.location.href = '/orders';
         }
+      } else {
+        console.log(`Invoice not paid. Current state: ${response.data.state}`);
       }
     } catch (error) {
       console.error('Error checking invoice status:', error);
     }
   };
 
-  const signAndBroadcastOrder = async (statusMessage) => {
+  const signAndBroadcastOrder = async (statusMessage: string) => {
     if (isSigning) {
       console.log("Already signing, skipping this attempt.");
       return;
@@ -100,7 +132,6 @@ const OrderDetails = () => {
     try {
       if (!order || !window.nostr) {
         console.log("NDK or signer not ready.");
-        setIsSigning(false);
         return;
       }
 
@@ -112,11 +143,11 @@ const OrderDetails = () => {
         amount: order.amount_msat,
         currency: order.currency,
         payment_method: order.payment_method,
-        status: statusMessage
+        status: statusMessage,
       };
 
-      const event = {
-        kind: 1505, // Event kind set to 1505
+      const event: NostrEvent = {
+        kind: 1505,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: JSON.stringify(orderContent),
@@ -126,9 +157,7 @@ const OrderDetails = () => {
         const signedEvent = await window.nostr.signEvent(event);
         console.log('Signed Event:', signedEvent);
 
-        // Send the signed event to your relay using WebSocket
-        const relayURL = 'ws://localhost:7000'; // Change to your actual relay URL
-
+        const relayURL = 'ws://localhost:7000';
         const relayWebSocket = new WebSocket(relayURL);
 
         relayWebSocket.onopen = () => {
@@ -158,7 +187,7 @@ const OrderDetails = () => {
   const handleOpenChat = async () => {
     try {
       console.log(`Creating or checking chatroom for order ID: ${orderId}`);
-      const response = await axios.post('http://localhost:3000/api/check-and-create-chatroom', {
+      const response = await axios.post(`http://localhost:3000/api/check-and-create-chatroom`, {
         orderId,
       }, {
         headers: {
@@ -169,10 +198,11 @@ const OrderDetails = () => {
       console.log('Chatroom Response:', response.data);
 
       const { makeChatUrl, acceptChatUrl } = response.data;
-      // Redirect based on the user's role
-      if (order.type === 0 && makeChatUrl) { // Buyer
+      if (order?.type === 0 && makeChatUrl) { // Buyer
+        console.log(`Redirecting to ${makeChatUrl}`);
         router.push(makeChatUrl);
-      } else if (order.type === 1 && acceptChatUrl) { // Seller
+      } else if (order?.type === 1 && acceptChatUrl) { // Seller
+        console.log(`Redirecting to ${acceptChatUrl}`);
         router.push(acceptChatUrl);
       }
     } catch (error) {
@@ -183,32 +213,36 @@ const OrderDetails = () => {
   useEffect(() => {
     if (orderId) {
       fetchOrder();
+      const interval = setInterval(fetchOrder, 10000); // Refresh every 10 seconds
+      return () => clearInterval(interval);
     }
   }, [orderId]);
 
   useEffect(() => {
-    if (makerHoldInvoice && makerHoldInvoice.payment_hash) {
+    console.log('useEffect for makerHoldInvoice triggered');
+    console.log('Current order:', order);
+    console.log('Current makerHoldInvoice:', makerHoldInvoice);
+    if (makerHoldInvoice?.payment_hash && order) {
+      console.log('Setting up interval for makerHoldInvoice');
+      console.log(`Order type: ${order.type}`);
       const interval = setInterval(() => {
         checkInvoiceStatus(makerHoldInvoice.payment_hash, 'makerHold');
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [makerHoldInvoice]);
-
+  }, [makerHoldInvoice, order]);
   useEffect(() => {
-    if (fullInvoice && fullInvoice.payment_hash) {
+    console.log('Order updated:', order);
+  }, [order]);
+  useEffect(() => {
+    if (fullInvoice?.payment_hash) {
+      console.log('Setting up interval for fullInvoice');
       const interval = setInterval(() => {
         checkInvoiceStatus(fullInvoice.payment_hash, 'full');
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [fullInvoice]);
-
-  useEffect(() => {
-    if (isFullPaid && !isSigning) {
-      signAndBroadcastOrder('Full invoice paid.');
-    }
-  }, [isFullPaid]);
+  }, [fullInvoice, order?.type]);
 
   if (!order) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
@@ -232,7 +266,7 @@ const OrderDetails = () => {
             <div className="flex justify-center mb-4">
               <QRCode value={makerHoldInvoice.bolt11} />
             </div>
-            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {isMakerHoldPaid ? 'Paid' : 'Not Paid'}</p>
+            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {makerHoldInvoice.status === 'paid' ? 'Paid' : 'Not Paid'}</p>
           </>
         )}
 
@@ -243,7 +277,7 @@ const OrderDetails = () => {
             <div className="flex justify-center mb-4">
               <QRCode value={fullInvoice.bolt11} />
             </div>
-            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {isFullPaid ? 'Paid' : 'Not Paid'}</p>
+            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {fullInvoice.status === 'paid' ? 'Paid' : 'Not Paid'}</p>
           </>
         )}
 
