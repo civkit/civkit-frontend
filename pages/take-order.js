@@ -15,7 +15,7 @@ const TakeOrder = () => {
   const fetchOrder = async () => {
     try {
       console.log(`Fetching order with ID: ${orderId}`);
-      const orderResponse = await axios.get(`http://localhost:3000/api/orders/${orderId}`, {
+      const orderResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -24,7 +24,7 @@ const TakeOrder = () => {
       console.log('Order Response:', orderResponse.data);
 
       console.log(`Fetching taker invoices for order ID: ${orderId}`);
-      const invoicesResponse = await axios.get(`http://localhost:3000/api/taker-invoice/${orderId}`, {
+      const invoicesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taker-invoice/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -53,7 +53,7 @@ const TakeOrder = () => {
       console.log(`Checking invoice status for payment hash: ${paymentHash}`);
       let response;
       if (type === 'full') {
-        response = await axios.post('http://localhost:3000/api/fullinvoicelookup', {
+        response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fullinvoicelookup`, {
           payment_hash: paymentHash,
         }, {
           headers: {
@@ -61,7 +61,7 @@ const TakeOrder = () => {
           },
         });
       } else {
-        response = await axios.post('http://localhost:3000/api/holdinvoicelookup', {
+        response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoicelookup`, {
           payment_hash: paymentHash,
         }, {
           headers: {

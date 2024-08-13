@@ -33,7 +33,7 @@ const CreateOrderForm = ({ onOrderCreated }) => {
         type,
       };
 
-      const response = await axios.post('http://localhost:3000/api/orders', orderData, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`, orderData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

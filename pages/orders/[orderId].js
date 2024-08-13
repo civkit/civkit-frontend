@@ -19,7 +19,7 @@ const OrderDetails = () => {
   const fetchOrder = async () => {
     try {
       console.log(`Fetching order with ID: ${orderId}`);
-      const orderResponse = await axios.get(`http://localhost:3000/api/orders/${orderId}`, {
+      const orderResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -28,7 +28,7 @@ const OrderDetails = () => {
       console.log('Order Response:', orderResponse.data);
 
       console.log(`Fetching invoices for order ID: ${orderId}`);
-      const invoicesResponse = await axios.get(`http://localhost:3000/api/invoice/${orderId}`, {
+      const invoicesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -55,7 +55,7 @@ const OrderDetails = () => {
   const checkInvoiceStatus = async (paymentHash, type) => {
     try {
       console.log(`Checking invoice status for payment hash: ${paymentHash}`);
-      const response = await axios.post('http://localhost:3000/api/holdinvoicelookup', {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoicelookup`, {
         payment_hash: paymentHash,
       }, {
         headers: {
@@ -158,7 +158,7 @@ const OrderDetails = () => {
   const handleOpenChat = async () => {
     try {
       console.log(`Creating or checking chatroom for order ID: ${orderId}`);
-      const response = await axios.post('http://localhost:3000/api/check-and-create-chatroom', {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`, {
         orderId,
       }, {
         headers: {

@@ -13,7 +13,7 @@ const SubmitPayout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3000/api/payouts/submit', {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payouts/submit`, {
         order_id: orderId,
         ln_invoice: lnInvoice,
       }, {

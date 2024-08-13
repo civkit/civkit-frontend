@@ -11,7 +11,7 @@ const FullInvoice = () => {
 
   const fetchFullInvoice = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/full-invoice/${orderId}`, {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/full-invoice/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -28,7 +28,7 @@ const FullInvoice = () => {
 
   const checkInvoiceStatus = async (paymentHash) => {
     try {
-      const response = await axios.post('http://localhost:3000/api/fullinvoicelookup', {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fullinvoicelookup`, {
         payment_hash: paymentHash,
       }, {
         headers: {
@@ -49,7 +49,7 @@ const FullInvoice = () => {
 
   const syncInvoices = async () => {
     try {
-      await axios.post('http://localhost:3000/api/sync-invoices', {}, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/sync-invoices`, {}, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },

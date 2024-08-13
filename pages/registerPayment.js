@@ -15,7 +15,7 @@ const RegisterPayment = () => {
 
   const fetchInvoice = async () => {
     try {
-      const response = await axios.post('http://localhost:3000/api/get-invoice', { username }, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get-invoice`, { username }, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -32,7 +32,7 @@ const RegisterPayment = () => {
 
   const checkInvoiceStatus = async () => {
     try {
-      const response = await axios.post('http://localhost:3000/api/get-invoice', { username }, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get-invoice`, { username }, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },

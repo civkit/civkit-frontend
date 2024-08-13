@@ -26,7 +26,7 @@ const LoginForm = () => {
   const handleLogin = async (event) => {
     event.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3000/api/login', { username, password });
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/login`, { username, password });
       localStorage.setItem('token', response.data.token);
       alert('Login successful!');
       router.push('/orders'); // Redirect to orders page
