@@ -30,11 +30,35 @@ const FullInvoice = () => {
     }
   };
 
+  const syncInvoice = async () => {
+    try {
+      await axios.post(`http://localhost:3000/api/sync-invoice/${orderId}`, {}, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      await fetchFullInvoice();
+    } catch (error) {
+      console.error('Error syncing invoice:', error);
+      setError(`Failed to sync invoice: ${error.message}`);
+    }
+  };
+
   useEffect(() => {
     if (orderId) {
       fetchFullInvoice();
     }
   }, [orderId]);
+
+  useEffect(() => {
+    let intervalId;
+    if (fullInvoice && fullInvoice.status !== 'paid') {
+      intervalId = setInterval(fetchFullInvoice, 5000); // Check every 5 seconds
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [fullInvoice]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
@@ -62,16 +86,20 @@ const FullInvoice = () => {
           <QRCode value={fullInvoice.bolt11} />
         </div>
         <div className="mt-4">
+          <p><strong>Invoice ID:</strong> {fullInvoice.invoice_id}</p>
+          <p><strong>Order ID:</strong> {fullInvoice.order_id}</p>
           <p><strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000} sats</p>
+          <p><strong>Description:</strong> {fullInvoice.description}</p>
           <p><strong>Status:</strong> {fullInvoice.status}</p>
           <p><strong>Created At:</strong> {new Date(fullInvoice.created_at).toLocaleString()}</p>
           <p><strong>Expires At:</strong> {new Date(fullInvoice.expires_at).toLocaleString()}</p>
+          <p><strong>Payment Hash:</strong> {fullInvoice.payment_hash}</p>
         </div>
         <button 
-          onClick={fetchFullInvoice} 
+          onClick={syncInvoice} 
           className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
         >
-          Refresh Invoice Status
+          Sync Invoice
         </button>
       </div>
     </div>

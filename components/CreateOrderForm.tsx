@@ -24,9 +24,9 @@ const CreateOrderForm = ({ onOrderCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const timestamp = Date.now(); // Generate a unique timestamp
-      const uniqueLabel = `order_${timestamp}`; // Create a unique label using the timestamp
-
+      const timestamp = Date.now();
+      const uniqueLabel = `order_${timestamp}`;
+  
       const orderData = {
         order_details: orderDetails,
         amount_msat: parseInt(amountMsat),
@@ -35,17 +35,27 @@ const CreateOrderForm = ({ onOrderCreated }) => {
         status: 'Pending',
         type,
       };
+  
+      console.log('Submitting order data:', orderData);
 
       // Post order data to create the order
-      const response = await axios.post('http://localhost:3000/api/orders', orderData, {
+      const orderResponse = await axios.post('http://localhost:3000/api/orders', orderData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
+  
+      console.log('Order creation response:', orderResponse.data);
 
+      if (!orderResponse.data.order || !orderResponse.data.order.order_id) {
+        throw new Error('Failed to create order');
+      }
+
+      const orderId = orderResponse.data.order.order_id;
+  
       // Post hold invoice with unique label
-      await axios.post('http://localhost:3000/api/holdinvoice', {
+      const holdInvoiceResponse = await axios.post('http://localhost:3000/api/holdinvoice', {
         amount_msat: parseInt(amountMsat),
         label: uniqueLabel,
         description: orderDetails
@@ -56,13 +66,56 @@ const CreateOrderForm = ({ onOrderCreated }) => {
         },
       });
 
-      if (response.data.order) {
-        onOrderCreated(response.data.order);
-        router.push(`/orders/${response.data.order.order_id}`); // Redirect to the order details page
+      console.log('Hold invoice response:', holdInvoiceResponse.data);
+
+      if (!holdInvoiceResponse.data.payment_hash) {
+        throw new Error('Failed to create hold invoice');
+      }
+
+      onOrderCreated(orderResponse.data.order);
+      
+      // Redirect to order details page
+      router.push(`/full-invoice?orderId=${orderId}`);
+
+      // If it's a sell order, start polling for hold invoice payment
+      if (type === 1) {
+        pollHoldInvoiceStatus(holdInvoiceResponse.data.payment_hash, orderId);
       }
     } catch (error) {
       console.error('Error creating order:', error);
     }
+  };
+
+  const pollHoldInvoiceStatus = async (paymentHash, orderId) => {
+    const checkStatus = async () => {
+      try {
+        const response = await axios.post('http://localhost:3000/api/holdinvoicelookup', 
+          { payment_hash: paymentHash },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        console.log('Hold invoice status:', response.data);
+
+        if (response.data.state === 'accepted') {
+          // Redirect to full invoice page
+          router.push(`/full-invoice?orderId=${orderId}`);
+        } else {
+          // Continue polling
+          setTimeout(checkStatus, 5000); // Check every 5 seconds
+        }
+      } catch (error) {
+        console.error('Error checking hold invoice status:', error);
+        // Retry after a delay
+        setTimeout(checkStatus, 5000);
+      }
+    };
+
+    checkStatus();
   };
 
   return (

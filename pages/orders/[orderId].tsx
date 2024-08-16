@@ -81,7 +81,7 @@ const OrderDetails: React.FC = () => {
     }
   };
 
-  const checkInvoiceStatus = async (paymentHash: string, type: 'makerHold' | 'full') => {
+  const checkInvoiceStatus = async (paymentHash: string, type: 'makerHold' | 'full'): Promise<boolean> => {
     try {
       console.log(`Checking invoice status for payment hash: ${paymentHash}`);
       const response = await axios.post(`http://localhost:3000/api/holdinvoicelookup`, {
@@ -94,34 +94,22 @@ const OrderDetails: React.FC = () => {
       console.log(`Invoice status response for ${type} invoice:`, response.data);
   
       console.log(`Invoice state: ${response.data.state}`);
-      if (response.data.state === 'paid') {
-        console.log(`${type} invoice paid.`);
+      if (response.data.state === 'accepted') {
+        console.log(`${type} invoice accepted.`);
         if (!isSigning) {
-          await signAndBroadcastOrder(`${type} invoice paid.`);
+          await signAndBroadcastOrder(`${type} invoice accepted.`);
         }
         console.log(`Order type: ${order?.type}`);
-        if (type === 'makerHold') {
-          if (order?.type === 0) { // Buy Order
-            console.log(`Redirecting to /orders`);
-            window.location.href = '/orders';
-          } else if (order?.type === 1) { // Sell Order
-            console.log(`Redirecting to /full-invoice?orderId=${orderId}`);
-            window.location.href = `/full-invoice?orderId=${orderId}`;
-          } else {
-            console.error(`Unexpected order type: ${order?.type}`);
-          }
-        } else if (type === 'full') {
-          console.log(`Redirecting to /orders`);
-          window.location.href = '/orders';
-        }
+        return true; // Indicate that a redirect should occur
       } else {
-        console.log(`Invoice not paid. Current state: ${response.data.state}`);
+        console.log(`Invoice not accepted. Current state: ${response.data.state}`);
+        return false;
       }
     } catch (error) {
       console.error('Error checking invoice status:', error);
+      return false;
     }
   };
-
   const signAndBroadcastOrder = async (statusMessage: string) => {
     if (isSigning) {
       console.log("Already signing, skipping this attempt.");
@@ -219,31 +207,30 @@ const OrderDetails: React.FC = () => {
   }, [orderId]);
 
   useEffect(() => {
-    console.log('useEffect for makerHoldInvoice triggered');
-    console.log('Current order:', order);
-    console.log('Current makerHoldInvoice:', makerHoldInvoice);
+    if (orderId) {
+      fetchOrder();
+      const interval = setInterval(fetchOrder, 10000); // Refresh every 10 seconds
+      return () => clearInterval(interval);
+    }
+  }, [orderId]);
+  
+  useEffect(() => {
     if (makerHoldInvoice?.payment_hash && order) {
-      console.log('Setting up interval for makerHoldInvoice');
-      console.log(`Order type: ${order.type}`);
       const interval = setInterval(() => {
         checkInvoiceStatus(makerHoldInvoice.payment_hash, 'makerHold');
       }, 5000);
       return () => clearInterval(interval);
     }
   }, [makerHoldInvoice, order]);
+  
   useEffect(() => {
-    console.log('Order updated:', order);
-  }, [order]);
-  useEffect(() => {
-    if (fullInvoice?.payment_hash) {
-      console.log('Setting up interval for fullInvoice');
+    if (fullInvoice?.payment_hash && order) {
       const interval = setInterval(() => {
         checkInvoiceStatus(fullInvoice.payment_hash, 'full');
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [fullInvoice, order?.type]);
-
+  }, [fullInvoice, order]);
   if (!order) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
   }
