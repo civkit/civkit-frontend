@@ -1,84 +1,106 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useRouter } from 'next/router';
-import Link from 'next/link';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useRouter } from "next/router";
+import Link from "next/link";
+import { GiOstrich } from "react-icons/gi";
+import { headers } from "next/headers";
+import { nip19 } from "nostr-tools";
+import { generatePassword } from "../utils/generatePassword";
 
 const RegisterForm = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [invoice, setInvoice] = useState('');
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [invoice, setInvoice] = useState("");
+  const [hasNostrExtension, setHasNostrExtension] = useState<Boolean>();
+  const [extensionError, setExtensionError] = useState("");
+
   const router = useRouter();
 
   useEffect(() => {
-    const populateUsername = async () => {
+    const fetchUsername = async () => {
       if (window.nostr) {
         try {
           const publicKey = await window.nostr.getPublicKey();
-          setUsername(publicKey);
+          const npub = nip19.npubEncode(publicKey);
+          console.log(publicKey);
+          console.log(npub);
+          setUsername(npub);
+          setHasNostrExtension(!!window.nostr);
         } catch (error) {
-          console.error('Error fetching public key:', error);
+          console.error("Error fetching public key:", error);
         }
       }
     };
 
-    populateUsername();
+    fetchUsername();
   }, []);
 
-  const handleRegister = async (event) => {
+  useEffect(() => {
+    const handleGeneratePassword = async () => {
+      if (username) {
+        const userPassword = await generatePassword(username);
+        setPassword(userPassword);
+        console.log("Password: ", userPassword);
+      }
+    };
+
+    handleGeneratePassword();
+  }, [username]);
+
+  const handleRegister = async (event: React.FormEvent) => {
     event.preventDefault();
+
+    if (!hasNostrExtension) {
+      setExtensionError("Nostr extension is not installed.");
+      return;
+    }
+
     try {
-      const response = await axios.post('http://localhost:3000/api/register', { username, password }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      console.log("Hello world");
+      const response = await axios.post(
+        "http://localhost:3000/api/register",
+        { username, password },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
       setInvoice(response.data.invoice);
       router.push(`/registerPayment?username=${username}`); // Redirect to payment page
     } catch (error) {
-      console.error('Error registering:', error);
-      alert('Registration failed. Please try again.');
+      console.error("Error registering:", error);
+      setExtensionError("Registration failed. Please try again.");
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Register for CivKit</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">
+          Register for CivKit
+        </h2>
         <form onSubmit={handleRegister}>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
-              Username
-            </label>
-            <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-              Password
-            </label>
-            <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="flex items-center justify-between">
+          {hasNostrExtension === false && (
+            <div className="text-red-500 mb-4">
+              Nostr extension not found. Please install a Nostr-compatibe
+              extension.
+            </div>
+          )}
+          {extensionError && (
+            <div className="text-red-500 mb-4">{extensionError}</div>
+          )}
+          <div className="flex items-center justify-center justify-between">
             <button
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center justify-center space-x-2"
               type="submit"
+              disabled={!hasNostrExtension}
             >
-              Register
+              <GiOstrich />
+              <span>Register</span>
             </button>
             <Link href="/login" legacyBehavior>
+              {/* <GiOstrich /> */}
               <a className="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">
                 Login
               </a>
