@@ -31,8 +31,9 @@ const Orders = () => {
   }, []);
 
   const handleTakeOrder = async (orderId) => {
+    console.log('Attempting to take order:', orderId);
     try {
-      await axios.post(
+      const response = await axios.post(
         'http://localhost:3000/api/orders/take',
         {
           orderId,
@@ -42,10 +43,17 @@ const Orders = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         }
       );
-      router.push(`/take-order?orderId=${orderId}`);
+      console.log('Order taken successfully:', response.data);
     } catch (error) {
       console.error('Error taking order:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Error details:', error.response?.data);
+      }
+      alert('There was an issue taking the order, but we\'ll redirect you to the order page.');
     }
+
+    // Redirect regardless of success or failure
+    window.location.href = `/take-order?orderId=${orderId}`;
   };
 
   const handleOpenChat = async (orderId) => {
