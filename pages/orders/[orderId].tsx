@@ -68,14 +68,16 @@ const OrderDetails: React.FC = () => {
       console.log('Received invoices data:', invoicesResponse.data);
 
       const invoices = Array.isArray(invoicesResponse.data) ? invoicesResponse.data : [invoicesResponse.data];
+      const holdInvoice = invoices.find(invoice => invoice.invoice_type === 'hold');
+      console.log('Setting hold invoice:', holdInvoice);
+      setMakerHoldInvoice(holdInvoice || null);
 
-      const makerHold = invoices.find(invoice => invoice.invoice_type === 'hold' && (!invoice.user_type || invoice.user_type === ''));
-      const fullInv = invoices.find(invoice => invoice.invoice_type === 'full' && invoice.user_type === '');
-
-      console.log('Setting maker hold invoice:', makerHold);
-      setMakerHoldInvoice(makerHold || null);
-      console.log('Setting full invoice:', fullInv);
-      setFullInvoice(fullInv || null);
+      console.log(`Order type: ${orderResponse.data.type}`);
+      if (orderResponse.data.type === 1) {
+        console.log('This is a sell order.');
+      } else {
+        console.log('This is a buy order.');
+      }
     } catch (error) {
       console.error('Error fetching order or invoice:', error);
     }
@@ -93,16 +95,23 @@ const OrderDetails: React.FC = () => {
       });
       console.log(`Invoice status response for ${type} invoice:`, response.data);
   
-      console.log(`Invoice state: ${response.data.state}`);
-      if (response.data.state === 'accepted') {
-        console.log(`${type} invoice accepted.`);
+      const invoiceState = response.data.state;
+      console.log(`Invoice state: ${invoiceState}`);
+
+      if (invoiceState === 'accepted' || invoiceState === 'paid') {
+        console.log(`${type} invoice accepted for order type ${order?.type}`);
+        if (order?.type === 1 && type === 'makerHold') {
+          console.log('Maker hold invoice paid for sell order. Should now show full invoice.');
+        } else if (order?.type === 0) {
+          console.log('Full invoice paid for buy order.');
+        }
         if (!isSigning) {
           await signAndBroadcastOrder(`${type} invoice accepted.`);
         }
         console.log(`Order type: ${order?.type}`);
         return true; // Indicate that a redirect should occur
       } else {
-        console.log(`Invoice not accepted. Current state: ${response.data.state}`);
+        console.log(`Invoice not accepted. Current state: ${invoiceState}`);
         return false;
       }
     } catch (error) {
@@ -198,13 +207,6 @@ const OrderDetails: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (orderId) {
-      fetchOrder();
-      const interval = setInterval(fetchOrder, 10000); // Refresh every 10 seconds
-      return () => clearInterval(interval);
-    }
-  }, [orderId]);
 
   useEffect(() => {
     if (orderId) {
@@ -231,15 +233,21 @@ const OrderDetails: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [fullInvoice, order]);
+
   if (!order) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
   }
+
+  console.log('Rendering order:', order);
+  console.log('Order type:', order.type);
+  console.log('Hold invoice:', makerHoldInvoice);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
         <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Order Details</h1>
         <p className="mb-4"><span className="font-bold text-gray-700">Order ID:</span> {order.order_id}</p>
+        <p className="mb-4"><span className="font-bold text-gray-700">Type:</span> {order.type === 0 ? 'Buy' : 'Sell'}</p>
         <p className="mb-4"><span className="font-bold text-gray-700">Details:</span> {order.order_details}</p>
         <p className="mb-4"><span className="font-bold text-gray-700">Amount:</span> {order.amount_msat}</p>
         <p className="mb-4"><span className="font-bold text-gray-700">Currency:</span> {order.currency}</p>
@@ -247,25 +255,20 @@ const OrderDetails: React.FC = () => {
         <p className="mb-4"><span className="font-bold text-gray-700">Status:</span> {order.status}</p>
 
         {makerHoldInvoice && (
-          <>
-            <h2 className="text-xl font-bold mb-4 text-blue-600">Maker Hold Invoice</h2>
-            <p className="mb-4 break-words"><span className="font-bold text-gray-700">Invoice (Hold):</span> {makerHoldInvoice.bolt11}</p>
+          <div>
+            <h2 className="text-xl font-bold mb-4 text-blue-600">Hold Invoice</h2>
+            <p className="mb-4 break-words"><span className="font-bold text-gray-700">Invoice:</span> {makerHoldInvoice.bolt11}</p>
             <div className="flex justify-center mb-4">
               <QRCode value={makerHoldInvoice.bolt11} />
             </div>
-            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {makerHoldInvoice.status === 'paid' ? 'Paid' : 'Not Paid'}</p>
-          </>
+            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {makerHoldInvoice.status}</p>
+          </div>
         )}
 
-        {fullInvoice && (
-          <>
-            <h2 className="text-xl font-bold mb-4 text-blue-600">Full Amount Invoice</h2>
-            <p className="mb-4 break-words"><span className="font-bold text-gray-700">Invoice (Full):</span> {fullInvoice.bolt11}</p>
-            <div className="flex justify-center mb-4">
-              <QRCode value={fullInvoice.bolt11} />
-            </div>
-            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {fullInvoice.status === 'paid' ? 'Paid' : 'Not Paid'}</p>
-          </>
+        {!makerHoldInvoice && (
+          <div>
+            <p className="mb-4 text-red-600">No hold invoice available for this order.</p>
+          </div>
         )}
 
         {order.status === 'chat_open' && (

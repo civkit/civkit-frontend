@@ -75,7 +75,7 @@ const CreateOrderForm = ({ onOrderCreated }) => {
       onOrderCreated(orderResponse.data.order);
       
       // Redirect to order details page
-      router.push(`/full-invoice?orderId=${orderId}`);
+      router.push(`/orders/${orderId}`);
 
       // If it's a sell order, start polling for hold invoice payment
       if (type === 1) {
