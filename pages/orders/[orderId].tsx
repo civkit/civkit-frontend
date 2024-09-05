@@ -83,7 +83,7 @@ const OrderDetails: React.FC = () => {
     }
   };
 
-  const checkInvoiceStatus = async (paymentHash: string, type: 'makerHold' | 'full'): Promise<boolean> => {
+  const checkInvoiceStatus = async (paymentHash: string): Promise<boolean> => {
     try {
       console.log(`Checking invoice status for payment hash: ${paymentHash}`);
       const response = await axios.post(`http://localhost:3000/api/holdinvoicelookup`, {
@@ -93,25 +93,37 @@ const OrderDetails: React.FC = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      console.log(`Invoice status response for ${type} invoice:`, response.data);
-  
+      console.log('Full response data:', response.data);
+      
       const invoiceState = response.data.state;
       console.log(`Invoice state: ${invoiceState}`);
 
       if (invoiceState === 'accepted' || invoiceState === 'paid') {
-        console.log(`${type} invoice accepted for order type ${order?.type}`);
-        if (order?.type === 1 && type === 'makerHold') {
-          console.log('Maker hold invoice paid for sell order. Should now show full invoice.');
-        } else if (order?.type === 0) {
-          console.log('Full invoice paid for buy order.');
+        console.log(`Invoice accepted or paid for order type ${order?.type}`);
+        if (order?.type === 1) {
+          const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
+          console.log('Attempting to redirect to:', fullUrl);
+          
+          // Try multiple redirection methods
+          window.location.href = fullUrl;
+          window.location.replace(fullUrl);
+          window.open(fullUrl, '_self');
+          
+          // If all else fails, create a link and click it
+          const link = document.createElement('a');
+          link.href = fullUrl;
+          link.target = '_self';
+          document.body.appendChild(link);
+          link.click();
+          
+          console.log('Redirection attempts completed');
+          return true;
+        } else {
+          console.log('This is a buy order, no redirection needed.');
         }
-        if (!isSigning) {
-          await signAndBroadcastOrder(`${type} invoice accepted.`);
-        }
-        console.log(`Order type: ${order?.type}`);
-        return true; // Indicate that a redirect should occur
+        return true;
       } else {
-        console.log(`Invoice not accepted. Current state: ${invoiceState}`);
+        console.log(`Invoice not accepted or paid. Current state: ${invoiceState}`);
         return false;
       }
     } catch (error) {
@@ -119,6 +131,7 @@ const OrderDetails: React.FC = () => {
       return false;
     }
   };
+
   const signAndBroadcastOrder = async (statusMessage: string) => {
     if (isSigning) {
       console.log("Already signing, skipping this attempt.");
@@ -207,6 +220,7 @@ const OrderDetails: React.FC = () => {
     }
   };
 
+  const [manualTrigger, setManualTrigger] = useState(0);
 
   useEffect(() => {
     if (orderId) {
@@ -233,6 +247,19 @@ const OrderDetails: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [fullInvoice, order]);
+
+  useEffect(() => {
+    if (manualTrigger > 0 && makerHoldInvoice?.payment_hash) {
+      console.log('Manual check triggered');
+      checkInvoiceStatus(makerHoldInvoice.payment_hash);
+    }
+  }, [manualTrigger]);
+
+  const forceRedirect = () => {
+    const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
+    console.log('Forcing redirect to:', fullUrl);
+    window.location.href = fullUrl;
+  };
 
   if (!order) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
@@ -281,6 +308,12 @@ const OrderDetails: React.FC = () => {
             </button>
           </div>
         )}
+
+        <button onClick={() => setManualTrigger(prev => prev + 1)}>
+          Check Invoice Status Manually
+        </button>
+
+        <button onClick={forceRedirect}>Force Redirect to Full Invoice</button>
       </div>
     </div>
   );

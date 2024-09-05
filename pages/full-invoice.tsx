@@ -5,7 +5,7 @@ import QRCode from 'qrcode.react';
 
 const FullInvoice = () => {
   const router = useRouter();
-  const { orderId } = router.query;
+  const { orderid } = router.query;
   const [fullInvoice, setFullInvoice] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,8 +14,8 @@ const FullInvoice = () => {
     setLoading(true);
     try {
       setError(null);
-      console.log(`Fetching full invoice for order ID: ${orderId}`);
-      const response = await axios.get(`http://localhost:3000/api/full-invoice/${orderId}`, {
+      console.log(`Fetching full invoice for order ID: ${orderid}`);
+      const response = await axios.get(`http://localhost:3000/api/full-invoice/${orderid}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -32,7 +32,7 @@ const FullInvoice = () => {
 
   const syncInvoice = async () => {
     try {
-      await axios.post(`http://localhost:3000/api/sync-invoice/${orderId}`, {}, {
+      await axios.post(`http://localhost:3000/api/sync-invoice/${orderid}`, {}, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -45,10 +45,19 @@ const FullInvoice = () => {
   };
 
   useEffect(() => {
-    if (orderId) {
+    console.log('orderid:', orderid);
+    if (orderid) {
+      fetchFullInvoice();
+    } else {
+      console.log('No orderid available yet');
+    }
+  }, [orderid]);
+
+  useEffect(() => {
+    if (router.isReady && orderid) {
       fetchFullInvoice();
     }
-  }, [orderId]);
+  }, [router.isReady, orderid]);
 
   useEffect(() => {
     let intervalId;
