@@ -309,11 +309,13 @@ const OrderDetails: React.FC = () => {
           </div>
         )}
 
-        <button onClick={() => setManualTrigger(prev => prev + 1)}>
-          Check Invoice Status Manually
-        </button>
+        <div className="flex gap-4">
+          <button onClick={() => setManualTrigger(prev => prev + 1)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Check Invoice Status Manually
+          </button>
 
-        <button onClick={forceRedirect}>Force Redirect to Full Invoice</button>
+          <button onClick={forceRedirect} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Force Redirect to Full Invoice</button>
+        </div>
       </div>
     </div>
   );
