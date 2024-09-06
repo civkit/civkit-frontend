@@ -5,34 +5,51 @@ import QRCode from 'qrcode.react';
 
 const FullInvoice = () => {
   const router = useRouter();
-  const { orderid } = router.query;
+  const { orderid: rawOrderId, orderId: rawOrderIdCamel } = router.query;
+  const orderId = typeof rawOrderId === 'string' ? rawOrderId.toLowerCase() : 
+                  typeof rawOrderIdCamel === 'string' ? rawOrderIdCamel.toLowerCase() : 
+                  undefined;
   const [fullInvoice, setFullInvoice] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchFullInvoice = async () => {
+    if (!orderId) {
+      console.log('No orderId available, skipping fetch');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       setError(null);
-      console.log(`Fetching full invoice for order ID: ${orderid}`);
-      const response = await axios.get(`http://localhost:3000/api/full-invoice/${orderid}`, {
+      console.log(`Fetching full invoice for order ID: ${orderId}`);
+      console.log('Token:', localStorage.getItem('token'));
+      const response = await axios.get(`http://localhost:3000/api/full-invoice/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
       console.log('Full invoice response:', response.data);
-      setFullInvoice(response.data.invoice);
-      setLoading(false);
+      if (response.data && response.data.invoice) {
+        setFullInvoice(response.data.invoice);
+        console.log('Full invoice set:', response.data.invoice);
+      } else {
+        console.error('Invalid response format:', response.data);
+        setError('Invalid response format from server');
+      }
     } catch (error) {
       console.error('Error fetching full invoice:', error);
-      setError(`Failed to fetch full invoice: ${error.message}`);
+      console.error('Error details:', error.response?.data);
+      setError(`Failed to fetch full invoice: ${error.response?.data?.error || error.message}`);
+    } finally {
       setLoading(false);
     }
   };
 
   const syncInvoice = async () => {
+    if (!orderId) return; // Add this check
     try {
-      await axios.post(`http://localhost:3000/api/sync-invoice/${orderid}`, {}, {
+      await axios.post(`http://localhost:3000/api/sync-invoice/${orderId}`, {}, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -40,24 +57,24 @@ const FullInvoice = () => {
       await fetchFullInvoice();
     } catch (error) {
       console.error('Error syncing invoice:', error);
-      setError(`Failed to sync invoice: ${error.message}`);
+      setError(`Failed to sync invoice: ${error.response?.data?.error || error.message}`);
     }
   };
 
   useEffect(() => {
-    console.log('orderid:', orderid);
-    if (orderid) {
+    console.log('Current orderId:', orderId);
+    console.log('Router query:', router.query);
+    if (router.isReady && orderId) {
       fetchFullInvoice();
     } else {
-      console.log('No orderid available yet');
+      console.log('Router not ready or orderId not available');
     }
-  }, [orderid]);
+  }, [router.isReady, orderId]);
 
   useEffect(() => {
-    if (router.isReady && orderid) {
-      fetchFullInvoice();
-    }
-  }, [router.isReady, orderid]);
+    const token = localStorage.getItem('token');
+    console.log('Token available:', !!token);
+  }, []);
 
   useEffect(() => {
     let intervalId;
@@ -67,7 +84,7 @@ const FullInvoice = () => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [fullInvoice]);
+  }, [fullInvoice, orderId]); // Add orderId to the dependency array
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
