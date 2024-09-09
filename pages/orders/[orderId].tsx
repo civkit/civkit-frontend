@@ -69,8 +69,13 @@ const OrderDetails: React.FC = () => {
 
       const invoices = Array.isArray(invoicesResponse.data) ? invoicesResponse.data : [invoicesResponse.data];
       const holdInvoice = invoices.find(invoice => invoice.invoice_type === 'hold');
+      const fullInvoiceData = invoices.find(invoice => invoice.invoice_type === 'full');
+      
       console.log('Setting hold invoice:', holdInvoice);
+      console.log('Setting full invoice:', fullInvoiceData);
+      
       setMakerHoldInvoice(holdInvoice || null);
+      setFullInvoice(fullInvoiceData || null);
 
       console.log(`Order type: ${orderResponse.data.type}`);
       if (orderResponse.data.type === 1) {
@@ -83,9 +88,9 @@ const OrderDetails: React.FC = () => {
     }
   };
 
-  const checkInvoiceStatus = async (paymentHash: string): Promise<boolean> => {
+  const checkInvoiceStatus = async (paymentHash: string, invoiceType: 'makerHold' | 'full'): Promise<string | null> => {
     try {
-      console.log(`Checking invoice status for payment hash: ${paymentHash}`);
+      console.log(`Checking ${invoiceType} invoice status for payment hash: ${paymentHash}`);
       const response = await axios.post(`http://localhost:3000/api/holdinvoicelookup`, {
         payment_hash: paymentHash,
       }, {
@@ -98,37 +103,49 @@ const OrderDetails: React.FC = () => {
       const invoiceState = response.data.state;
       console.log(`Invoice state: ${invoiceState}`);
 
-      if (invoiceState === 'accepted' || invoiceState === 'paid') {
-        console.log(`Invoice accepted or paid for order type ${order?.type}`);
-        if (order?.type === 1) {
-          const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
-          console.log('Attempting to redirect to:', fullUrl);
-          
-          // Try multiple redirection methods
-          window.location.href = fullUrl;
-          window.location.replace(fullUrl);
-          window.open(fullUrl, '_self');
-          
-          // If all else fails, create a link and click it
-          const link = document.createElement('a');
-          link.href = fullUrl;
-          link.target = '_self';
-          document.body.appendChild(link);
-          link.click();
-          
-          console.log('Redirection attempts completed');
-          return true;
-        } else {
-          console.log('This is a buy order, no redirection needed.');
+      if (invoiceState === 'ACCEPTED') {
+        console.log(`${invoiceType} invoice accepted for order type ${order?.type}`);
+        
+        // Update invoice status in the database using the correct endpoint
+        if (invoiceType === 'makerHold' && makerHoldInvoice) {
+          await axios.put(`http://localhost:3000/api/invoices/${makerHoldInvoice.invoice_id}`, {
+            status: 'paid',
+          }, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+        } else if (invoiceType === 'full' && fullInvoice) {
+          await axios.put(`http://localhost:3000/api/invoices/${fullInvoice.invoice_id}`, {
+            status: 'paid',
+          }, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
         }
-        return true;
+
+        if (invoiceType === 'makerHold') {
+          if (order?.type === 1) {
+            // Seller (type 1) - redirect to full invoice
+            const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
+            console.log('Attempting to redirect to full invoice:', fullUrl);
+            window.location.href = fullUrl;
+          } else if (order?.type === 0) {
+            // Buyer (type 0) - no redirect, just log
+            console.log('Buyer order accepted, no redirect');
+          }
+        } else if (invoiceType === 'full') {
+          console.log('Full invoice paid.');
+          // Add any necessary logic for when the full invoice is paid
+        }
       } else {
-        console.log(`Invoice not accepted or paid. Current state: ${invoiceState}`);
-        return false;
+        console.log(`${invoiceType} invoice not accepted. Current state: ${invoiceState}`);
       }
+      return invoiceState;
     } catch (error) {
-      console.error('Error checking invoice status:', error);
-      return false;
+      console.error(`Error checking ${invoiceType} invoice status:`, error);
+      return null;
     }
   };
 
@@ -232,8 +249,17 @@ const OrderDetails: React.FC = () => {
   
   useEffect(() => {
     if (makerHoldInvoice?.payment_hash && order) {
-      const interval = setInterval(() => {
-        checkInvoiceStatus(makerHoldInvoice.payment_hash, 'makerHold');
+      const interval = setInterval(async () => {
+        const newState = await checkInvoiceStatus(makerHoldInvoice.payment_hash, 'makerHold');
+        if (newState) {
+          setMakerHoldInvoice(prevInvoice => ({
+            ...prevInvoice!,
+            status: newState
+          }));
+          if (newState === 'ACCEPTED') {
+            clearInterval(interval);
+          }
+        }
       }, 5000);
       return () => clearInterval(interval);
     }
@@ -241,8 +267,17 @@ const OrderDetails: React.FC = () => {
   
   useEffect(() => {
     if (fullInvoice?.payment_hash && order) {
-      const interval = setInterval(() => {
-        checkInvoiceStatus(fullInvoice.payment_hash, 'full');
+      const interval = setInterval(async () => {
+        const newState = await checkInvoiceStatus(fullInvoice.payment_hash, 'full');
+        if (newState) {
+          setFullInvoice(prevInvoice => ({
+            ...prevInvoice!,
+            status: newState
+          }));
+          if (newState === 'ACCEPTED' || newState === 'PAID') {
+            clearInterval(interval);
+          }
+        }
       }, 5000);
       return () => clearInterval(interval);
     }
@@ -251,14 +286,24 @@ const OrderDetails: React.FC = () => {
   useEffect(() => {
     if (manualTrigger > 0 && makerHoldInvoice?.payment_hash) {
       console.log('Manual check triggered');
-      checkInvoiceStatus(makerHoldInvoice.payment_hash);
+      checkInvoiceStatus(makerHoldInvoice.payment_hash, 'makerHold');
     }
-  }, [manualTrigger]);
+  }, [manualTrigger, makerHoldInvoice]);
 
   const forceRedirect = () => {
     const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
     console.log('Forcing redirect to:', fullUrl);
     window.location.href = fullUrl;
+  };
+
+  const handleManualCheck = () => {
+    if (makerHoldInvoice?.payment_hash) {
+      checkInvoiceStatus(makerHoldInvoice.payment_hash, 'makerHold');
+    } else if (fullInvoice?.payment_hash) {
+      checkInvoiceStatus(fullInvoice.payment_hash, 'full');
+    } else {
+      console.error('No invoice available to check');
+    }
   };
 
   if (!order) {
@@ -292,9 +337,20 @@ const OrderDetails: React.FC = () => {
           </div>
         )}
 
-        {!makerHoldInvoice && (
+        {fullInvoice && (
           <div>
-            <p className="mb-4 text-red-600">No hold invoice available for this order.</p>
+            <h2 className="text-xl font-bold mb-4 text-blue-600">Full Invoice</h2>
+            <p className="mb-4 break-words"><span className="font-bold text-gray-700">Invoice:</span> {fullInvoice.bolt11}</p>
+            <div className="flex justify-center mb-4">
+              <QRCode value={fullInvoice.bolt11} />
+            </div>
+            <p className="mb-6"><span className="font-bold text-gray-700">Status:</span> {fullInvoice.status}</p>
+          </div>
+        )}
+
+        {!makerHoldInvoice && !fullInvoice && (
+          <div>
+            <p className="mb-4 text-red-600">No invoices available for this order.</p>
           </div>
         )}
 
@@ -310,7 +366,7 @@ const OrderDetails: React.FC = () => {
         )}
 
         <div className="flex gap-4">
-          <button onClick={() => setManualTrigger(prev => prev + 1)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+          <button onClick={handleManualCheck} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
             Check Invoice Status Manually
           </button>
 
