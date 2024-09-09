@@ -67,19 +67,25 @@ const OrderDetails: React.FC = () => {
       console.log('Received invoices data:', invoicesResponse.data);
 
       const invoices = Array.isArray(invoicesResponse.data) ? invoicesResponse.data : [invoicesResponse.data];
-      
+      console.log('All invoices:', invoices);
+
       // Always look for the hold invoice, regardless of order type
       const holdInvoice = invoices.find(invoice => invoice.invoice_type === 'hold');
+      const fullInvoice = invoices.find(invoice => invoice.invoice_type === 'full');
       
-      console.log('All invoices:', invoices);
-      console.log('Found hold invoice:', holdInvoice);
-      console.log('Setting makerHoldInvoice to:', holdInvoice || null);
+      console.log('Hold invoice:', holdInvoice);
+      console.log('Full invoice:', fullInvoice);
 
-      // Set the hold invoice
-      setMakerHoldInvoice(holdInvoice || null);
+      // Set the appropriate invoice based on order type
+      if (orderResponse.data.type === 0) { // Buy order
+        setMakerHoldInvoice(holdInvoice || null);
+      } else { // Sell order
+        setMakerHoldInvoice(holdInvoice || fullInvoice || null);
+      }
 
       console.log(`Order type: ${orderResponse.data.type}`);
       console.log(`This is a ${orderResponse.data.type === 0 ? 'buy' : 'sell'} order.`);
+      console.log('Setting makerHoldInvoice to:', makerHoldInvoice);
     } catch (error) {
       console.error('Error fetching order or invoice:', error);
     }

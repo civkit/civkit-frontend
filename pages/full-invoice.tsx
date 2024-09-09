@@ -115,10 +115,9 @@ const FullInvoice = () => {
           <p><strong>Invoice ID:</strong> {fullInvoice.invoice_id}</p>
           <p><strong>Order ID:</strong> {fullInvoice.order_id}</p>
           <p><strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000} sats</p>
+          <p><strong>Amount Received:</strong> {fullInvoice.amount_received_msat ? parseInt(fullInvoice.amount_received_msat) / 1000 : 0} sats</p>
           <p><strong>Description:</strong> {fullInvoice.description}</p>
           <p><strong>Status:</strong> {fullInvoice.status}</p>
-          <p><strong>Created At:</strong> {new Date(fullInvoice.created_at).toLocaleString()}</p>
-          <p><strong>Expires At:</strong> {new Date(fullInvoice.expires_at).toLocaleString()}</p>
           <p><strong>Payment Hash:</strong> {fullInvoice.payment_hash}</p>
         </div>
         <button 
