@@ -1,6 +1,4 @@
-// @ts-expect-error TS(2792): Cannot find module 'next'. Did you mean to set the... Remove this comment to see the full error message
 import type { Metadata } from "next";
-// @ts-expect-error TS(2792): Cannot find module 'next/font/google'. Did you mea... Remove this comment to see the full error message
 import { Inter } from "next/font/google";
 import "./globals.css";
 

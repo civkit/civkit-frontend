@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 
-const CreateOrderForm = ({ onOrderCreated }) => {
+const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => {
   const [orderDetails, setOrderDetails] = useState('');
   const [amountMsat, setAmountMsat] = useState('');
   const [currency, setCurrency] = useState('');
-  const [currencies, setCurrencies] = useState([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('Credit Card');
   const [type, setType] = useState(0); // Default to Buy Order
   const router = useRouter();
@@ -21,7 +21,7 @@ const CreateOrderForm = ({ onOrderCreated }) => {
     fetchCurrencies();
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const timestamp = Date.now();
@@ -39,7 +39,7 @@ const CreateOrderForm = ({ onOrderCreated }) => {
       console.log('Submitting order data:', orderData);
 
       // Post order data to create the order
-      const orderResponse = await axios.post('http://localhost:3000/api/orders', orderData, {
+      const orderResponse = await axios.post<{ order: Order }>('http://localhost:3000/api/orders', orderData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -86,7 +86,7 @@ const CreateOrderForm = ({ onOrderCreated }) => {
     }
   };
 
-  const pollHoldInvoiceStatus = async (paymentHash, orderId) => {
+  const pollHoldInvoiceStatus = async (paymentHash: string, orderId: number) => {
     const checkStatus = async () => {
       try {
         const response = await axios.post('http://localhost:3000/api/holdinvoicelookup', 

@@ -126,14 +126,14 @@ const OrderDetails: React.FC = () => {
         }
 
         if (invoiceType === 'makerHold') {
-          if (order?.type === 1) {
-            // Seller (type 1) - redirect to full invoice
-            const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
-            console.log('Attempting to redirect to full invoice:', fullUrl);
-            window.location.href = fullUrl;
-          } else if (order?.type === 0) {
-            // Buyer (type 0) - no redirect, just log
-            console.log('Buyer order accepted, no redirect');
+          if (order?.type === 0) {
+            // Buyer (type 0) - redirect to submit payout
+            const submitPayoutUrl = `http://localhost:3001/submit-payout?orderId=${orderId}`;
+            console.log('Attempting to redirect to submit payout:', submitPayoutUrl);
+            window.location.href = submitPayoutUrl;
+          } else if (order?.type === 1) {
+            // Seller (type 1) - no redirect, just log
+            console.log('Seller order accepted, no redirect');
           }
         } else if (invoiceType === 'full') {
           console.log('Full invoice paid.');
@@ -290,12 +290,6 @@ const OrderDetails: React.FC = () => {
     }
   }, [manualTrigger, makerHoldInvoice]);
 
-  const forceRedirect = () => {
-    const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
-    console.log('Forcing redirect to:', fullUrl);
-    window.location.href = fullUrl;
-  };
-
   const handleManualCheck = () => {
     if (makerHoldInvoice?.payment_hash) {
       checkInvoiceStatus(makerHoldInvoice.payment_hash, 'makerHold');
@@ -303,6 +297,19 @@ const OrderDetails: React.FC = () => {
       checkInvoiceStatus(fullInvoice.payment_hash, 'full');
     } else {
       console.error('No invoice available to check');
+    }
+  };
+
+  const handleRedirect = () => {
+    if (order) {
+      if (order.type === 0) { // Buy order
+        console.log('Redirecting to submit payout page');
+        router.push(`http://localhost:3001/submit-payout?orderId=${orderId}`);
+      } else { // Sell order
+        const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
+        console.log('Redirecting to full invoice page:', fullUrl);
+        window.location.href = fullUrl;
+      }
     }
   };
 
@@ -355,7 +362,7 @@ const OrderDetails: React.FC = () => {
         )}
 
         {order.status === 'chat_open' && (
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-4">
             <button
               className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
               onClick={handleOpenChat}
@@ -365,12 +372,20 @@ const OrderDetails: React.FC = () => {
           </div>
         )}
 
-        <div className="flex gap-4">
-          <button onClick={handleManualCheck} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-            Check Invoice Status Manually
+        <div className="flex gap-4 justify-center">
+          <button 
+            onClick={handleRedirect} 
+            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            {order.type === 0 ? 'Submit Payout' : 'Go to Full Invoice'}
           </button>
 
-          <button onClick={forceRedirect} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Force Redirect to Full Invoice</button>
+          <button 
+            onClick={handleManualCheck} 
+            className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Check Invoice Status
+          </button>
         </div>
       </div>
     </div>
