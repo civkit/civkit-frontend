@@ -77,13 +77,13 @@ const TakeOrder = () => {
   const handleRedirect = () => {
     if (order) {
       if (order.type === 0) { // Buy order
-        const payoutUrl = `http://localhost:3001/submit-payout?orderId=${orderId}`;
-        console.log('Redirecting to submit payout page:', payoutUrl);
-        window.location.href = payoutUrl;
-      } else { // Sell order
         const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
         console.log('Redirecting to full invoice page:', fullUrl);
         window.location.href = fullUrl;
+      } else { // Sell order (type === 1)
+        const payoutUrl = `http://localhost:3001/submit-payout?orderid=${orderId}`;
+        console.log('Redirecting to submit payout page:', payoutUrl);
+        window.location.href = payoutUrl;
       }
     }
   };
@@ -120,7 +120,7 @@ const TakeOrder = () => {
           onClick={handleRedirect}
           className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
         >
-          {order.type === 0 ? 'Go to Payout Page' : 'Go to Full Invoice'}
+          {order.type === 1 ? 'Go to Payout Page' : 'Go to Full Invoice'}
         </button>
       )}
     </div>

@@ -16,19 +16,42 @@ const Orders = () => {
           },
         });
         console.log('Orders fetched:', response.data);
-        // Check if the response has a data object and orders inside it
+        let fetchedOrders;
         if (response.data && response.data.orders) {
-          setOrders(response.data.orders);
+          fetchedOrders = response.data.orders;
         } else {
-          setOrders(response.data); // Assuming response.data is an array if it doesn't have orders property
+          fetchedOrders = response.data;
         }
+        setOrders(fetchedOrders);
+  
+        // Check and create chatrooms for all fetched orders
+        await checkAndCreateChatrooms(fetchedOrders);
       } catch (error) {
         console.error('Error fetching orders:', error);
       }
     };
-
+  
     fetchOrders();
   }, []);
+  
+  const checkAndCreateChatrooms = async (orders) => {
+    for (const order of orders) {
+      try {
+        await axios.post(
+          'http://localhost:3000/api/check-and-create-chatroom',
+          { orderId: order.order_id },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      } catch (error) {
+        console.error(`Error checking chatroom for order ${order.order_id}:`, error);
+      }
+    }
+  };
 
   const handleTakeOrder = async (orderId) => {
     console.log('Attempting to take order:', orderId);
