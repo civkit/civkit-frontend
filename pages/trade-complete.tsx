@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import QRCode from 'qrcode.react';
+import { nip19 } from 'nostr-tools';
 
 const TradeComplete = () => {
   const router = useRouter();
@@ -41,16 +42,27 @@ const TradeComplete = () => {
       };
 
       if (window.nostr) {
+        console.log('window.nostr', window.nostr);
+        const pubkey = await window.nostr.getPublicKey();
+        const npub = nip19.npubEncode(pubkey);
+        console.log('====================================');
+        console.log(npub);
+        console.log('====================================');
+
         const event = {
           kind: 1507, // Event kind for review
           created_at: Math.floor(Date.now() / 1000),
           tags: [],
           content: JSON.stringify(reviewData),
+          pubkey: npub,
         };
+
+        console.log('Event before signing:', event);
 
         try {
           const signedEvent = await window.nostr.signEvent(event);
-          const relayURL = 'ws://localhost:7000'; // Change to your actual relay URL
+          console.log('Event after signing:', signedEvent);
+          const relayURL = 'ws://localhost:8080';
 
           const relayWebSocket = new WebSocket(relayURL);
 
@@ -59,23 +71,36 @@ const TradeComplete = () => {
             relayWebSocket.send(message);
             console.log('Signed event sent to relay:', message);
             setSuccessMessage('Review submitted successfully.');
+            relayWebSocket.close();
           };
 
           relayWebSocket.onerror = (err) => {
             console.error('WebSocket error:', err);
+            setSuccessMessage('Error submitting review. Please try again.');
           };
 
           relayWebSocket.onclose = () => {
             console.log('WebSocket connection closed');
           };
+
+          // Add a timeout to close the connection if it doesn't open within 5 seconds
+          setTimeout(() => {
+            if (relayWebSocket.readyState === WebSocket.CONNECTING) {
+              relayWebSocket.close();
+              setSuccessMessage('Connection timeout. Please try again.');
+            }
+          }, 5000);
         } catch (signError) {
           console.error('Error signing event:', signError);
+          setSuccessMessage('Error signing review. Please try again.');
         }
       } else {
         console.error('nos2x extension is not available.');
+        setSuccessMessage('nos2x extension is not available. Please install it and try again.');
       }
     } catch (error) {
       console.error('Error submitting review:', error);
+      setSuccessMessage('Error submitting review. Please try again.');
     }
   };
 
