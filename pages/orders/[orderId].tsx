@@ -111,7 +111,7 @@ const OrderDetails: React.FC = () => {
         
         // Update invoice status in the database
         if (makerHoldInvoice) {
-          await axios.put(`http://localhost:3000/api/invoices/${makerHoldInvoice.invoice_id}`, {
+          await axios.put(`http://localhost:3000/api/invoices/${makerHoldInvoice.order_id}`, {
             status: 'paid',
           }, {
             headers: {

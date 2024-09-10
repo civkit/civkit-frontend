@@ -23,7 +23,6 @@ const FullInvoice = () => {
     try {
       setError(null);
       console.log(`Fetching full invoice for order ID: ${orderId}`);
-      console.log('Token:', localStorage.getItem('token'));
       const response = await axios.get(`http://localhost:3000/api/full-invoice/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -39,52 +38,48 @@ const FullInvoice = () => {
       }
     } catch (error) {
       console.error('Error fetching full invoice:', error);
-      console.error('Error details:', error.response?.data);
       setError(`Failed to fetch full invoice: ${error.response?.data?.error || error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const syncInvoice = async () => {
-    if (!orderId) return; // Add this check
+  const checkFullInvoice = async () => {
+    if (!orderId) return;
     try {
-      await axios.post(`http://localhost:3000/api/sync-invoice/${orderId}`, {}, {
+      setLoading(true);
+      const response = await axios.post(`http://localhost:3000/api/check-full-invoice/${orderId}`, {}, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      await fetchFullInvoice();
+      console.log('Check full invoice response:', response.data);
+      if (response.data && response.data.status) {
+        setFullInvoice(prevInvoice => ({ ...prevInvoice, status: response.data.status }));
+      }
     } catch (error) {
-      console.error('Error syncing invoice:', error);
-      setError(`Failed to sync invoice: ${error.response?.data?.error || error.message}`);
+      console.error('Error checking full invoice:', error);
+      setError(`Failed to check full invoice: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    console.log('Current orderId:', orderId);
-    console.log('Router query:', router.query);
     if (router.isReady && orderId) {
       fetchFullInvoice();
-    } else {
-      console.log('Router not ready or orderId not available');
     }
   }, [router.isReady, orderId]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    console.log('Token available:', !!token);
-  }, []);
-
-  useEffect(() => {
     let intervalId;
     if (fullInvoice && fullInvoice.status !== 'paid') {
-      intervalId = setInterval(fetchFullInvoice, 5000); // Check every 5 seconds
+      intervalId = setInterval(checkFullInvoice, 5000); // Check every 5 seconds
     }
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [fullInvoice, orderId]); // Add orderId to the dependency array
+  }, [fullInvoice, orderId]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
@@ -122,10 +117,10 @@ const FullInvoice = () => {
           <p><strong>Payment Hash:</strong> {fullInvoice.payment_hash}</p>
         </div>
         <button 
-          onClick={syncInvoice} 
+          onClick={checkFullInvoice} 
           className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
         >
-          Sync Invoice
+          Check Invoice Status
         </button>
       </div>
     </div>
