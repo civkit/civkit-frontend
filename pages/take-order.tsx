@@ -12,6 +12,8 @@ const TakeOrder = () => {
   useEffect(() => {
     if (orderId) {
       fetchOrderAndCreateInvoice();
+      const intervalId = setInterval(() => checkHoldInvoiceStatus(), 5000);
+      return () => clearInterval(intervalId);
     }
   }, [orderId]);
 
@@ -29,6 +31,7 @@ const TakeOrder = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
+      console.log('Taker hold invoice:', invoiceResponse.data.holdInvoice);
       setTakerHoldInvoice(invoiceResponse.data.holdInvoice);
     } catch (error) {
       console.error('Error fetching order or creating taker hold invoice:', error);
@@ -36,6 +39,40 @@ const TakeOrder = () => {
     }
   };
 
+  const checkHoldInvoiceStatus = async () => {
+    try {
+      const paymentHash = takerHoldInvoice?.payment_hash;
+      if (!paymentHash) {
+        console.error('No payment hash available for taker hold invoice');
+        return;
+      }
+      
+      console.log('Checking status for taker hold invoice payment hash:', paymentHash);
+      
+      const response = await axios.post(
+        `http://localhost:3000/api/holdinvoicelookup`,
+        { payment_hash: paymentHash },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      
+      const invoiceState = response.data.state;
+      setTakerHoldInvoice(prevState => ({
+        ...prevState,
+        status: invoiceState
+      }));
+  
+      if (invoiceState === 'ACCEPTED') {
+        console.log('Taker hold invoice has been paid!');
+        // Handle paid state (e.g., show success message, update UI)
+      }
+    } catch (error) {
+      console.error('Error checking taker hold invoice status:', error);
+    }
+  };
   if (error) {
     return <div>Error: {error}</div>;
   }
@@ -56,6 +93,12 @@ const TakeOrder = () => {
       <p>Invoice: {takerHoldInvoice.bolt11}</p>
       <p>Amount: {takerHoldInvoice.amount_msat} msat</p>
       <p>Status: {takerHoldInvoice.status}</p>
+      {takerHoldInvoice.status === 'ACCEPTED' && (
+        <p>Hold invoice has been paid! Proceeding with the order...</p>
+      )}
+      <button onClick={() => checkHoldInvoiceStatus()}>
+        Refresh Invoice Status
+      </button>
     </div>
   );
 };
