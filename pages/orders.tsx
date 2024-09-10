@@ -49,7 +49,7 @@ const Orders = () => {
       if (axios.isAxiosError(error)) {
         console.error('Error details:', error.response?.data);
       }
-      alert('There was an issue taking the order, but we\'ll redirect you to the order page.');
+      alert('Redirecting...');
     }
 
     // Redirect regardless of success or failure

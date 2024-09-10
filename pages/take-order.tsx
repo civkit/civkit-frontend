@@ -73,6 +73,21 @@ const TakeOrder = () => {
       console.error('Error checking taker hold invoice status:', error);
     }
   };
+
+  const handleRedirect = () => {
+    if (order) {
+      if (order.type === 0) { // Buy order
+        const payoutUrl = `http://localhost:3001/submit-payout?orderId=${orderId}`;
+        console.log('Redirecting to submit payout page:', payoutUrl);
+        window.location.href = payoutUrl;
+      } else { // Sell order
+        const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
+        console.log('Redirecting to full invoice page:', fullUrl);
+        window.location.href = fullUrl;
+      }
+    }
+  };
+
   if (error) {
     return <div>Error: {error}</div>;
   }
@@ -99,6 +114,15 @@ const TakeOrder = () => {
       <button onClick={() => checkHoldInvoiceStatus()}>
         Refresh Invoice Status
       </button>
+      
+      {takerHoldInvoice.status === 'ACCEPTED' && (
+        <button 
+          onClick={handleRedirect}
+          className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+        >
+          {order.type === 0 ? 'Go to Payout Page' : 'Go to Full Invoice'}
+        </button>
+      )}
     </div>
   );
 };
