@@ -81,7 +81,7 @@ const TakeOrder = () => {
         console.log('Redirecting to full invoice page:', fullUrl);
         window.location.href = fullUrl;
       } else { // Sell order (type === 1)
-        const payoutUrl = `http://localhost:3001/submit-payout?orderid=${orderId}`;
+        const payoutUrl = `http://localhost:3001/submit-payout?orderId=${orderId}`;
         console.log('Redirecting to submit payout page:', payoutUrl);
         window.location.href = payoutUrl;
       }
