@@ -62,7 +62,7 @@ const TradeComplete = () => {
         try {
           const signedEvent = await window.nostr.signEvent(event);
           console.log('Event after signing:', signedEvent);
-          const relayURL = 'ws://localhost:8080';
+          const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
 
           const relayWebSocket = new WebSocket(relayURL);
 
