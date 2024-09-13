@@ -4,6 +4,8 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import QRCode from 'qrcode.react';
 import { NDKContext } from '../../components/NDKContext';
+import { useNostr } from '../useNostr';
+import { GiOstrich } from 'react-icons/gi';
 
 type Order = {
   order_id: number;
@@ -46,6 +48,9 @@ const OrderDetails: React.FC = () => {
   const [makerHoldInvoice, setMakerHoldInvoice] = useState<Invoice | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const ndk = useContext(NDKContext);
+
+  const { signAndSendEvent } = useNostr();
+  const [isPaid, setIsPaid] = useState(false);
 
   const fetchOrder = async () => {
     try {
@@ -118,6 +123,8 @@ const OrderDetails: React.FC = () => {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
           });
+
+          setIsPaid(true);
         }
 
         if (order?.type === 0) {
@@ -174,7 +181,7 @@ const OrderDetails: React.FC = () => {
         const signedEvent = await window.nostr.signEvent(event);
         console.log('Signed Event:', signedEvent);
 
-        const relayURL = 'ws://localhost:7000';
+        const relayURL = 'ws://localhost:8080';
         const relayWebSocket = new WebSocket(relayURL);
 
         relayWebSocket.onopen = () => {
@@ -285,6 +292,20 @@ const OrderDetails: React.FC = () => {
     }
   };
 
+  const handleSendNostrEvent = async () => {
+    if (order) {
+      const orderData = {
+        order_id: order.order_id,
+        status: 'paid',
+        amount_msat: order.amount_msat,
+        currency: order.currency,
+        payment_method: order.payment_method,
+        type: order.type,
+      };
+      await signAndSendEvent(orderData);
+    }
+  };
+
   if (!order) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
   }
@@ -348,6 +369,17 @@ const OrderDetails: React.FC = () => {
             Check Invoice Status
           </button>
         </div>
+
+        {!isPaid && (
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={handleSendNostrEvent}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Confirm Invoice
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
