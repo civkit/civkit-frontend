@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
+import { useNostr } from './useNostr';
+import { GiOstrich } from 'react-icons/gi';
 
 const TakeOrder = () => {
   const router = useRouter();
@@ -8,6 +10,9 @@ const TakeOrder = () => {
   const [order, setOrder] = useState(null);
   const [takerHoldInvoice, setTakerHoldInvoice] = useState(null);
   const [error, setError] = useState(null);
+  const [nostrEventSent, setNostrEventSent] = useState(false);
+
+  const { signAndSendEvent } = useNostr();
 
   useEffect(() => {
     if (orderId) {
@@ -74,6 +79,24 @@ const TakeOrder = () => {
     }
   };
 
+  const sendNostrEvent = async () => {
+    try {
+      const nostrEventData = {
+        order_id: orderId,
+        amount_msat: order?.amount_msat,
+        type: order?.type,
+        status: 'taker_hold_invoice_paid',
+        currency: order?.currency,
+        payment_method: order?.payment_method
+      };
+      await signAndSendEvent(nostrEventData, 1507);
+      setNostrEventSent(true);
+      console.log('Nostr event sent successfully');
+    } catch (error) {
+      console.error('Error sending Nostr event:', error);
+    }
+  };
+
   const handleRedirect = () => {
     if (order) {
       if (order.type === 0) { // Buy order
@@ -115,6 +138,19 @@ const TakeOrder = () => {
         Refresh Invoice Status
       </button>
       
+      {takerHoldInvoice.status === 'ACCEPTED' && !nostrEventSent && (
+        <button 
+          onClick={sendNostrEvent}
+          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-2"
+        >
+          Confirm Invoice
+        </button>
+      )}
+
+      {nostrEventSent && (
+        <p className="text-green-500 font-bold">Nostr event sent successfully!</p>
+      )}
+
       {takerHoldInvoice.status === 'ACCEPTED' && (
         <button 
           onClick={handleRedirect}
