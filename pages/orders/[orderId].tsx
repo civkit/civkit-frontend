@@ -181,7 +181,10 @@ const OrderDetails: React.FC = () => {
         const signedEvent = await window.nostr.signEvent(event);
         console.log('Signed Event:', signedEvent);
 
-        const relayURL = 'ws://localhost:8080';
+        const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
+        if (!relayURL) {
+          throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+        }
         const relayWebSocket = new WebSocket(relayURL);
 
         relayWebSocket.onopen = () => {
