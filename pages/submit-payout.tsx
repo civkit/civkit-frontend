@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
+import { decode } from 'bolt11';
 
 const SubmitPayout = () => {
   const router = useRouter();
@@ -28,9 +29,68 @@ const SubmitPayout = () => {
     }
   };
 
+  const validateInvoice = (invoice, orderAmount) => {
+    try {
+      console.log('Invoice to validate:', invoice);
+      
+      // Check if the invoice starts with the Signet prefix
+      if (!invoice.startsWith('lntbs')) {
+        throw new Error('Invalid invoice: Not a Signet invoice');
+      }
+
+      // Extract the amount part
+      const amountMatch = invoice.match(/lntbs(\d+)([pnum]?)/i);
+      if (!amountMatch) {
+        throw new Error('Unable to extract amount from invoice');
+      }
+
+      const [, amountStr, unit] = amountMatch;
+      let invoiceAmountMsat = BigInt(amountStr);
+
+      // Convert to millisatoshis based on the unit
+      switch (unit.toLowerCase()) {
+        case 'p':
+          invoiceAmountMsat *= BigInt(10); // pico-BTC to msat
+          break;
+        case 'n':
+          invoiceAmountMsat *= BigInt(100); // nano-BTC to msat
+          break;
+        case 'u':
+          invoiceAmountMsat *= BigInt(100000); // micro-BTC to msat
+          break;
+        case 'm':
+          invoiceAmountMsat *= BigInt(100000000); // milli-BTC to msat
+          break;
+        case '':
+          invoiceAmountMsat *= BigInt(100000000); // BTC to msat
+          break;
+        default:
+          throw new Error('Unsupported amount unit in invoice');
+      }
+
+      console.log('Decoded invoice amount:', invoiceAmountMsat.toString(), 'msat');
+      
+      // Check if the invoice amount matches the order amount
+      if (invoiceAmountMsat !== BigInt(orderAmount)) {
+        throw new Error(`Invoice amount (${invoiceAmountMsat} msat) does not match order amount (${orderAmount} msat)`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Validation error:', error);
+      throw new Error(`Invalid invoice: ${error.message}`);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
+
     try {
+      // Validate the invoice
+      validateInvoice(lnInvoice, orderDetails.amount_msat);
+
       const response = await axios.post('http://localhost:3000/api/payouts/submit', {
         order_id: parseInt(orderId),
         ln_invoice: lnInvoice,
@@ -48,7 +108,7 @@ const SubmitPayout = () => {
         }, 2000);
       }
     } catch (error) {
-      setErrorMessage('Error submitting payout. Please try again.');
+      setErrorMessage(error.message);
       console.error('Error submitting payout:', error);
     }
   };
@@ -75,7 +135,7 @@ const SubmitPayout = () => {
             type="text"
             value={lnInvoice}
             onChange={(e) => setLnInvoice(e.target.value)}
-            placeholder="Enter Lightning Invoice"
+            placeholder="Enter Signet Lightning Invoice"
             required
             className="w-full p-2 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
           />

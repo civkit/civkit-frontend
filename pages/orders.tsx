@@ -147,24 +147,18 @@ const Orders = () => {
             <h2 className="text-2xl font-bold mb-4 text-center text-blue-600">Chatroom URLs</h2>
             <p className="text-gray-700">
               <strong>Make Offer URL:</strong> 
-              {chatUrls.makeOfferUrl ? (
-                <a href={chatUrls.makeOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
-                  {chatUrls.makeOfferUrl}
-                </a>
-              ) : (
-                <span>Not available</span>
-              )}
+              <a href={chatUrls.makeOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                {chatUrls.makeOfferUrl}
+              </a>
             </p>
-            <p className="text-gray-700">
-              <strong>Accept Offer URL:</strong> 
-              {chatUrls.acceptOfferUrl ? (
+            {chatUrls.acceptOfferUrl && (
+              <p className="text-gray-700">
+                <strong>Accept Offer URL:</strong> 
                 <a href={chatUrls.acceptOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
                   {chatUrls.acceptOfferUrl}
                 </a>
-              ) : (
-                <span>Not available</span>
-              )}
-            </p>
+              </p>
+            )}
             <button
               className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded mt-4 focus:outline-none focus:shadow-outline"
               onClick={closeModal}
