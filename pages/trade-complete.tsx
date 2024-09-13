@@ -50,7 +50,7 @@ const TradeComplete = () => {
         console.log('====================================');
 
         const event = {
-          kind: 1507, // Event kind for review
+          kind: 1508, // Event kind for review
           created_at: Math.floor(Date.now() / 1000),
           tags: [],
           content: JSON.stringify(reviewData),
