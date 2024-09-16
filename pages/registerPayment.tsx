@@ -40,9 +40,10 @@ const RegisterPayment = () => {
 
       console.log('Invoice status response:', response.data);
 
-      if (response.data.status === 'complete') {
+      if (response.data.status === 'complete' || response.data.status === 'paid') {
         setIsFullPaid(true);
       }
+      setstatus(response.data.status);
     } catch (error) {
       console.error('Error checking invoice status:', error);
     }
@@ -81,7 +82,7 @@ const RegisterPayment = () => {
         <p className="mb-4">Please pay the following invoice to complete your registration:</p>
         <QRCode value={invoice} />
         <p className="mt-4 break-all">{invoice}</p>
-        <p>Status: {isFullPaid ? 'Paid' : 'Not Paid'}</p>
+        <p>Status: {status || (isFullPaid ? 'Paid' : 'Not Paid')}</p>
       </div>
     </div>
   );
