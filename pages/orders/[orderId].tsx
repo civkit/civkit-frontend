@@ -5,7 +5,6 @@ import axios from 'axios';
 import QRCode from 'qrcode.react';
 import { NDKContext } from '../../components/NDKContext';
 import { useNostr } from '../useNostr';
-import { GiOstrich } from 'react-icons/gi';
 
 type Order = {
   order_id: number;
@@ -13,7 +12,7 @@ type Order = {
   amount_msat: number;
   currency: string;
   payment_method: string;
-  status: string;
+  status: 'pending' | 'paid' | 'chat_open' | 'completed' | string;
   type: number;
 };
 
@@ -50,7 +49,6 @@ const OrderDetails: React.FC = () => {
   const ndk = useContext(NDKContext);
 
   const { signAndSendEvent } = useNostr();
-  const [isPaid, setIsPaid] = useState(false);
 
   const fetchOrder = async () => {
     try {
@@ -60,7 +58,7 @@ const OrderDetails: React.FC = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      console.log('Received order data:', orderResponse.data);
+      console.log('Fetched order:', orderResponse.data);
       setOrder(orderResponse.data);
 
       console.log(`Fetching invoices for order ID: ${orderId}`);
@@ -114,28 +112,17 @@ const OrderDetails: React.FC = () => {
       if (invoiceState === 'ACCEPTED') {
         console.log(`Invoice accepted for order type ${order?.type}`);
         
-        // Update invoice status in the database
-        if (makerHoldInvoice) {
-          await axios.put(`http://localhost:3000/api/invoices/${makerHoldInvoice.order_id}`, {
-            status: 'paid',
-          }, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          });
-
-          setIsPaid(true);
-        }
-
-        if (order?.type === 0) {
-          // Buyer (type 0) - redirect to submit payout
-          const submitPayoutUrl = `http://localhost:3001/submit-payout?orderId=${orderId}`;
-          console.log('Attempting to redirect to submit payout:', submitPayoutUrl);
-          window.location.href = submitPayoutUrl;
-        } else if (order?.type === 1) {
-          // Seller (type 1) - no redirect, just log
-          console.log('Seller order accepted, no redirect');
-        }
+        // Update the order status in the state
+        setOrder(prevOrder => ({ ...prevOrder!, status: 'paid' }));
+        
+        // Update the order status in the database
+        await axios.put(`http://localhost:3000/api/orders/${order?.order_id}`, {
+          status: 'paid',
+        }, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
       } else {
         console.log(`Invoice not accepted. Current state: ${invoiceState}`);
       }
@@ -284,10 +271,10 @@ const OrderDetails: React.FC = () => {
 
   const handleRedirect = () => {
     if (order) {
-      if (order.type === 0) { // Buy order
+      if (order.type === 0 && order.status === 'paid') { // Buy order with paid hold invoice
         console.log('Redirecting to submit payout page');
         router.push(`/submit-payout?orderId=${orderId}`);
-      } else { // Sell order
+      } else if (order.type === 1 && order.status === 'paid') { // Sell order
         const fullUrl = `http://localhost:3001/full-invoice?orderid=${orderId}`;
         console.log('Redirecting to full invoice page:', fullUrl);
         window.location.href = fullUrl;
@@ -309,6 +296,11 @@ const OrderDetails: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    console.log('Order state updated:', order);
+    console.log('MakerHoldInvoice state updated:', makerHoldInvoice);
+  }, [order, makerHoldInvoice]);
+
   if (!order) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
   }
@@ -316,6 +308,8 @@ const OrderDetails: React.FC = () => {
   console.log('Rendering order:', order);
   console.log('Order type:', order.type);
   console.log('Hold invoice:', makerHoldInvoice);
+
+  console.log('Current order state:', order);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -346,7 +340,8 @@ const OrderDetails: React.FC = () => {
           </div>
         )}
 
-        {order.status === 'chat_open' && (
+        {console.log('Rendering chat button:', order?.status === 'chat_open')}
+        {order?.status === 'chat_open' && (
           <div className="flex justify-center mb-4">
             <button
               className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
@@ -358,12 +353,30 @@ const OrderDetails: React.FC = () => {
         )}
 
         <div className="flex gap-4 justify-center">
-          <button 
-            onClick={handleRedirect} 
-            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            {order.type === 0 ? 'Submit Payout' : 'Go to Full Invoice'}
-          </button>
+          {console.log('Render conditions:', {
+            orderType: order?.type,
+            orderStatus: order?.status
+          })}
+          
+          {/* Render "Go to Full Invoice" for sell orders when invoice is paid */}
+          {order?.type === 1 && order?.status === 'paid' && (
+            <button 
+              onClick={handleRedirect} 
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Go to Full Invoice
+            </button>
+          )}
+
+          {/* Render "Submit Payout" for buy orders when invoice is paid */}
+          {order?.type === 0 && order?.status === 'paid' && (
+            <button 
+              onClick={handleRedirect} 
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Submit Payout
+            </button>
+          )}
 
           <button 
             onClick={handleManualCheck} 
@@ -373,13 +386,14 @@ const OrderDetails: React.FC = () => {
           </button>
         </div>
 
-        {!isPaid && (
+        {/* Render "Send to Nostr" button for both buy and sell orders when invoice is paid */}
+        {order?.status === 'paid' && (
           <div className="flex justify-center mt-4">
             <button
               onClick={handleSendNostrEvent}
               className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             >
-              Confirm Invoice
+              Send to Nostr
             </button>
           </div>
         )}

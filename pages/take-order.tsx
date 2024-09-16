@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useRouter } from 'next/router';
 import { useNostr } from './useNostr';
 import { GiOstrich } from 'react-icons/gi';
+import QRCode from 'qrcode.react';
 
 const TakeOrder = () => {
   const router = useRouter();
@@ -112,53 +113,73 @@ const TakeOrder = () => {
   };
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div className="min-h-screen flex items-center justify-center text-red-600">Error: {error}</div>;
   }
 
   if (!order || !takerHoldInvoice) {
-    return <div>Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   return (
-    <div>
-      <h1>Take Order</h1>
-      <h2>Order Details</h2>
-      <p>Order ID: {order.order_id}</p>
-      <p>Amount: {order.amount_msat} msat</p>
-      <p>Status: {order.status}</p>
-      
-      <h2>Taker Hold Invoice</h2>
-      <p>Invoice: {takerHoldInvoice.bolt11}</p>
-      <p>Amount: {takerHoldInvoice.amount_msat} msat</p>
-      <p>Status: {takerHoldInvoice.status}</p>
-      {takerHoldInvoice.status === 'ACCEPTED' && (
-        <p>Hold invoice has been paid! Proceeding with the order...</p>
-      )}
-      <button onClick={() => checkHoldInvoiceStatus()}>
-        Refresh Invoice Status
-      </button>
-      
-      {takerHoldInvoice.status === 'ACCEPTED' && !nostrEventSent && (
-        <button 
-          onClick={sendNostrEvent}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-2"
-        >
-          Confirm Invoice
-        </button>
-      )}
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-2xl w-full">
+        <h1 className="text-3xl font-bold mb-6">Take Order</h1>
+        
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Order Details</h2>
+          <p className="mb-2"><span className="font-semibold">Order ID:</span> {order.order_id}</p>
+          <p className="mb-2"><span className="font-semibold">Amount:</span> {order.amount_msat} msat</p>
+          <p className="mb-2"><span className="font-semibold">Status:</span> {order.status}</p>
+        </div>
+        
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Taker Hold Invoice</h2>
+          <div className="mb-4 flex justify-center">
+            <QRCode value={takerHoldInvoice.bolt11} size={200} />
+          </div>
+          <div className="bg-gray-100 p-4 rounded-lg mb-4">
+            <p className="text-sm font-mono break-all">{takerHoldInvoice.bolt11}</p>
+          </div>
+          <p className="mb-2"><span className="font-semibold">Amount:</span> {takerHoldInvoice.amount_msat} msat</p>
+          <p className="mb-4">
+            <span className="font-semibold">Status:</span>
+            <span className={`ml-2 ${takerHoldInvoice.status === 'ACCEPTED' ? 'text-green-600' : 'text-yellow-600'}`}>
+              {takerHoldInvoice.status}
+            </span>
+          </p>
+          {takerHoldInvoice.status === 'ACCEPTED' && (
+            <p className="text-green-600 font-semibold mb-4">Hold invoice has been paid! Proceeding with the order...</p>
+          )}
+          <button 
+            onClick={() => checkHoldInvoiceStatus()}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Refresh Invoice Status
+          </button>
+        </div>
+        
+        {takerHoldInvoice.status === 'ACCEPTED' && !nostrEventSent && (
+          <button 
+            onClick={sendNostrEvent}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-2"
+          >
+            Send to Relay
+          </button>
+        )}
 
-      {nostrEventSent && (
-        <p className="text-green-500 font-bold">Nostr event sent successfully!</p>
-      )}
+        {nostrEventSent && (
+          <p className="text-green-500 font-bold mb-4">Nostr event sent successfully!</p>
+        )}
 
-      {takerHoldInvoice.status === 'ACCEPTED' && (
-        <button 
-          onClick={handleRedirect}
-          className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-        >
-          {order.type === 1 ? 'Go to Payout Page' : 'Go to Full Invoice'}
-        </button>
-      )}
+        {takerHoldInvoice.status === 'ACCEPTED' && (
+          <button 
+            onClick={handleRedirect}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            {order.type === 1 ? 'Go to Payout Page' : 'Go to Full Invoice'}
+          </button>
+        )}
+      </div>
     </div>
   );
 };

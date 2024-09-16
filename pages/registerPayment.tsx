@@ -1,5 +1,3 @@
-// pages/registerPayment.js
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
@@ -10,7 +8,7 @@ const RegisterPayment = () => {
   const { username } = router.query;
   const [invoice, setInvoice] = useState('');
   const [paymentHash, setPaymentHash] = useState('');
-  const [status, setstatus] = useState('');
+  const [status, setStatus] = useState('');
   const [isFullPaid, setIsFullPaid] = useState(false);
 
   const fetchInvoice = async () => {
@@ -21,10 +19,9 @@ const RegisterPayment = () => {
         },
       });
       const { invoice, payment_hash, status } = response.data;
-      console.log('Fetched invoice:', invoice);
       setInvoice(invoice);
       setPaymentHash(payment_hash);
-      setstatus(status)
+      setStatus(status);
     } catch (error) {
       console.error('Error fetching invoice:', error);
     }
@@ -38,12 +35,10 @@ const RegisterPayment = () => {
         },
       });
 
-      console.log('Invoice status response:', response.data);
-
       if (response.data.status === 'complete' || response.data.status === 'paid') {
         setIsFullPaid(true);
       }
-      setstatus(response.data.status);
+      setStatus(response.data.status);
     } catch (error) {
       console.error('Error checking invoice status:', error);
     }
@@ -57,32 +52,41 @@ const RegisterPayment = () => {
 
   useEffect(() => {
     if (paymentHash && !isFullPaid) {
-      const interval = setInterval(() => {
-        checkInvoiceStatus();
-      }, 5000);
+      const interval = setInterval(checkInvoiceStatus, 5000);
       return () => clearInterval(interval);
     }
   }, [paymentHash, isFullPaid]);
 
   useEffect(() => {
     if (isFullPaid) {
-      router.push('/login');  // Redirect to the registration page
+      router.push('/login');
     }
   }, [isFullPaid, router]);
 
-
   if (!invoice) {
-    return <div>Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-        <h1 className="text-2xl font-bold mb-4">Complete Your Registration</h1>
-        <p className="mb-4">Please pay the following invoice to complete your registration:</p>
-        <QRCode value={invoice} />
-        <p className="mt-4 break-all">{invoice}</p>
-        <p>Status: {status || (isFullPaid ? 'Paid' : 'Not Paid')}</p>
+      <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full">
+        <h1 className="text-2xl font-bold mb-6">Complete Your Registration</h1>
+        <p className="mb-6 text-gray-600">Please pay the following invoice to complete your registration:</p>
+        <div className="mb-6 flex justify-center">
+          <QRCode value={invoice} size={200} />
+        </div>
+        <div className="bg-gray-100 p-4 rounded-lg mb-6">
+          <p className="text-sm font-mono break-all">{invoice}</p>
+        </div>
+        <div className="mb-4">
+          <span className="font-semibold">Status: </span>
+          <span className={`${status === 'paid' || isFullPaid ? 'text-green-600' : 'text-yellow-600'}`}>
+            {status || (isFullPaid ? 'Paid' : 'Not Paid')}
+          </span>
+        </div>
+        <p className="text-sm text-gray-500">
+          The page will automatically redirect you once the payment is confirmed.
+        </p>
       </div>
     </div>
   );

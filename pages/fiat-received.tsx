@@ -6,19 +6,36 @@ const FiatReceived = () => {
   const router = useRouter();
   const { orderId } = router.query;
   const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleFiatReceived = async () => {
+    setIsLoading(true);
+    setError('');
+    setMessage('');
+
     try {
-      const response = await axios.post(`http://localhost:3000/api/orders/${orderId}/fiat-received`, {}, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await axios.post(`http://localhost:3000/api/fiat-received`, 
+        { order_id: orderId },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
       setMessage('Fiat received and payout processed successfully');
       setTimeout(() => router.push('/orders'), 2000);
     } catch (error) {
       console.error('Error processing fiat received:', error);
-      setMessage('Error processing fiat received. Please try again.');
+      if (error.response) {
+        setError(`Error: ${error.response.data.message || 'Unknown error occurred'}`);
+      } else if (error.request) {
+        setError('No response received from server. Please try again.');
+      } else {
+        setError('Error processing request. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -28,11 +45,13 @@ const FiatReceived = () => {
         <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Confirm Fiat Received</h1>
         <p className="mb-4 text-gray-700">Are you sure you want to confirm fiat received for Order #{orderId}?</p>
         {message && <p className="mb-4 text-green-600">{message}</p>}
+        {error && <p className="mb-4 text-red-600">{error}</p>}
         <button
           onClick={handleFiatReceived}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          disabled={isLoading}
+          className={`w-full ${isLoading ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600'} text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline`}
         >
-          Confirm Fiat Received
+          {isLoading ? 'Processing...' : 'Confirm Fiat Received'}
         </button>
       </div>
     </div>
