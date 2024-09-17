@@ -19,7 +19,7 @@ const SubmitPayout = () => {
 
   const fetchOrderDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/orders/${orderId}`, {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       setOrderDetails(response.data);
@@ -91,7 +91,7 @@ const SubmitPayout = () => {
       // Validate the invoice
       validateInvoice(lnInvoice, orderDetails.amount_msat);
 
-      const response = await axios.post('http://localhost:3000/api/payouts/submit', {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payouts/submit`, {
         order_id: parseInt(orderId),
         ln_invoice: lnInvoice,
       }, {

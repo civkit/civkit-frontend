@@ -53,7 +53,7 @@ const OrderDetails: React.FC = () => {
   const fetchOrder = async () => {
     try {
       console.log(`Fetching order with ID: ${orderId}`);
-      const orderResponse = await axios.get<Order>(`http://localhost:3000/api/orders/${orderId}`, {
+      const orderResponse = await axios.get<Order>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -62,7 +62,7 @@ const OrderDetails: React.FC = () => {
       setOrder(orderResponse.data);
 
       console.log(`Fetching invoices for order ID: ${orderId}`);
-      const invoicesResponse = await axios.get<Invoice[]>(`http://localhost:3000/api/invoice/${orderId}`, {
+      const invoicesResponse = await axios.get<Invoice[]>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -97,7 +97,7 @@ const OrderDetails: React.FC = () => {
   const checkInvoiceStatus = async (paymentHash: string): Promise<string | null> => {
     try {
       console.log(`Checking invoice status for payment hash: ${paymentHash}`);
-      const response = await axios.post(`http://localhost:3000/api/holdinvoicelookup`, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoicelookup`, {
         payment_hash: paymentHash,
       }, {
         headers: {
@@ -116,7 +116,7 @@ const OrderDetails: React.FC = () => {
         setOrder(prevOrder => ({ ...prevOrder!, status: 'paid' }));
         
         // Update the order status in the database
-        await axios.put(`http://localhost:3000/api/orders/${order?.order_id}`, {
+        await axios.put(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order?.order_id}`, {
           status: 'paid',
         }, {
           headers: {
@@ -201,7 +201,7 @@ const OrderDetails: React.FC = () => {
   const handleOpenChat = async () => {
     try {
       console.log(`Creating or checking chatroom for order ID: ${orderId}`);
-      const response = await axios.post(`http://localhost:3000/api/check-and-create-chatroom`, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`, {
         orderId,
       }, {
         headers: {

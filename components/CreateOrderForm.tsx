@@ -39,7 +39,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
       console.log('Submitting order data:', orderData);
 
       // Post order data to create the order
-      const orderResponse = await axios.post<{ order: Order }>('http://localhost:3000/api/orders', orderData, {
+      const orderResponse = await axios.post<{ order: Order }>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`, orderData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -55,7 +55,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
       const orderId = orderResponse.data.order.order_id;
   
       // Post hold invoice with unique label
-      const holdInvoiceResponse = await axios.post('http://localhost:3000/api/holdinvoice', {
+      const holdInvoiceResponse = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoice`, {
         amount_msat: parseInt(amountMsat),
         label: uniqueLabel,
         description: orderDetails
@@ -89,7 +89,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
   const pollHoldInvoiceStatus = async (paymentHash: string, orderId: number) => {
     const checkStatus = async () => {
       try {
-        const response = await axios.post('http://localhost:3000/api/holdinvoicelookup', 
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoicelookup`, 
           { payment_hash: paymentHash },
           {
             headers: {
