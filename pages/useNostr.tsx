@@ -1,8 +1,8 @@
 export const useNostr = () => {
-    const signAndSendEvent = async (orderData) => {
+    const signAndSendEvent = async (orderData, eventKind = 1506) => {
       if (window.nostr) {
         const event = {
-          kind: 1506,
+          kind: eventKind,
           created_at: Math.floor(Date.now() / 1000),
           tags: [],
           content: JSON.stringify(orderData),
@@ -12,7 +12,10 @@ export const useNostr = () => {
           const signedEvent = await window.nostr.signEvent(event);
           console.log('Signed Event:', signedEvent);
   
-          const relayURL = 'ws://localhost:7000'; // Change to your actual relay URL
+          const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
+          if (!relayURL) {
+            throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+          }
           const relayWebSocket = new WebSocket(relayURL);
   
           relayWebSocket.onopen = () => {
@@ -38,4 +41,3 @@ export const useNostr = () => {
   
     return { signAndSendEvent };
   };
-  

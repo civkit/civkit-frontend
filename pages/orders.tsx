@@ -10,30 +10,58 @@ const Orders = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/orders', {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         console.log('Orders fetched:', response.data);
-        // Check if the response has a data object and orders inside it
+        let fetchedOrders;
         if (response.data && response.data.orders) {
-          setOrders(response.data.orders);
+          fetchedOrders = response.data.orders;
         } else {
-          setOrders(response.data); // Assuming response.data is an array if it doesn't have orders property
+          fetchedOrders = response.data;
         }
+        setOrders(fetchedOrders);
+
+        // Check and create chatrooms for all fetched orders
+        await checkAndCreateChatrooms(fetchedOrders);
       } catch (error) {
         console.error('Error fetching orders:', error);
       }
     };
-
+  
     fetchOrders();
   }, []);
+  
+  const checkAndCreateChatrooms = async (orders) => {
+    const updatedOrders = [];
+    for (const order of orders) {
+      try {
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`,
+          { orderId: order.order_id },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        updatedOrders.push({...order, ...response.data});
+      } catch (error) {
+        console.error(`Error checking chatroom for order ${order.order_id}:`, error);
+        updatedOrders.push(order);
+      }
+    }
+    setOrders(updatedOrders);
+  };
 
   const handleTakeOrder = async (orderId) => {
+    console.log('Attempting to take order:', orderId);
     try {
-      await axios.post(
-        'http://localhost:3000/api/orders/take',
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/take`,
         {
           orderId,
           takerDetails: { description: 'Detailed description for the taker' },
@@ -42,16 +70,23 @@ const Orders = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         }
       );
-      router.push(`/take-order?orderId=${orderId}`);
+      console.log('Order taken successfully:', response.data);
     } catch (error) {
       console.error('Error taking order:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Error details:', error.response?.data);
+      }
+      alert('Redirecting...');
     }
+
+    // Redirect regardless of success or failure
+    window.location.href = `/take-order?orderId=${orderId}`;
   };
 
   const handleOpenChat = async (orderId) => {
     try {
       const response = await axios.post(
-        'http://localhost:3000/api/check-and-create-chatroom',
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`,
         { orderId },
         {
           headers: {
@@ -60,7 +95,7 @@ const Orders = () => {
           },
         }
       );
-      console.log('Chatroom Response:', response.data);
+      console.log('Chat URLs response:', response.data);
       setChatUrls(response.data);
     } catch (error) {
       console.error('Error opening chat:', error);
@@ -69,6 +104,39 @@ const Orders = () => {
 
   const closeModal = () => {
     setChatUrls(null);
+  };
+
+  const fetchLatestChatDetails = async (orderId) => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/order/${orderId}/latest-chat-details`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      return response.data.acceptOfferUrl;
+    } catch (error) {
+      console.error('Error fetching latest chat details:', error);
+      return null;
+    }
+  };
+
+  const AcceptOfferUrl = ({ orderId }) => {
+    const [acceptOfferUrl, setAcceptOfferUrl] = useState(null);
+
+    useEffect(() => {
+      fetchLatestChatDetails(orderId).then(setAcceptOfferUrl);
+    }, [orderId]);
+
+    if (!acceptOfferUrl) return null;
+
+    return (
+      <p className="text-gray-700">
+        <strong>Accept Offer URL:</strong> 
+        <a href={acceptOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+          {acceptOfferUrl}
+        </a>
+      </p>
+    );
   };
 
   return (
@@ -86,6 +154,7 @@ const Orders = () => {
                 <p className="text-gray-700"><strong>Payment Method:</strong> {order.payment_method}</p>
                 <p className="text-gray-700"><strong>Status:</strong> {order.status}</p>
                 <p className="text-gray-700"><strong>Order Type:</strong> {order.type === 0 ? 'Buy' : 'Sell'}</p>
+                <AcceptOfferUrl orderId={order.order_id} />
                 <div className="flex justify-between items-center mt-4">
                   <button
                     className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
@@ -114,8 +183,20 @@ const Orders = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-8 rounded-lg shadow-lg">
             <h2 className="text-2xl font-bold mb-4 text-center text-blue-600">Chatroom URLs</h2>
-            <p className="text-gray-700"><strong>Make Offer URL:</strong> <a href={chatUrls.makeChatUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">{chatUrls.makeChatUrl}</a></p>
-            <p className="text-gray-700"><strong>Accept Offer URL:</strong> <a href={chatUrls.acceptChatUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">{chatUrls.acceptChatUrl}</a></p>
+            <p className="text-gray-700">
+              <strong>Make Offer URL:</strong> 
+              <a href={chatUrls.makeOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                {chatUrls.makeOfferUrl}
+              </a>
+            </p>
+            {chatUrls.acceptOfferUrl && (
+              <p className="text-gray-700">
+                <strong>Accept Offer URL:</strong> 
+                <a href={chatUrls.acceptOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                  {chatUrls.acceptOfferUrl}
+                </a>
+              </p>
+            )}
             <button
               className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded mt-4 focus:outline-none focus:shadow-outline"
               onClick={closeModal}
