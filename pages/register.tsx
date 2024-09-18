@@ -58,7 +58,7 @@ const RegisterForm = () => {
     try {
       console.log("Hello world");
       const response = await axios.post(
-        "http://localhost:3000/api/register",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/register`,
         { username, password },
         {
           headers: {

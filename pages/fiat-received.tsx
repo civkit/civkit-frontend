@@ -15,7 +15,7 @@ const FiatReceived = () => {
     setMessage('');
 
     try {
-      const response = await axios.post(`http://localhost:3000/api/fiat-received`, 
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fiat-received`, 
         { order_id: orderId },
         {
           headers: {

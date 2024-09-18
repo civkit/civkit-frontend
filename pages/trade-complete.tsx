@@ -21,7 +21,7 @@ const TradeComplete = () => {
 
   const fetchOrder = async () => {
     try {
-      const orderResponse = await axios.get(`http://localhost:3000/api/orders/${orderId}`, {
+      const orderResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },

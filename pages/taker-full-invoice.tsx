@@ -15,7 +15,7 @@ const TakerFullInvoice = () => {
     setLoading(true);
     try {
       // First, try to create the full invoice
-      const createResponse = await axios.post(`http://localhost:3000/api/taker-full-invoice/${orderId}`, {}, {
+      const createResponse = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taker-full-invoice/${orderId}`, {}, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -27,7 +27,7 @@ const TakerFullInvoice = () => {
         setError(null);
       } else {
         // If creation fails, try to fetch an existing invoice
-        const fetchResponse = await axios.get(`http://localhost:3000/api/full-invoice/${orderId}`, {
+        const fetchResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/full-invoice/${orderId}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },

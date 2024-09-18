@@ -23,7 +23,7 @@ const FullInvoice = () => {
     try {
       setError(null);
       console.log(`Fetching full invoice for order ID: ${orderId}`);
-      const response = await axios.get(`http://localhost:3000/api/full-invoice/${orderId}`, {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/full-invoice/${orderId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -48,7 +48,7 @@ const FullInvoice = () => {
     if (!orderId) return;
     try {
       setLoading(true);
-      const response = await axios.post(`http://localhost:3000/api/check-full-invoice/${orderId}`, {}, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${orderId}`, {}, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },

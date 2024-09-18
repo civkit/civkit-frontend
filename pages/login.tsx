@@ -32,7 +32,7 @@ const LoginForm = () => {
 
     const password = await generatePassword(username);
     try {
-      const response = await axios.post("http://localhost:3000/api/login", {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/login`, {
         username,
         password,
       });

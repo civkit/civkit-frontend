@@ -10,7 +10,7 @@ const Orders = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/orders', {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -38,8 +38,8 @@ const Orders = () => {
     const updatedOrders = [];
     for (const order of orders) {
       try {
-        const response = await axios.post(
-          'http://localhost:3000/api/check-and-create-chatroom',
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`,
           { orderId: order.order_id },
           {
             headers: {
@@ -61,7 +61,7 @@ const Orders = () => {
     console.log('Attempting to take order:', orderId);
     try {
       const response = await axios.post(
-        'http://localhost:3000/api/orders/take',
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/take`,
         {
           orderId,
           takerDetails: { description: 'Detailed description for the taker' },
@@ -86,7 +86,7 @@ const Orders = () => {
   const handleOpenChat = async (orderId) => {
     try {
       const response = await axios.post(
-        'http://localhost:3000/api/check-and-create-chatroom',
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`,
         { orderId },
         {
           headers: {
