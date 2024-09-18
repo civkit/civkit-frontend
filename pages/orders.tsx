@@ -23,7 +23,7 @@ const Orders = () => {
           fetchedOrders = response.data;
         }
         setOrders(fetchedOrders);
-  
+
         // Check and create chatrooms for all fetched orders
         await checkAndCreateChatrooms(fetchedOrders);
       } catch (error) {
@@ -35,6 +35,7 @@ const Orders = () => {
   }, []);
   
   const checkAndCreateChatrooms = async (orders) => {
+    const updatedOrders = [];
     for (const order of orders) {
       try {
         await axios.post(
@@ -47,10 +48,13 @@ const Orders = () => {
             },
           }
         );
+        updatedOrders.push({...order, ...response.data});
       } catch (error) {
         console.error(`Error checking chatroom for order ${order.order_id}:`, error);
+        updatedOrders.push(order);
       }
     }
+    setOrders(updatedOrders);
   };
 
   const handleTakeOrder = async (orderId) => {
@@ -102,6 +106,39 @@ const Orders = () => {
     setChatUrls(null);
   };
 
+  const fetchLatestChatDetails = async (orderId) => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/order/${orderId}/latest-chat-details`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      return response.data.acceptOfferUrl;
+    } catch (error) {
+      console.error('Error fetching latest chat details:', error);
+      return null;
+    }
+  };
+
+  const AcceptOfferUrl = ({ orderId }) => {
+    const [acceptOfferUrl, setAcceptOfferUrl] = useState(null);
+
+    useEffect(() => {
+      fetchLatestChatDetails(orderId).then(setAcceptOfferUrl);
+    }, [orderId]);
+
+    if (!acceptOfferUrl) return null;
+
+    return (
+      <p className="text-gray-700">
+        <strong>Accept Offer URL:</strong> 
+        <a href={acceptOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+          {acceptOfferUrl}
+        </a>
+      </p>
+    );
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl">
@@ -117,6 +154,7 @@ const Orders = () => {
                 <p className="text-gray-700"><strong>Payment Method:</strong> {order.payment_method}</p>
                 <p className="text-gray-700"><strong>Status:</strong> {order.status}</p>
                 <p className="text-gray-700"><strong>Order Type:</strong> {order.type === 0 ? 'Buy' : 'Sell'}</p>
+                <AcceptOfferUrl orderId={order.order_id} />
                 <div className="flex justify-between items-center mt-4">
                   <button
                     className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
