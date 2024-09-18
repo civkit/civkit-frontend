@@ -29,10 +29,11 @@ const SubmitPayout = () => {
     }
   };
 
-  const validateInvoice = (invoice, orderAmount) => {
+  const validateInvoice = (invoice, orderAmountMsat) => {
     try {
       console.log('Invoice to validate:', invoice);
-      
+      console.log('Order amount (msat):', orderAmountMsat);
+
       // Check if the invoice starts with the Signet prefix
       if (!invoice.startsWith('lntbs')) {
         throw new Error('Invalid invoice: Not a Signet invoice');
@@ -46,6 +47,8 @@ const SubmitPayout = () => {
 
       const [, amountStr, unit] = amountMatch;
       let invoiceAmountMsat = BigInt(amountStr);
+
+      console.log('Raw invoice amount:', amountStr, 'Unit:', unit);
 
       // Convert to millisatoshis based on the unit
       switch (unit.toLowerCase()) {
@@ -62,17 +65,21 @@ const SubmitPayout = () => {
           invoiceAmountMsat *= BigInt(100000000); // milli-BTC to msat
           break;
         case '':
-          invoiceAmountMsat *= BigInt(100000000); // BTC to msat
+          invoiceAmountMsat *= BigInt(1000); // sats to msat
           break;
         default:
           throw new Error('Unsupported amount unit in invoice');
       }
 
-      console.log('Decoded invoice amount:', invoiceAmountMsat.toString(), 'msat');
-      
-      // Check if the invoice amount matches the order amount
-      if (invoiceAmountMsat !== BigInt(orderAmount)) {
-        throw new Error(`Invoice amount (${invoiceAmountMsat} msat) does not match order amount (${orderAmount} msat)`);
+      console.log('Decoded invoice amount (msat):', invoiceAmountMsat.toString());
+      console.log('Order amount (msat):', orderAmountMsat);
+
+      // Convert order amount to BigInt for comparison
+      const orderAmountMsatBigInt = BigInt(orderAmountMsat);
+
+      // Calculate
+      if (invoiceAmountMsat !== orderAmountMsatBigInt) {
+        throw new Error(`Invoice amount (${invoiceAmountMsat} msat) does not match order amount (${orderAmountMsatBigInt} msat)`);
       }
 
       return true;
