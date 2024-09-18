@@ -108,7 +108,7 @@ const Orders = () => {
 
   const fetchLatestChatDetails = async (orderId) => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/order/${orderId}/latest-chat-details`, {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/order/${orderId}/latest-chat-details`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
