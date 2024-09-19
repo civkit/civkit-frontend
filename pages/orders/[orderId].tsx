@@ -50,6 +50,8 @@ const OrderDetails: React.FC = () => {
 
   const { signAndSendEvent } = useNostr();
 
+  const [nostrEventSent, setNostrEventSent] = useState(false);
+
   const fetchOrder = async () => {
     try {
       console.log(`Fetching order with ID: ${orderId}`);
@@ -133,68 +135,27 @@ const OrderDetails: React.FC = () => {
     }
   };
 
-  const signAndBroadcastOrder = async (statusMessage: string) => {
-    if (isSigning) {
-      console.log("Already signing, skipping this attempt.");
-      return;
-    }
-    setIsSigning(true);
-
-    try {
-      if (!order || !window.nostr) {
-        console.log("NDK or signer not ready.");
-        return;
-      }
-
-      console.log("Signing and broadcasting order...");
-
-      const orderContent = {
+  const handleSendNostrEvent = async () => {
+    if (order) {
+      const orderData = {
         order_id: order.order_id,
-        details: order.order_details,
-        amount: order.amount_msat,
+        status: 'paid',
+        amount_msat: order.amount_msat,
         currency: order.currency,
         payment_method: order.payment_method,
-        status: statusMessage,
+        type: order.type,
       };
-
-      const event: NostrEvent = {
-        kind: 1505,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [],
-        content: JSON.stringify(orderContent),
-      };
-
-      try {
-        const signedEvent = await window.nostr.signEvent(event);
-        console.log('Signed Event:', signedEvent);
-
-        const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
-        if (!relayURL) {
-          throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
-        }
-        const relayWebSocket = new WebSocket(relayURL);
-
-        relayWebSocket.onopen = () => {
-          const message = JSON.stringify(['EVENT', signedEvent]);
-          relayWebSocket.send(message);
-          console.log('Signed event sent to relay:', message);
-        };
-
-        relayWebSocket.onerror = (err) => {
-          console.error('WebSocket error:', err);
-        };
-
-        relayWebSocket.onclose = () => {
-          console.log('WebSocket connection closed');
-        };
-
-      } catch (signError) {
-        console.error('Error signing event:', signError);
+      console.log('Attempting to sign and send Nostr event:', orderData);
+      const success = await signAndSendEvent(orderData);
+      console.log('Nostr event signed and sent:', success);
+      if (success) {
+        setNostrEventSent(true);
+        console.log('nostrEventSent set to true');
+      } else {
+        console.log('Failed to sign and send Nostr event');
       }
-    } catch (error) {
-      console.error('Error signing and publishing event:', error);
-    } finally {
-      setIsSigning(false);
+    } else {
+      console.log('Order is null, cannot send Nostr event');
     }
   };
 
@@ -282,24 +243,18 @@ const OrderDetails: React.FC = () => {
     }
   };
 
-  const handleSendNostrEvent = async () => {
-    if (order) {
-      const orderData = {
-        order_id: order.order_id,
-        status: 'paid',
-        amount_msat: order.amount_msat,
-        currency: order.currency,
-        payment_method: order.payment_method,
-        type: order.type,
-      };
-      await signAndSendEvent(orderData);
-    }
-  };
-
   useEffect(() => {
     console.log('Order state updated:', order);
     console.log('MakerHoldInvoice state updated:', makerHoldInvoice);
   }, [order, makerHoldInvoice]);
+
+  useEffect(() => {
+    console.log('nostrEventSent changed:', nostrEventSent);
+  }, [nostrEventSent]);
+
+  useEffect(() => {
+    console.log('State updated:', { order, nostrEventSent });
+  }, [order, nostrEventSent]);
 
   if (!order) {
     return <div className="flex items-center justify-center min-h-screen bg-gray-100"><p className="text-lg font-bold text-blue-600">Loading...</p></div>;
@@ -368,8 +323,14 @@ const OrderDetails: React.FC = () => {
             </button>
           )}
 
-          {/* Render "Submit Payout" for buy orders when invoice is paid */}
-          {order?.type === 0 && order?.status === 'paid' && (
+          {/* Render "Submit Payout" for buy orders when invoice is paid and Nostr event is sent */}
+          {console.log('Render conditions for Submit Payout:', {
+            orderType: order?.type,
+            orderStatus: order?.status,
+            nostrEventSent,
+            shouldRender: order?.type === 0 && order?.status === 'paid' && nostrEventSent
+          })}
+          {order?.type === 0 && order?.status === 'paid' && nostrEventSent && (
             <button 
               onClick={handleRedirect} 
               className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
