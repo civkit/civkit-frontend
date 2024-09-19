@@ -108,14 +108,17 @@ const Orders = () => {
 
   const fetchLatestChatDetails = async (orderId) => {
     try {
+      console.log(`Fetching latest chat details for order ${orderId}`);
       const response = await axios.get(`http://localhost:3000/api/order/${orderId}/latest-chat-details`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        params: { _t: new Date().getTime() }
       });
-      return response.data.acceptOfferUrl;
+      console.log(`Received response for order ${orderId}:`, response.data);
+      return response.data.chatUrl; // Changed from acceptOfferUrl to chatUrl
     } catch (error) {
-      console.error('Error fetching latest chat details:', error);
+      console.error(`Error fetching latest chat details for order ${orderId}:`, error);
       return null;
     }
   };
@@ -124,7 +127,22 @@ const Orders = () => {
     const [acceptOfferUrl, setAcceptOfferUrl] = useState(null);
 
     useEffect(() => {
-      fetchLatestChatDetails(orderId).then(setAcceptOfferUrl);
+      const fetchUrl = async () => {
+        const url = await fetchLatestChatDetails(orderId);
+        console.log(`New URL for order ${orderId}:`, url);
+        if (url && url !== acceptOfferUrl) {
+          console.log(`Updating URL for order ${orderId}`);
+          setAcceptOfferUrl(url);
+        } else if (!url) {
+          console.log(`No valid URL received for order ${orderId}`);
+        } else {
+          console.log(`URL for order ${orderId} hasn't changed`);
+        }
+      };
+
+      fetchUrl();
+      const intervalId = setInterval(fetchUrl, 5000);
+      return () => clearInterval(intervalId);
     }, [orderId]);
 
     if (!acceptOfferUrl) return null;
