@@ -43,5 +43,39 @@ export const useNostr = () => {
         return orders.filter((order: any) => order.kind === 1506);
     };
 
-    return { signAndSendEvent, filterOrders };
+    const subscribeToOrders = (callback: (event: any) => void) => {
+        const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
+        if (!relayURL) {
+            throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+        }
+        const relayWebSocket = new WebSocket(relayURL);
+
+        relayWebSocket.onopen = () => {
+            console.log('WebSocket connection opened for subscribing to orders');
+            // Subscribe to events of kind 1506
+            const subscribeMessage = JSON.stringify(['REQ', 'subscription-id', { kinds: [1506] }]);
+            relayWebSocket.send(subscribeMessage);
+        };
+
+        relayWebSocket.onmessage = (message) => {
+            const event = JSON.parse(message.data);
+            if (event[0] === 'EVENT') {
+                callback(event[1]);
+            }
+        };
+
+        relayWebSocket.onerror = (err) => {
+            console.error('WebSocket error:', err);
+        };
+
+        relayWebSocket.onclose = () => {
+            console.log('WebSocket connection closed');
+        };
+
+        return () => {
+            relayWebSocket.close();
+        };
+    };
+
+    return { signAndSendEvent, filterOrders, subscribeToOrders };
 };
