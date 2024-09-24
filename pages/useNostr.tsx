@@ -55,31 +55,28 @@ export const useNostr = () => {
         }
     };
 
-    const subscribeToOrders = (onEventReceived: (event: any) => void) => {
+    const subscribeToEvents = (onEventReceived: (event: any) => void, kinds: number[] = [1506]) => {
         const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
         if (!relayURL) {
             throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
         }
 
         let relayWebSocket: WebSocket;
-        let reconnectAttempts = 0;
-        const maxReconnectAttempts = 5;
 
         const connectWebSocket = () => {
             console.log(`Attempting to connect to WebSocket at ${relayURL}`);
             relayWebSocket = new WebSocket(relayURL);
 
             relayWebSocket.onopen = () => {
-                reconnectAttempts = 0; // Reset reconnect attempts on successful connection
-                const message = JSON.stringify(['REQ', 'sub-1', { kinds: [1506] }]);
+                const message = JSON.stringify(['REQ', 'sub-1', { kinds }]);
                 relayWebSocket.send(message);
-                console.log('Subscribed to events of kind 1506');
+                console.log(`Subscribed to events of kinds: ${kinds.join(', ')}`);
             };
 
             relayWebSocket.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 console.log('Received message:', data);
-                if (data[0] === 'EVENT' && data[2].kind === 1506) {
+                if (data[0] === 'EVENT' && kinds.includes(data[2].kind)) {
                     onEventReceived(data[2]);
                 }
             };
@@ -93,15 +90,6 @@ export const useNostr = () => {
                     console.log(`WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`);
                 } else {
                     console.error('WebSocket connection closed unexpectedly');
-                    // if (reconnectAttempts < maxReconnectAttempts) {
-                    //     reconnectAttempts++;
-                    //     console.log(`Reconnecting... (${reconnectAttempts}/${maxReconnectAttempts})`);
-                    //     setTimeout(() => {
-                    //         setTimeout(connectWebSocket, 1000 * reconnectAttempts); // Exponential backoff
-                    //     }); // Wait for 5 seconds before attempting to reconnect
-                    // } else {
-                    //     console.error('Max reconnect attempts reached. Giving up.');
-                    // }
                 }
             };
         };
@@ -113,5 +101,5 @@ export const useNostr = () => {
         };
     };
 
-    return { signAndSendEvent, subscribeToOrders };
+    return { signAndSendEvent, subscribeToEvents };
 };

@@ -12,7 +12,7 @@ interface OrderEvent {
 const FilteredOrders = () => {
   const [orders, setOrders] = useState<OrderEvent[]>([]);
   const [isSigned, setIsSigned] = useState(false);
-  const { signAndSendEvent, subscribeToOrders } = useNostr();
+  const { signAndSendEvent, subscribeToEvents } = useNostr();
 
   const [filteredOrders, setFilteredOrders] = useState<OrderEvent[]>([]);
 
@@ -59,14 +59,14 @@ const FilteredOrders = () => {
     };
 
     console.log("Subscribing to orders");
-    const unsubscribe = subscribeToOrders(handleEventReceived);
+    const unsubscribe = subscribeToEvents(handleEventReceived, [1506]);
     console.log("Subscribed to orders");
 
     return () => {
       console.log("Unsubscribing from orders");
       unsubscribe();
     };
-  }, [signAndSendEvent, subscribeToOrders]);
+  }, [signAndSendEvent, subscribeToEvents]);
 
   useEffect(() => {
     console.log('Orders:', orders);
