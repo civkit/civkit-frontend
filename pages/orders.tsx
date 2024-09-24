@@ -23,6 +23,7 @@ const Orders = () => {
           fetchedOrders = response.data;
         }
         setOrders(fetchedOrders);
+        console.log(orders);
 
         // Check and create chatrooms for all fetched orders
         await checkAndCreateChatrooms(fetchedOrders);
