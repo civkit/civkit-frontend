@@ -39,7 +39,7 @@ const FilteredOrders = () => {
 
       const order: OrderEvent = {
         id: event?.id,
-        content: JSON.parse(event?.content), // Parse the content field
+        content: JSON.parse(event?.content),
         kind: event?.kind,
         created_at: event?.created_at,
         tags: event?.tags,

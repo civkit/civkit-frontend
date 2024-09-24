@@ -8,11 +8,19 @@ interface Order {
 export const useNostr = () => {
     const signAndSendEvent = async (orderData: any, eventKind = 1506) => {
         if (window.nostr) {
+            const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
+            if (!frontendUrl) {
+                console.warn('NEXT_PUBLIC_FRONTEND_URL is not defined');
+            }
+
             const event = {
                 kind: eventKind,
                 created_at: Math.floor(Date.now() / 1000),
                 tags: [],
-                content: JSON.stringify(orderData),
+                content: JSON.stringify({
+                    ...orderData,
+                    frontend_url: frontendUrl || 'Not specified'
+                }),
                 pubkey: await window.nostr.getPublicKey(),
             };
 
