@@ -32,7 +32,8 @@ export const useNostr = () => {
                 if (!relayURL) {
                     throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
                 }
-                const relayWebSocket = new WebSocket(relayURL);
+                const secureRelayURL = relayURL.replace('ws://', 'wss://');
+                const relayWebSocket = new WebSocket(secureRelayURL);
 
                 relayWebSocket.onopen = () => {
                     const message = JSON.stringify(['EVENT', signedEvent]);
@@ -60,12 +61,13 @@ export const useNostr = () => {
         if (!relayURL) {
             throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
         }
+        const secureRelayURL = relayURL.replace('ws://', 'wss://');
 
         let relayWebSocket: WebSocket;
 
         const connectWebSocket = () => {
-            console.log(`Attempting to connect to WebSocket at ${relayURL}`);
-            relayWebSocket = new WebSocket(relayURL);
+            console.log(`Attempting to connect to WebSocket at ${secureRelayURL}`);
+            relayWebSocket = new WebSocket(secureRelayURL);
 
             relayWebSocket.onopen = () => {
                 const message = JSON.stringify(['REQ', 'sub-1', { kinds }]);
