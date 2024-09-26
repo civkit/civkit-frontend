@@ -41,11 +41,17 @@ const FilteredOrders: React.FC = () => {
   }, [isConnecting, connectionError, signAndSendEvent, subscribeToEvents]);
 
   if (isConnecting) {
-    return <div>Connecting to relay...</div>;
+    return <div>Connecting to relay... This may take up to 10 seconds.</div>;
   }
 
   if (connectionError) {
-    return <div>Error: {connectionError}</div>;
+    return (
+      <div>
+        <h2>Connection Error</h2>
+        <p>{connectionError}</p>
+        <p>Please check your relay settings and ensure it's running and accessible.</p>
+      </div>
+    );
   }
 
   return (
