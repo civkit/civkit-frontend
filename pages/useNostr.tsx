@@ -17,13 +17,17 @@ export const useNostr = () => {
         return;
       }
       try {
-        const newRelay = await Relay.connect(relayUrl);
+        console.log('Attempting to connect to relay:', relayUrl);
+        const newRelay = await Relay.connect(relayUrl, {
+          connectTimeout: 10000, // 10 seconds timeout
+        });
         console.log(`Connected to ${newRelay.url}`);
         setRelay(newRelay);
         setIsConnecting(false);
+        setConnectionError(null);
       } catch (error) {
         console.error('Failed to connect to relay:', error);
-        setConnectionError('Failed to connect to relay');
+        setConnectionError(`Failed to connect to relay: ${error.message}`);
         setIsConnecting(false);
       }
     };
@@ -32,6 +36,7 @@ export const useNostr = () => {
 
     return () => {
       if (relay) {
+        console.log('Closing relay connection');
         relay.close();
       }
     };
