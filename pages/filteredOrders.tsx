@@ -55,25 +55,29 @@ const FilteredOrders: React.FC = () => {
   }
 
   return (
-    <div>
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
       <h1>Filtered Orders</h1>
       <p>Signed: {isSigned ? 'Yes' : 'No'}</p>
       <h2>Received Events:</h2>
-      <ul>
-        {events.map((event, index) => (
-          <li key={index}>
-            <strong>ID:</strong> {event.id.slice(0, 10)}...
-            <br />
-            <strong>Pubkey:</strong> {event.pubkey.slice(0, 10)}...
-            <br />
-            <strong>Created at:</strong> {new Date(event.created_at * 1000).toLocaleString()}
-            <br />
-            <strong>Kind:</strong> {event.kind}
-            <br />
-            <strong>Content:</strong> {event.content}
-          </li>
-        ))}
-      </ul>
+      <div>
+        {events.map((event, index) => {
+          const content = JSON.parse(event.content);
+          return (
+            <div key={index} style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <strong>ID: {event.id.slice(0, 10)}...</strong>
+                <span>{new Date(event.created_at * 1000).toLocaleString()}</span>
+              </div>
+              <p><strong>Pubkey:</strong> {event.pubkey.slice(0, 10)}...</p>
+              <p><strong>Kind:</strong> {event.kind}</p>
+              <p><strong>Content:</strong></p>
+              <pre style={{ backgroundColor: '#f5f5f5', padding: '10px', overflowX: 'auto' }}>
+                {JSON.stringify(content, null, 2)}
+              </pre>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
