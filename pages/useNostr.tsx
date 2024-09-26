@@ -1,20 +1,31 @@
-import { finalizeEvent, generateSecretKey, getPublicKey, Event } from 'nostr-tools/pure'
+import { finalizeEvent, Event } from 'nostr-tools/pure'
 import { Relay } from 'nostr-tools/relay'
 import { useState, useCallback, useEffect } from 'react'
 
-let relay: Relay | null = null;
-
 export const useNostr = () => {
+  const [relay, setRelay] = useState<Relay | null>(null);
   const [isSigned, setIsSigned] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
     const connectRelay = async () => {
       const relayUrl = process.env.NEXT_PUBLIC_NOSTR_RELAY;
       if (!relayUrl) {
-        throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+        setConnectionError('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+        setIsConnecting(false);
+        return;
       }
-      relay = await Relay.connect(relayUrl);
-      console.log(`Connected to ${relay.url}`);
+      try {
+        const newRelay = await Relay.connect(relayUrl);
+        console.log(`Connected to ${newRelay.url}`);
+        setRelay(newRelay);
+        setIsConnecting(false);
+      } catch (error) {
+        console.error('Failed to connect to relay:', error);
+        setConnectionError('Failed to connect to relay');
+        setIsConnecting(false);
+      }
     };
 
     connectRelay();
@@ -60,8 +71,9 @@ export const useNostr = () => {
     } catch (error) {
       console.error('Error in signAndSendEvent:', error);
       setIsSigned(false);
+      throw error;
     }
-  }, []);
+  }, [relay]);
 
   const subscribeToEvents = useCallback((onEventReceived: (event: Event) => void, kinds: number[] = [1]) => {
     console.log('subscribeToEvents called with kinds:', kinds);
@@ -88,7 +100,7 @@ export const useNostr = () => {
       console.log('Unsubscribing from events');
       sub.close();
     };
-  }, []);
+  }, [relay]);
 
-  return { signAndSendEvent, subscribeToEvents, isSigned };
+  return { signAndSendEvent, subscribeToEvents, isSigned, isConnecting, connectionError };
 };
