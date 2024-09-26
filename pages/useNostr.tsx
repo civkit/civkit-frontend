@@ -1,118 +1,105 @@
-import { finalizeEvent, Event } from 'nostr-tools/pure'
-import { Relay } from 'nostr-tools/relay'
-import { useState, useCallback, useEffect } from 'react'
+interface Order {
+    [key: number]: {
+        id: string;
+        kind: number;
+    };
+}
 
 export const useNostr = () => {
-  const [relay, setRelay] = useState<Relay | null>(null);
-  const [isSigned, setIsSigned] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(true);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+    const signAndSendEvent = async (orderData: any, eventKind = 1506) => {
+        if (window.nostr) {
+            const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
+            if (!frontendUrl) {
+                console.warn('NEXT_PUBLIC_FRONTEND_URL is not defined');
+            }
 
-  useEffect(() => {
-    const connectRelay = async () => {
-      let relayUrl = process.env.NEXT_PUBLIC_NOSTR_RELAY;
-      if (!relayUrl) {
-        setConnectionError('NEXT_PUBLIC_NOSTR_RELAY is not defined');
-        setIsConnecting(false);
-        return;
-      }
+            const event = {
+                kind: eventKind,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: [],
+                content: JSON.stringify({
+                    ...orderData,
+                    frontend_url: frontendUrl || 'Not specified'
+                }),
+                pubkey: await window.nostr.getPublicKey(),
+            };
 
-      // Convert ws:// to wss:// if the page is loaded over HTTPS
-      if (window.location.protocol === 'https:' && relayUrl.startsWith('ws://')) {
-        relayUrl = 'wss://' + relayUrl.substr(5);
-        console.warn('Converted insecure WebSocket URL to:', relayUrl);
-      }
+            try {
+                const signedEvent = await window.nostr.signEvent(event);
+                console.log('Signed Event:', signedEvent);
 
-      try {
-        console.log('Attempting to connect to relay:', relayUrl);
-        const newRelay = await Relay.connect(relayUrl, {
-          connectTimeout: 10000, // 10 seconds timeout
-        });
-        console.log(`Connected to ${newRelay.url}`);
-        setRelay(newRelay);
-        setIsConnecting(false);
-        setConnectionError(null);
-      } catch (error) {
-        console.error('Failed to connect to relay:', error);
-        setConnectionError(`Failed to connect to relay: ${error.message || 'Unknown error'}`);
-        setIsConnecting(false);
-      }
+                const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
+                if (!relayURL) {
+                    throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+                }
+                const relayWebSocket = new WebSocket(relayURL);
+
+                relayWebSocket.onopen = () => {
+                    const message = JSON.stringify(['EVENT', signedEvent]);
+                    relayWebSocket.send(message);
+                    console.log('Signed event sent to relay:', message);
+                };
+
+                relayWebSocket.onerror = (err) => {
+                    console.error('WebSocket error:', err);
+                };
+
+                relayWebSocket.onclose = () => {
+                    console.log('WebSocket connection closed');
+                };
+            } catch (signError) {
+                console.error('Error signing event:', signError);
+            }
+        } else {
+            console.error('nos2x extension is not available.');
+        }
     };
 
-    connectRelay();
+    const subscribeToEvents = (onEventReceived: (event: any) => void, kinds: number[] = [1506]) => {
+        const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
+        if (!relayURL) {
+            throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+        }
 
-    return () => {
-      if (relay) {
-        console.log('Closing relay connection');
-        relay.close();
-      }
+        let relayWebSocket: WebSocket;
+
+        const connectWebSocket = () => {
+            console.log(`Attempting to connect to WebSocket at ${relayURL}`);
+            relayWebSocket = new WebSocket(relayURL);
+
+            relayWebSocket.onopen = () => {
+                const message = JSON.stringify(['REQ', 'sub-1', { kinds }]);
+                relayWebSocket.send(message);
+                console.log(`Subscribed to events of kinds: ${kinds.join(', ')}`);
+            };
+
+            relayWebSocket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('Received message:', data);
+                if (data[0] === 'EVENT' && kinds.includes(data[2].kind)) {
+                    onEventReceived(data[2]);
+                }
+            };
+
+            relayWebSocket.onerror = (err) => {
+                console.error('WebSocket error:', err);
+            };
+
+            relayWebSocket.onclose = (event) => {
+                if (event.wasClean) {
+                    console.log(`WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`);
+                } else {
+                    console.error('WebSocket connection closed unexpectedly');
+                }
+            };
+        };
+
+        connectWebSocket();
+
+        return () => {
+            relayWebSocket.close();
+        };
     };
-  }, []);
 
-  const signAndSendEvent = useCallback(async ({ orderData, eventKind }: { orderData: any; eventKind: number }) => {
-    console.log('signAndSendEvent called with:', { orderData, eventKind });
-    const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
-    console.log('Frontend URL:', frontendUrl);
-
-    if (!frontendUrl) {
-      throw new Error('NEXT_PUBLIC_FRONTEND_URL is not defined');
-    }
-
-    if (!relay) {
-      throw new Error('Relay not connected');
-    }
-
-    try {
-      const eventTemplate = {
-        kind: eventKind,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [],
-        content: JSON.stringify({ frontend_url: frontendUrl, orderData }),
-      };
-
-      console.log('Created event template:', eventTemplate);
-
-      // @ts-ignore
-      const sk = await window.nostr.getPrivateKey();
-      const signedEvent = finalizeEvent(eventTemplate, sk);
-      console.log('Signed Event:', signedEvent);
-
-      await relay.publish(signedEvent);
-      console.log('Event published successfully');
-      setIsSigned(true);
-    } catch (error) {
-      console.error('Error in signAndSendEvent:', error);
-      setIsSigned(false);
-      throw error;
-    }
-  }, [relay]);
-
-  const subscribeToEvents = useCallback((onEventReceived: (event: Event) => void, kinds: number[] = [1]) => {
-    console.log('subscribeToEvents called with kinds:', kinds);
-
-    if (!relay) {
-      throw new Error('Relay not connected');
-    }
-
-    const sub = relay.subscribe([
-      {
-        kinds: kinds,
-      },
-    ], {
-      onevent(event) {
-        console.log('Received event:', event);
-        onEventReceived(event);
-      },
-      oneose() {
-        console.log('Subscription complete');
-      }
-    });
-
-    return () => {
-      console.log('Unsubscribing from events');
-      sub.close();
-    };
-  }, [relay]);
-
-  return { signAndSendEvent, subscribeToEvents, isSigned, isConnecting, connectionError };
+    return { signAndSendEvent, subscribeToEvents };
 };
