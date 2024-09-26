@@ -1,18 +1,30 @@
-import { SimplePool, Event, Filter } from 'nostr-tools'
+import { finalizeEvent, generateSecretKey, getPublicKey, Event } from 'nostr-tools/pure'
+import { Relay } from 'nostr-tools/relay'
 import { useState, useCallback, useEffect } from 'react'
 
-const pool = new SimplePool()
-const relays = ['ws://64.7.199.19:7000'] // Add more relays as needed
+let relay: Relay | null = null;
 
 export const useNostr = () => {
   const [isSigned, setIsSigned] = useState(false);
 
   useEffect(() => {
-    // Clean up function to close all connections when component unmounts
+    const connectRelay = async () => {
+      const relayUrl = process.env.NEXT_PUBLIC_NOSTR_RELAY;
+      if (!relayUrl) {
+        throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+      }
+      relay = await Relay.connect(relayUrl);
+      console.log(`Connected to ${relay.url}`);
+    };
+
+    connectRelay();
+
     return () => {
-      pool.close(relays)
-    }
-  }, [])
+      if (relay) {
+        relay.close();
+      }
+    };
+  }, []);
 
   const signAndSendEvent = useCallback(async ({ orderData, eventKind }: { orderData: any; eventKind: number }) => {
     console.log('signAndSendEvent called with:', { orderData, eventKind });
@@ -23,22 +35,26 @@ export const useNostr = () => {
       throw new Error('NEXT_PUBLIC_FRONTEND_URL is not defined');
     }
 
+    if (!relay) {
+      throw new Error('Relay not connected');
+    }
+
     try {
-      const event = {
+      const eventTemplate = {
         kind: eventKind,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
-        content: JSON.stringify({ frontend_url: frontendUrl }),
+        content: JSON.stringify({ frontend_url: frontendUrl, orderData }),
       };
 
-      console.log('Created event:', event);
+      console.log('Created event template:', eventTemplate);
 
       // @ts-ignore
-      const signedEvent = await window.nostr.signEvent(event);
+      const sk = await window.nostr.getPrivateKey();
+      const signedEvent = finalizeEvent(eventTemplate, sk);
       console.log('Signed Event:', signedEvent);
 
-      const pub = pool.publish(relays, signedEvent);
-      await Promise.all(pub);
+      await relay.publish(signedEvent);
       console.log('Event published successfully');
       setIsSigned(true);
     } catch (error) {
@@ -49,24 +65,28 @@ export const useNostr = () => {
 
   const subscribeToEvents = useCallback((onEventReceived: (event: Event) => void, kinds: number[] = [1]) => {
     console.log('subscribeToEvents called with kinds:', kinds);
-    const relayUrl = process.env.NEXT_PUBLIC_NOSTR_RELAY;
-    console.log('Relay URL for subscription:', relayUrl);
 
-    if (!relayUrl) {
-      throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+    if (!relay) {
+      throw new Error('Relay not connected');
     }
 
-    const filter: Filter = { kinds };
-    const sub = pool.sub(relays, [filter]);
-
-    sub.on('event', (event: Event) => {
-      console.log('Received event:', event);
-      onEventReceived(event);
+    const sub = relay.subscribe([
+      {
+        kinds: kinds,
+      },
+    ], {
+      onevent(event) {
+        console.log('Received event:', event);
+        onEventReceived(event);
+      },
+      oneose() {
+        console.log('Subscription complete');
+      }
     });
 
     return () => {
       console.log('Unsubscribing from events');
-      sub.unsub();
+      sub.close();
     };
   }, []);
 
