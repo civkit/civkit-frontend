@@ -17,6 +17,13 @@ export const useNostr = () => {
             if (!isConnecting) {
                 isConnecting = true;
                 console.log(`Attempting to connect to WebSocket at ${relayURL}`);
+                
+                // Convert ws:// to wss:// if the page is loaded over HTTPS
+                if (window.location.protocol === 'https:' && relayURL.startsWith('ws://')) {
+                    relayURL = 'wss://' + relayURL.substr(5);
+                    console.log(`Updated relay URL to use WSS: ${relayURL}`);
+                }
+
                 globalWebSocket = new WebSocket(relayURL);
 
                 globalWebSocket.onopen = () => {
@@ -32,18 +39,15 @@ export const useNostr = () => {
 
                 globalWebSocket.onerror = (err) => {
                     console.error('WebSocket error:', err);
+                    isConnecting = false;
+                    retryConnection(relayURL);
                 };
 
                 globalWebSocket.onclose = (event) => {
                     console.log(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`);
                     globalWebSocket = null;
                     isConnecting = false;
-                    if (retryCount < MAX_RETRY) {
-                        retryCount++;
-                        setTimeout(() => ensureWebSocketConnection(relayURL), 1000 * Math.pow(2, retryCount));
-                    } else {
-                        console.error('Max retry attempts reached. Please check your connection.');
-                    }
+                    retryConnection(relayURL);
                 };
 
                 globalWebSocket.onmessage = (msg) => {
@@ -56,6 +60,17 @@ export const useNostr = () => {
                     }
                 };
             }
+        }
+    };
+
+    const retryConnection = (relayURL: string) => {
+        if (retryCount < MAX_RETRY) {
+            retryCount++;
+            const delay = 1000 * Math.pow(2, retryCount);
+            console.log(`Retrying connection in ${delay}ms (attempt ${retryCount})`);
+            setTimeout(() => ensureWebSocketConnection(relayURL), delay);
+        } else {
+            console.error('Max retry attempts reached. Please check your connection.');
         }
     };
 
