@@ -1,55 +1,73 @@
-import { finalizeEvent, generateSecretKey, getPublicKey, SimplePool, Event } from 'nostr-tools'
-import { useState, useEffect, useCallback } from 'react'
+import { SimplePool, Event } from 'nostr-tools'
+import { useState, useCallback } from 'react'
 
 const pool = new SimplePool()
 const relays = ['ws://64.7.199.19:7000'] // Add more relays as needed
 
 export const useNostr = () => {
-  const [secretKey, setSecretKey] = useState<Uint8Array | null>(null)
-  const [publicKey, setPublicKey] = useState<string | null>(null)
+  const [isSigned, setIsSigned] = useState(false);
 
-  useEffect(() => {
-    const sk = generateSecretKey()
-    setSecretKey(sk)
-    setPublicKey(getPublicKey(sk))
-  }, [])
+  const signAndSendEvent = useCallback(async ({ orderData, eventKind }: { orderData: any; eventKind: number }) => {
+    console.log('signAndSendEvent called with:', { orderData, eventKind });
+    const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
+    console.log('Frontend URL:', frontendUrl);
 
-  const signAndSendEvent = useCallback(async (eventData: any) => {
-    if (!secretKey) {
-      console.error('Secret key not available')
-      return
+    if (!frontendUrl) {
+      throw new Error('NEXT_PUBLIC_FRONTEND_URL is not defined');
     }
-
-    const event = {
-      kind: 1,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [],
-      content: JSON.stringify(eventData),
-    }
-
-    const signedEvent = finalizeEvent(event, secretKey)
 
     try {
-      const pubs = pool.publish(relays, signedEvent)
-      await Promise.all(pubs)
-      console.log('Event published successfully')
+      const event = {
+        kind: eventKind,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: JSON.stringify({ frontend_url: frontendUrl }),
+      };
+
+      console.log('Created event:', event);
+
+      // @ts-ignore
+      const signedEvent = await window.nostr.signEvent(event);
+      console.log('Signed Event:', signedEvent);
+
+      const relayUrl = process.env.NEXT_PUBLIC_NOSTR_RELAY;
+      console.log('Relay URL:', relayUrl);
+
+      if (!relayUrl) {
+        throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+      }
+
+      const pub = pool.publish(relays, signedEvent);
+      await Promise.all(pub);
+      console.log('Event published successfully');
+      setIsSigned(true);
     } catch (error) {
-      console.error('Failed to publish event:', error)
+      console.error('Error in signAndSendEvent:', error);
+      setIsSigned(false);
     }
-  }, [secretKey])
+  }, []);
 
   const subscribeToEvents = useCallback((onEventReceived: (event: Event) => void, kinds: number[] = [1]) => {
-    const sub = pool.sub(relays, [{ kinds }])
+    console.log('subscribeToEvents called with kinds:', kinds);
+    const relayUrl = process.env.NEXT_PUBLIC_NOSTR_RELAY;
+    console.log('Relay URL for subscription:', relayUrl);
+
+    if (!relayUrl) {
+      throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
+    }
+
+    const sub = pool.sub(relays, [{ kinds }]);
 
     sub.on('event', (event: Event) => {
-      console.log('Received event:', event)
-      onEventReceived(event)
-    })
+      console.log('Received event:', event);
+      onEventReceived(event);
+    });
 
     return () => {
-      sub.unsub()
-    }
-  }, [])
+      console.log('Unsubscribing from events');
+      sub.unsub();
+    };
+  }, []);
 
-  return { signAndSendEvent, subscribeToEvents, publicKey }
-}
+  return { signAndSendEvent, subscribeToEvents, isSigned };
+};
