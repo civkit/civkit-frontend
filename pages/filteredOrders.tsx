@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNostr } from './useNostr';
+import Head from 'next/head';
 
 interface OrderEvent {
   id: string;
