@@ -54,14 +54,15 @@ const FilteredOrders: React.FC = () => {
     );
   }
 
-  const parseContent = (content: string) => {
+  const uniqueEvents = events.reduce((acc, event) => {
     try {
-      return JSON.parse(content);
-    } catch (error) {
-      console.error('Error parsing JSON:', error);
-      return { error: 'Invalid JSON', rawContent: content };
-    }
-  };
+      const content = JSON.parse(event.content);
+      if (content.order_id && !acc.some(e => JSON.parse(e.content).order_id === content.order_id)) {
+        acc.push(event);
+      }
+    } catch {} // Ignore parsing errors
+    return acc;
+  }, [] as Event[]);
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
@@ -69,22 +70,23 @@ const FilteredOrders: React.FC = () => {
       <p>Signed: {isSigned ? 'Yes' : 'No'}</p>
       <h2>Received Events:</h2>
       <div>
-        {events.map((event, index) => {
-          const content = parseContent(event.content);
-          return (
-            <div key={index} style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <strong>ID: {event.id.slice(0, 10)}...</strong>
-                <span>{new Date(event.created_at * 1000).toLocaleString()}</span>
+        {uniqueEvents.map((event, index) => {
+          try {
+            const content = JSON.parse(event.content);
+            return (
+              <div key={index} style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <strong>Order ID: {content.order_id}</strong>
+                  <span>{new Date(event.created_at * 1000).toLocaleString()}</span>
+                </div>
+                <p><strong>Status:</strong> {content.status}</p>
+                <p><strong>Amount:</strong> {content.amount_msat / 1000} {content.currency}</p>
+                <p><strong>Payment Method:</strong> {content.payment_method}</p>
               </div>
-              <p><strong>Pubkey:</strong> {event.pubkey.slice(0, 10)}...</p>
-              <p><strong>Kind:</strong> {event.kind}</p>
-              <p><strong>Content:</strong></p>
-              <pre style={{ backgroundColor: '#f5f5f5', padding: '10px', overflowX: 'auto' }}>
-                {content.error ? content.rawContent : JSON.stringify(content, null, 2)}
-              </pre>
-            </div>
-          );
+            );
+          } catch {
+            return null; // Skip rendering for invalid JSON
+          }
         })}
       </div>
     </div>
