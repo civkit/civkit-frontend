@@ -10,12 +10,19 @@ export const useNostr = () => {
 
   useEffect(() => {
     const connectRelay = async () => {
-      const relayUrl = process.env.NEXT_PUBLIC_NOSTR_RELAY;
+      let relayUrl = process.env.NEXT_PUBLIC_NOSTR_RELAY;
       if (!relayUrl) {
         setConnectionError('NEXT_PUBLIC_NOSTR_RELAY is not defined');
         setIsConnecting(false);
         return;
       }
+
+      // Convert ws:// to wss:// if the page is loaded over HTTPS
+      if (window.location.protocol === 'https:' && relayUrl.startsWith('ws://')) {
+        relayUrl = 'wss://' + relayUrl.substr(5);
+        console.warn('Converted insecure WebSocket URL to:', relayUrl);
+      }
+
       try {
         console.log('Attempting to connect to relay:', relayUrl);
         const newRelay = await Relay.connect(relayUrl, {
@@ -27,7 +34,7 @@ export const useNostr = () => {
         setConnectionError(null);
       } catch (error) {
         console.error('Failed to connect to relay:', error);
-        setConnectionError(`Failed to connect to relay: ${error.message}`);
+        setConnectionError(`Failed to connect to relay: ${error.message || 'Unknown error'}`);
         setIsConnecting(false);
       }
     };
