@@ -1,11 +1,18 @@
-import { SimplePool, Event } from 'nostr-tools'
-import { useState, useCallback } from 'react'
+import { SimplePool, Event, Filter } from 'nostr-tools'
+import { useState, useCallback, useEffect } from 'react'
 
 const pool = new SimplePool()
 const relays = ['ws://64.7.199.19:7000'] // Add more relays as needed
 
 export const useNostr = () => {
   const [isSigned, setIsSigned] = useState(false);
+
+  useEffect(() => {
+    // Clean up function to close all connections when component unmounts
+    return () => {
+      pool.close(relays)
+    }
+  }, [])
 
   const signAndSendEvent = useCallback(async ({ orderData, eventKind }: { orderData: any; eventKind: number }) => {
     console.log('signAndSendEvent called with:', { orderData, eventKind });
@@ -30,13 +37,6 @@ export const useNostr = () => {
       const signedEvent = await window.nostr.signEvent(event);
       console.log('Signed Event:', signedEvent);
 
-      const relayUrl = process.env.NEXT_PUBLIC_NOSTR_RELAY;
-      console.log('Relay URL:', relayUrl);
-
-      if (!relayUrl) {
-        throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
-      }
-
       const pub = pool.publish(relays, signedEvent);
       await Promise.all(pub);
       console.log('Event published successfully');
@@ -56,7 +56,8 @@ export const useNostr = () => {
       throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
     }
 
-    const sub = pool.sub(relays, [{ kinds }]);
+    const filter: Filter = { kinds };
+    const sub = pool.sub(relays, [filter]);
 
     sub.on('event', (event: Event) => {
       console.log('Received event:', event);
