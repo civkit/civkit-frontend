@@ -76,31 +76,36 @@ const FilteredOrders = () => {
   }, [orders]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Filtered Orders</h2>
-        {isSigned ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {filteredOrders.length > 0 ? (
-              filteredOrders.map((order) => (
-                <div key={order.id} className="bg-white p-6 rounded-lg shadow-lg">
-                  <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.content.order_id}</h3>
-                  <p className="text-gray-700">Status: {order.content.status}</p>
-                  <p className="text-gray-700">Amount (msat): {order.content.amount_msat}</p>
-                  <p className="text-gray-700">Currency: {order.content.currency}</p>
-                  <p className="text-gray-700">Payment Method: {order.content.payment_method}</p>
-                  <p className="text-gray-700">Type: {order.content.type}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-gray-700">No orders found.</p>
-            )}
-          </div>
-        ) : (
-          <p className="text-center text-gray-700">Signing event, please wait...</p>
-        )}
+    <>
+      <Head>
+        <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+      </Head>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
+          <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Filtered Orders</h2>
+          {isSigned ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {filteredOrders.length > 0 ? (
+                filteredOrders.map((order) => (
+                  <div key={order.id} className="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.content.order_id}</h3>
+                    <p className="text-gray-700">Status: {order.content.status}</p>
+                    <p className="text-gray-700">Amount (msat): {order.content.amount_msat}</p>
+                    <p className="text-gray-700">Currency: {order.content.currency}</p>
+                    <p className="text-gray-700">Payment Method: {order.content.payment_method}</p>
+                    <p className="text-gray-700">Type: {order.content.type}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-700">No orders found.</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-center text-gray-700">Signing event, please wait...</p>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
