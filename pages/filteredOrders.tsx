@@ -79,13 +79,22 @@ const GlobalOrderbook: React.FC = () => {
                   <strong>Order ID: {content.order_id}</strong>
                   <span>{new Date(event.created_at * 1000).toLocaleString()}</span>
                 </div>
-                <p><strong>Status:</strong> {content.status}</p>
-                <p><strong>Amount:</strong> {content.amount_msat / 1000} {content.currency}</p>
-                <p><strong>Payment Method:</strong> {content.payment_method}</p>
+                <p><strong>Pubkey:</strong> {event.pubkey.slice(0, 10)}...</p>
+                <p><strong>Kind:</strong> {event.kind}</p>
+                <p><strong>Content:</strong></p>
+                <pre style={{ backgroundColor: '#f5f5f5', padding: '10px', overflowX: 'auto' }}>
+                  {JSON.stringify(content, null, 2)}
+                </pre>
               </div>
             );
-          } catch {
-            return null; // Skip rendering for invalid JSON
+          } catch (error) {
+            console.error('Error parsing JSON:', error);
+            return (
+              <div key={index} style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
+                <p><strong>Error:</strong> Invalid JSON content</p>
+                <p><strong>Raw Content:</strong> {event.content}</p>
+              </div>
+            );
           }
         })}
       </div>
