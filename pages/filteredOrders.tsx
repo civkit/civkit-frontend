@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Event } from 'nostr-tools'
 import { useNostr } from './useNostr'
 
-const FilteredOrders: React.FC = () => {
+const GlobalOrderbook: React.FC = () => {
   const { signAndSendEvent, subscribeToEvents, isSigned, isConnecting, connectionError } = useNostr();
   const [events, setEvents] = useState<Event[]>([]);
 
@@ -66,7 +66,7 @@ const FilteredOrders: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <h1>Filtered Orders</h1>
+      <h1>Global Orderbook</h1>
       <p>Signed: {isSigned ? 'Yes' : 'No'}</p>
       <h2>Received Events:</h2>
       <div>
@@ -93,4 +93,4 @@ const FilteredOrders: React.FC = () => {
   );
 };
 
-export default FilteredOrders;
+export default GlobalOrderbook;
