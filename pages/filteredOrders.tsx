@@ -54,6 +54,15 @@ const FilteredOrders: React.FC = () => {
     );
   }
 
+  const parseContent = (content: string) => {
+    try {
+      return JSON.parse(content);
+    } catch (error) {
+      console.error('Error parsing JSON:', error);
+      return { error: 'Invalid JSON', rawContent: content };
+    }
+  };
+
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
       <h1>Filtered Orders</h1>
@@ -61,7 +70,7 @@ const FilteredOrders: React.FC = () => {
       <h2>Received Events:</h2>
       <div>
         {events.map((event, index) => {
-          const content = JSON.parse(event.content);
+          const content = parseContent(event.content);
           return (
             <div key={index} style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -72,7 +81,7 @@ const FilteredOrders: React.FC = () => {
               <p><strong>Kind:</strong> {event.kind}</p>
               <p><strong>Content:</strong></p>
               <pre style={{ backgroundColor: '#f5f5f5', padding: '10px', overflowX: 'auto' }}>
-                {JSON.stringify(content, null, 2)}
+                {content.error ? content.rawContent : JSON.stringify(content, null, 2)}
               </pre>
             </div>
           );
