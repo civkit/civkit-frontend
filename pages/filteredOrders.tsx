@@ -1,16 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNostr } from './useNostr';
 
-interface OrderEvent {
-  id: string;
-  content: any; // Keep as any to avoid JSON parsing issues
-  kind: number;
-  created_at: number;
-  tags: any[];
-}
-
 const FilteredOrders = () => {
-  const [orders, setOrders] = useState<OrderEvent[]>([]);
+  const [orders, setOrders] = useState<any[]>([]); // Use any for simplicity
   const { subscribeToEvents } = useNostr();
 
   useEffect(() => {
@@ -18,20 +10,10 @@ const FilteredOrders = () => {
       // Log the entire event for debugging
       console.log('Received event:', event);
 
-      // Check if the event has the expected structure
-      if (event && event.length > 2) {
-        const order: OrderEvent = {
-          id: event[1]?.id || 'unknown', // Use optional chaining and fallback
-          content: event[2] ? JSON.parse(event[2].content) : {}, // Safely parse content
-          kind: event[2]?.kind || 0, // Default to 0 if kind is undefined
-          created_at: event[2]?.created_at || Date.now(), // Default to current time if undefined
-          tags: event[2]?.tags || [], // Default to empty array if undefined
-        };
-
-        // Only add orders of kind 1506
-        if (order.kind === 1506) {
-          setOrders((prevOrders) => [...prevOrders, order]);
-        }
+      // Check if the event is of kind 1506
+      if (event[0] === 'EVENT' && event[2]?.kind === 1506) {
+        // Add the event to the orders state
+        setOrders((prevOrders) => [...prevOrders, event[2]]);
       }
     };
 
@@ -50,12 +32,11 @@ const FilteredOrders = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {orders.map((order) => (
               <div key={order.id} className="bg-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.content.order_id || 'N/A'}</h3>
-                <p className="text-gray-700">Status: {order.content.status || 'N/A'}</p>
-                <p className="text-gray-700">Amount (msat): {order.content.amount_msat || 'N/A'}</p>
-                <p className="text-gray-700">Currency: {order.content.currency || 'N/A'}</p>
-                <p className="text-gray-700">Payment Method: {order.content.payment_method || 'N/A'}</p>
-                <p className="text-gray-700">Type: {order.content.type || 'N/A'}</p>
+                <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.id}</h3>
+                <p className="text-gray-700">Content: {order.content}</p>
+                <p className="text-gray-700">Kind: {order.kind}</p>
+                <p className="text-gray-700">Created At: {new Date(order.created_at * 1000).toLocaleString()}</p>
+                <p className="text-gray-700">Tags: {JSON.stringify(order.tags)}</p>
               </div>
             ))}
           </div>
