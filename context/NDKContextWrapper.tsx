@@ -7,8 +7,11 @@ function NDKContextWrapper({ children }: { children: React.ReactNode }) {
   if (typeof window === undefined){
     return
   }
+  const relayUrls = [
+    "wss://civkit.africa"
+  ];
   return (
-    <NDKProvider relayUrls={["ws://localhost:7000"]}>
+    <NDKProvider relayUrls={relayUrls}>
       {children}
     </NDKProvider>
   )
