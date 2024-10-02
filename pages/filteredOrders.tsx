@@ -15,19 +15,24 @@ const FilteredOrders = () => {
 
   useEffect(() => {
     const handleEventReceived = (event: any[]) => {
-      if (!event || event.length < 3) return;
+      // Log the entire event for debugging
+      console.log('Received event:', event);
 
-      // Assuming event[2] contains the order details
-      const order: OrderEvent = {
-        id: event[2].id, // Extracting ID from the event
-        content: JSON.parse(event[2].content), // Parse the content
-        kind: event[2].kind, // Extracting kind
-        created_at: event[2].created_at, // Extracting created_at
-        tags: event[2].tags, // Extracting tags
-      };
+      // Check if the event has the expected structure
+      if (event && event.length > 2) {
+        const order: OrderEvent = {
+          id: event[1]?.id || 'unknown', // Use optional chaining and fallback
+          content: event[2] ? JSON.parse(event[2].content) : {}, // Safely parse content
+          kind: event[2]?.kind || 0, // Default to 0 if kind is undefined
+          created_at: event[2]?.created_at || Date.now(), // Default to current time if undefined
+          tags: event[2]?.tags || [], // Default to empty array if undefined
+        };
 
-      // Add the order to the state
-      setOrders((prevOrders) => [...prevOrders, order]);
+        // Only add orders of kind 1506
+        if (order.kind === 1506) {
+          setOrders((prevOrders) => [...prevOrders, order]);
+        }
+      }
     };
 
     const unsubscribe = subscribeToEvents(handleEventReceived);
@@ -40,18 +45,17 @@ const FilteredOrders = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">All Orders</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Filtered Orders</h2>
         {orders.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {orders.map((order) => (
               <div key={order.id} className="bg-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.content.order_id}</h3>
-                <p className="text-gray-700">Status: {order.content.status}</p>
-                <p className="text-gray-700">Amount (msat): {order.content.amount_msat}</p>
-                <p className="text-gray-700">Currency: {order.content.currency}</p>
-                <p className="text-gray-700">Payment Method: {order.content.payment_method}</p>
-                <p className="text-gray-700">Type: {order.content.type}</p>
-                <p className="text-gray-700">Frontend URL: <a href={order.content.frontend_url} target="_blank" rel="noopener noreferrer">{order.content.frontend_url}</a></p>
+                <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.content.order_id || 'N/A'}</h3>
+                <p className="text-gray-700">Status: {order.content.status || 'N/A'}</p>
+                <p className="text-gray-700">Amount (msat): {order.content.amount_msat || 'N/A'}</p>
+                <p className="text-gray-700">Currency: {order.content.currency || 'N/A'}</p>
+                <p className="text-gray-700">Payment Method: {order.content.payment_method || 'N/A'}</p>
+                <p className="text-gray-700">Type: {order.content.type || 'N/A'}</p>
               </div>
             ))}
           </div>
