@@ -8,7 +8,7 @@ function NDKContextWrapper({ children }: { children: React.ReactNode }) {
     return
   }
   const relayUrls = [
-    "wss://civkit.africa"
+    "wss://civkit.africa", "wss://relay.damus.io"
   ];
   return (
     <NDKProvider relayUrls={relayUrls}>
