@@ -1,6 +1,6 @@
 "use client"
 import React, { useContext, useEffect, useState } from 'react';
-import { NDKContext } from './NDKContext';
+import { NDKContextWrapper } from './NDKContextWrapper';
 import { NostrEvent } from '@nostr-dev-kit/ndk';
 
 const FilteredOrders = () => {
