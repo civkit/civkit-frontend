@@ -1,51 +1,62 @@
-import { useState, useEffect } from 'react';
-import { useNostr } from './useNostr';
+"use client"
+import React, { useContext, useEffect, useState } from 'react';
+import { NDKContext } from './NDKContext';
+import { NostrEvent } from '@nostr-dev-kit/ndk';
 
 const FilteredOrders = () => {
-  const [orders, setOrders] = useState<any[]>([]); // Use any for simplicity
-  const { subscribeToEvents } = useNostr();
+    const ndk = useContext(NDKContext);
+    const [orders, setOrders] = useState<NostrEvent[]>([]);
 
-  useEffect(() => {
-    const handleEventReceived = (event: any[]) => {
-      // Log the entire event for debugging
-      console.log('Received event:', event);
+    useEffect(() => {
+        // Subscribe to events of kind 1506
+        const subscription = ndk.subscribe({ kinds: [1506], limit: 50 }); // Adjust the limit as needed
 
-      // Check if the event is of kind 1506
-      if (event[0] === 'EVENT' && event[2]?.kind === 1506) {
-        // Add the event to the orders state
-        setOrders((prevOrders) => [...prevOrders, event[2]]);
-      }
-    };
+        subscription.on('event', (event: NostrEvent) => {
+            // Add the event to the orders state
+            setOrders(prevOrders => [...prevOrders, event]);
+        });
 
-    const unsubscribe = subscribeToEvents(handleEventReceived);
+        subscription.on('error', (error) => {
+            console.error('Error fetching events:', error);
+        });
 
-    return () => {
-      unsubscribe();
-    };
-  }, [subscribeToEvents]);
+        // Cleanup function to stop the subscription when the component unmounts
+        return () => subscription.stop();
+    }, [ndk]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Filtered Orders</h2>
-        {orders.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {orders.map((order) => (
-              <div key={order.id} className="bg-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.id}</h3>
-                <p className="text-gray-700">Content: {order.content}</p>
-                <p className="text-gray-700">Kind: {order.kind}</p>
-                <p className="text-gray-700">Created At: {new Date(order.created_at * 1000).toLocaleString()}</p>
-                <p className="text-gray-700">Tags: {JSON.stringify(order.tags)}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-gray-700">No orders found.</p>
-        )}
-      </div>
-    </div>
-  );
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
+                <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Filtered Orders</h2>
+                {orders.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {orders.map((order, index) => {
+                            // Prepare a modified event object for display
+                            const modifiedOrder = {
+                                id: order.id,
+                                created_at: order.created_at,
+                                kind: order.kind,
+                                content: order.content,
+                                tags: order.tags.map(tag => tag.join(": ")).join(", "),
+                            };
+
+                            return (
+                                <div key={index} className="bg-white p-6 rounded-lg shadow-lg">
+                                    <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {modifiedOrder.id}</h3>
+                                    <p className="text-gray-700">Created At: {new Date(modifiedOrder.created_at * 1000).toLocaleString()}</p>
+                                    <p className="text-gray-700">Kind: {modifiedOrder.kind}</p>
+                                    <p className="text-gray-700">Content: {modifiedOrder.content}</p>
+                                    <p className="text-gray-700">Tags: {modifiedOrder.tags}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <p className="text-center text-gray-700">No orders found.</p>
+                )}
+            </div>
+        </div>
+    );
 };
 
 export default FilteredOrders;
