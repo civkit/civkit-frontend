@@ -12,7 +12,7 @@ const NDKProvider = ({ children }) => {
             try {
                 console.log("Initializing NDK...");
                 const ndk = new NDK({
-                    explicitRelayUrls: ["wss://civkit.africa"],
+                    explicitRelayUrls: ["wss://civkit.africa", "wss://relay.damus.io"],
                 });
                 await ndk.connect();
                 console.log("NDK connected.");
