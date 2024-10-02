@@ -1,62 +1,91 @@
-"use client"
-import React, { useContext, useEffect, useState } from 'react';
-import { NDKContext } from '../components/NDKContext'; 
-import { NostrEvent } from '@nostr-dev-kit/ndk';
+import { useState, useEffect } from 'react';
+import { useNostr } from './useNostr';
+
+interface NostrEvent {
+  id: string;
+  content: string;
+  kind: number;
+  created_at: number;
+  pubkey: string;
+  tags: string[][];
+}
 
 const FilteredOrders = () => {
-    const ndk = useContext(NDKContext);
-    const [orders, setOrders] = useState<NostrEvent[]>([]);
+  const [events, setEvents] = useState<NostrEvent[]>([]);
+  const [isSigned, setIsSigned] = useState(false);
+  const { signAndSendEvent, subscribeToEvents } = useNostr();
 
-    useEffect(() => {
-        // Subscribe to events of kind 1506
-        const subscription = ndk.subscribe({ kinds: [1506], limit: 50 }); // Adjust the limit as needed
+  useEffect(() => {
+    console.log("useEffect triggered");
 
-        subscription.on('event', (event: NostrEvent) => {
-            // Add the event to the orders state
-            setOrders(prevOrders => [...prevOrders, event]);
-        });
+    const dummyEvent = { kind: 1, content: "Initializing connection" };
+    console.log("Signing event to initialize connection:");
+    signAndSendEvent(dummyEvent)
+      .then(() => {
+        console.log("Event signed successfully");
+        setIsSigned(true);
+      })
+      .catch((error) => {
+        console.error("Error signing event:", error);
+      });
 
-        subscription.on('error', (error) => {
-            console.error('Error fetching events:', error);
-        });
+    const handleEventReceived = (event: NostrEvent) => {
+      console.log('Event received:', event);
+      setEvents((prevEvents) => {
+        // Check if the event ID already exists in the previous events
+        const eventExists = prevEvents.some((prevEvent) => prevEvent.id === event.id);
+        if (eventExists) {
+          console.log(`Event with ID ${event.id} already exists. Skipping.`);
+          return prevEvents;
+        }
+        const newEvents = [...prevEvents, event];
+        console.log("Events after adding new event:", newEvents);
+        return newEvents;
+      });
+    };
 
-        // Cleanup function to stop the subscription when the component unmounts
-        return () => subscription.stop();
-    }, [ndk]);
+    console.log("Subscribing to all events");
+    const unsubscribe = subscribeToEvents(handleEventReceived);
+    console.log("Subscribed to all events");
 
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-            <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
-                <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Filtered Orders</h2>
-                {orders.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {orders.map((order, index) => {
-                            // Prepare a modified event object for display
-                            const modifiedOrder = {
-                                id: order.id,
-                                created_at: order.created_at,
-                                kind: order.kind,
-                                content: order.content,
-                                tags: order.tags.map(tag => tag.join(": ")).join(", "),
-                            };
+    return () => {
+      console.log("Unsubscribing from events");
+      unsubscribe();
+    };
+  }, [signAndSendEvent, subscribeToEvents]);
 
-                            return (
-                                <div key={index} className="bg-white p-6 rounded-lg shadow-lg">
-                                    <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {modifiedOrder.id}</h3>
-                                    <p className="text-gray-700">Created At: {new Date(modifiedOrder.created_at * 1000).toLocaleString()}</p>
-                                    <p className="text-gray-700">Kind: {modifiedOrder.kind}</p>
-                                    <p className="text-gray-700">Content: {modifiedOrder.content}</p>
-                                    <p className="text-gray-700">Tags: {modifiedOrder.tags}</p>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <p className="text-center text-gray-700">No orders found.</p>
-                )}
-            </div>
-        </div>
-    );
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">All Events</h2>
+        {isSigned ? (
+          <div className="space-y-4">
+            {events.length > 0 ? (
+              events.map((event) => (
+                <div key={event.id} className="bg-white p-6 rounded-lg shadow-lg">
+                  <h3 className="text-lg font-bold mb-2 text-gray-700">Event ID: {event.id}</h3>
+                  <p className="text-gray-700">Kind: {event.kind}</p>
+                  <p className="text-gray-700">Created At: {new Date(event.created_at * 1000).toLocaleString()}</p>
+                  <p className="text-gray-700">Pubkey: {event.pubkey}</p>
+                  <p className="text-gray-700 break-all">Content: {event.content}</p>
+                  <div className="mt-2">
+                    <p className="text-gray-700 font-semibold">Tags:</p>
+                    {event.tags.map((tag, index) => (
+                      <p key={index} className="text-gray-600 ml-2">{JSON.stringify(tag)}</p>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-gray-700">No events found.</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-center text-gray-700">Signing event, please wait...</p>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default FilteredOrders;
