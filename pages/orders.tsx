@@ -21,7 +21,7 @@ const Orders = () => {
       const fetchedOrders = Array.isArray(response.data) ? response.data : response.data.orders || [];
       
       const updatedOrders = await Promise.all(
-        fetchedOrders.map(order => checkAndCreateChat(order))
+        fetchedOrders.map(order => fetchChatDetails(order))
       );
       
       setOrders(updatedOrders);
@@ -32,28 +32,23 @@ const Orders = () => {
     }
   };
 
-  const checkAndCreateChat = async (order) => {
-    if (order.status === 'chat_open' && (!order.chatUrl || !order.acceptOfferUrl)) {
+  const fetchChatDetails = async (order) => {
+    if (order.status === 'chat_open') {
       try {
-        console.log(`Checking/creating chat for order ${order.order_id}`);
-        const response = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chat`,
-          { orderId: order.order_id },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-        console.log(`Chat response for order ${order.order_id}:`, response.data);
+        console.log(`Fetching chat details for order ${order.order_id}`);
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/order/${order.order_id}/latest-chat-details`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        console.log(`Chat details for order ${order.order_id}:`, response.data);
         return { 
           ...order, 
           chatUrl: response.data.chatUrl,
           acceptOfferUrl: response.data.acceptOfferUrl 
         };
       } catch (error) {
-        console.error(`Error checking/creating chat for order ${order.order_id}:`, error);
+        console.error(`Error fetching chat details for order ${order.order_id}:`, error);
         return order;
       }
     }
@@ -87,7 +82,7 @@ const Orders = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      const updatedOrder = await checkAndCreateChat(response.data);
+      const updatedOrder = await fetchChatDetails(response.data);
       setOrders(prevOrders => prevOrders.map(order => 
         order.order_id === updatedOrder.order_id ? updatedOrder : order
       ));
@@ -131,7 +126,7 @@ const Orders = () => {
                   </button>
                 )}
                 {(!order.chatUrl && !order.acceptOfferUrl) && (
-                  <p className="text-yellow-600">Chat is being created...</p>
+                  <p className="text-yellow-600">No chat available</p>
                 )}
               </div>
             )}
