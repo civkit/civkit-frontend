@@ -289,19 +289,21 @@ const handleOpenChat = async () => {
     }
   };
 
-  const handleSendNostrEvent = async () => {
-    if (order) {
-      const orderData = {
-        order_id: order.order_id,
-        status: 'paid',
-        amount_msat: order.amount_msat,
-        currency: order.currency,
-        payment_method: order.payment_method,
-        type: order.type,
-      };
-      await signAndSendEvent(orderData);
-    }
-  };
+const handleSendNostrEvent = async () => {
+  if (order) {
+    const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://frontend.civkit.africa';
+    const eventData = {
+      order_id: order.order_id,
+      status: order.status,
+      amount_msat: order.amount_msat,
+      currency: order.currency,
+      payment_method: order.payment_method,
+      type: order.type,
+      frontend_url: `${frontendUrl}/take-order?orderId=${order.order_id}`
+    };
+    await signAndSendEvent(eventData);
+  }
+};
 
   useEffect(() => {
     console.log('Order state updated:', order);
