@@ -135,6 +135,23 @@ const Orders = () => {
 
     if (!acceptOfferUrl) return null;
 
+  const refreshOrder = async (orderId) => {
+  try {
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    const updatedOrder = response.data;
+    setOrders(prevOrders => prevOrders.map(order => 
+      order.order_id === updatedOrder.order_id ? updatedOrder : order
+    ));
+    await checkAndCreateChatrooms([updatedOrder]);
+  } catch (error) {
+    console.error(`Error refreshing order ${orderId}:`, error);
+  }
+};
+
     return (
       <p className="text-gray-700">
         <strong>Accept Offer URL:</strong> 
@@ -174,6 +191,13 @@ const Orders = () => {
                       onClick={() => handleOpenChat(order.order_id)}
                     >
                       Open Chat
+                    </button>
+
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                      onClick={() => refreshOrder(order.order_id)}
+                    >
+                      Refresh
                     </button>
                   )}
                 </div>
