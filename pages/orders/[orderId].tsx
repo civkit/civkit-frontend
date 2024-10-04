@@ -304,7 +304,6 @@ const handleSendNostrEvent = async () => {
     await signAndSendEvent(eventData);
   }
 };
-
   useEffect(() => {
     console.log('Order state updated:', order);
     console.log('MakerHoldInvoice state updated:', makerHoldInvoice);
