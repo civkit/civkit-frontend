@@ -90,7 +90,7 @@ const FilteredOrders = () => {
                   <p className="text-gray-700">Type: {order.type === 0 ? 'Buy' : 'Sell'}</p>
                   <p className="text-gray-700">
                     <a 
-                      href={order.frontend_url} 
+                      href={`${order.frontend_url}/take-order?orderId=${order.order_id}`}
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="text-blue-500 hover:text-blue-700"
