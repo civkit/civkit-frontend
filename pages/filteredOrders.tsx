@@ -1,17 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useNostr } from './useNostr';
 
-interface NostrEvent {
+interface OrderEvent {
   id: string;
-  content: string;
+  content: {
+    orderData: {
+      order_id: number;
+      status: string;
+      amount_msat: number;
+      currency: string;
+      payment_method: string;
+      type: number;
+    };
+    eventKind: number;
+    frontend_url: string;
+  };
   kind: number;
   created_at: number;
-  pubkey: string;
-  tags: string[][];
+  tags: any[];
 }
 
 const FilteredOrders = () => {
-  const [events, setEvents] = useState<NostrEvent[]>([]);
+  const [orders, setOrders] = useState<OrderEvent[]>([]);
   const [isSigned, setIsSigned] = useState(false);
   const { signAndSendEvent, subscribeToEvents } = useNostr();
 
@@ -29,27 +39,42 @@ const FilteredOrders = () => {
         console.error("Error signing event:", error);
       });
 
-    const handleEventReceived = (event: NostrEvent) => {
+    const handleEventReceived = (event: any) => {
       console.log('Event received:', event);
-      setEvents((prevEvents) => {
-        // Check if the event ID already exists in the previous events
-        const eventExists = prevEvents.some((prevEvent) => prevEvent.id === event.id);
-        if (eventExists) {
-          console.log(`Event with ID ${event.id} already exists. Skipping.`);
-          return prevEvents;
-        }
-        const newEvents = [...prevEvents, event];
-        console.log("Events after adding new event:", newEvents);
-        return newEvents;
-      });
+      if (!event || !event.content) {
+        console.log('No valid event received');
+        return;
+      }
+
+      try {
+        const parsedContent = JSON.parse(event.content);
+        const order: OrderEvent = {
+          id: event.id,
+          content: parsedContent,
+          kind: event.kind,
+          created_at: event.created_at,
+          tags: event.tags,
+        };
+        console.log('Order created:', order);
+        setOrders((prevOrders) => {
+          const orderExists = prevOrders.some((prevOrder) => prevOrder.id === order.id);
+          if (orderExists) {
+            console.log(`Order with ID ${order.id} already exists. Skipping.`);
+            return prevOrders;
+          }
+          return [...prevOrders, order];
+        });
+      } catch (error) {
+        console.error('Error parsing event content:', error);
+      }
     };
 
-    console.log("Subscribing to all events");
-    const unsubscribe = subscribeToEvents(handleEventReceived);
-    console.log("Subscribed to all events");
+    console.log("Subscribing to orders");
+    const unsubscribe = subscribeToEvents(handleEventReceived, [1506]);
+    console.log("Subscribed to orders");
 
     return () => {
-      console.log("Unsubscribing from events");
+      console.log("Unsubscribing from orders");
       unsubscribe();
     };
   }, [signAndSendEvent, subscribeToEvents]);
@@ -57,27 +82,24 @@ const FilteredOrders = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">All Events</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Filtered Orders</h2>
         {isSigned ? (
-          <div className="space-y-4">
-            {events.length > 0 ? (
-              events.map((event) => (
-                <div key={event.id} className="bg-white p-6 rounded-lg shadow-lg">
-                  <h3 className="text-lg font-bold mb-2 text-gray-700">Event ID: {event.id}</h3>
-                  <p className="text-gray-700">Kind: {event.kind}</p>
-                  <p className="text-gray-700">Created At: {new Date(event.created_at * 1000).toLocaleString()}</p>
-                  <p className="text-gray-700">Pubkey: {event.pubkey}</p>
-                  <p className="text-gray-700 break-all">Content: {event.content}</p>
-                  <div className="mt-2">
-                    <p className="text-gray-700 font-semibold">Tags:</p>
-                    {event.tags.map((tag, index) => (
-                      <p key={index} className="text-gray-600 ml-2">{JSON.stringify(tag)}</p>
-                    ))}
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {orders.length > 0 ? (
+              orders.map((order) => (
+                <div key={order.id} className="bg-white p-6 rounded-lg shadow-lg">
+                  <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.content.orderData.order_id}</h3>
+                  <p className="text-gray-700">Status: {order.content.orderData.status}</p>
+                  <p className="text-gray-700">Amount (msat): {order.content.orderData.amount_msat}</p>
+                  <p className="text-gray-700">Currency: {order.content.orderData.currency}</p>
+                  <p className="text-gray-700">Payment Method: {order.content.orderData.payment_method}</p>
+                  <p className="text-gray-700">Type: {order.content.orderData.type}</p>
+                  <p className="text-gray-700">Event Kind: {order.content.eventKind}</p>
+                  <p className="text-gray-700">Frontend URL: {order.content.frontend_url}</p>
                 </div>
               ))
             ) : (
-              <p className="text-center text-gray-700">No events found.</p>
+              <p className="text-center text-gray-700">No orders found.</p>
             )}
           </div>
         ) : (
