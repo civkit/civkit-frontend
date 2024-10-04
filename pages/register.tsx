@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { nip19 } from "nostr-tools";
 import { generatePassword } from "../utils/generatePassword";
 
-const RegisterForm = () => {
+const RegisterForm = ({ darkMode, toggleDarkMode }: { darkMode: boolean, toggleDarkMode: () => void }) => {
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [invoice, setInvoice] = useState("");
@@ -75,24 +75,23 @@ const RegisterForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">
+    <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
+      <div className={`p-8 rounded-lg shadow-lg w-full max-w-md ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'}`}>
+        <h2 className={`text-2xl font-bold mb-6 text-center ${darkMode ? 'text-orange-400' : 'text-orange-600'}`}>
           Register for CivKit
         </h2>
         <form onSubmit={handleRegister}>
           {hasNostrExtension === false && (
             <div className="text-red-500 mb-4">
-              Nostr extension not found. Please install a Nostr-compatibe
-              extension.
+              Nostr extension not found. Please install a Nostr-compatible extension.
             </div>
           )}
           {extensionError && (
             <div className="text-red-500 mb-4">{extensionError}</div>
           )}
-          <div className="flex items-center justify-center justify-between">
+          <div className="flex flex-col items-center">
             <button
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center justify-center space-x-2"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center justify-center space-x-2"
               type="submit"
               disabled={!hasNostrExtension}
             >
@@ -100,9 +99,8 @@ const RegisterForm = () => {
               <span>Register</span>
             </button>
             <Link href="/login" legacyBehavior>
-              {/* <GiOstrich /> */}
-              <a className="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">
-                Login
+              <a className={`mt-4 inline-block align-baseline font-bold text-sm ${darkMode ? 'text-white hover:text-white' : 'text-gray-400 hover:text-gray-500'}`}>
+                Proceed to login?
               </a>
             </Link>
           </div>
