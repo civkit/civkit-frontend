@@ -4,16 +4,16 @@ import { useNostr } from './useNostr';
 interface OrderEvent {
   id: string;
   content: {
-    orderData: {
-      order_id: number;
-      status: string;
-      amount_msat: number;
-      currency: string;
-      payment_method: string;
-      type: number;
+    orderData?: {
+      order_id?: number;
+      status?: string;
+      amount_msat?: number;
+      currency?: string;
+      payment_method?: string;
+      type?: number;
     };
-    eventKind: number;
-    frontend_url: string;
+    eventKind?: number;
+    frontend_url?: string;
   };
   kind: number;
   created_at: number;
@@ -47,7 +47,12 @@ const FilteredOrders = () => {
       }
 
       try {
-        const parsedContent = JSON.parse(event.content);
+        let parsedContent;
+        if (typeof event.content === 'string') {
+          parsedContent = JSON.parse(event.content);
+        } else {
+          parsedContent = event.content;
+        }
         const order: OrderEvent = {
           id: event.id,
           content: parsedContent,
@@ -88,14 +93,14 @@ const FilteredOrders = () => {
             {orders.length > 0 ? (
               orders.map((order) => (
                 <div key={order.id} className="bg-white p-6 rounded-lg shadow-lg">
-                  <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.content.orderData.order_id}</h3>
-                  <p className="text-gray-700">Status: {order.content.orderData.status}</p>
-                  <p className="text-gray-700">Amount (msat): {order.content.orderData.amount_msat}</p>
-                  <p className="text-gray-700">Currency: {order.content.orderData.currency}</p>
-                  <p className="text-gray-700">Payment Method: {order.content.orderData.payment_method}</p>
-                  <p className="text-gray-700">Type: {order.content.orderData.type}</p>
-                  <p className="text-gray-700">Event Kind: {order.content.eventKind}</p>
-                  <p className="text-gray-700">Frontend URL: {order.content.frontend_url}</p>
+                  <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.content.orderData?.order_id || 'N/A'}</h3>
+                  <p className="text-gray-700">Status: {order.content.orderData?.status || 'N/A'}</p>
+                  <p className="text-gray-700">Amount (msat): {order.content.orderData?.amount_msat || 'N/A'}</p>
+                  <p className="text-gray-700">Currency: {order.content.orderData?.currency || 'N/A'}</p>
+                  <p className="text-gray-700">Payment Method: {order.content.orderData?.payment_method || 'N/A'}</p>
+                  <p className="text-gray-700">Type: {order.content.orderData?.type !== undefined ? order.content.orderData.type : 'N/A'}</p>
+                  <p className="text-gray-700">Event Kind: {order.content.eventKind || 'N/A'}</p>
+                  <p className="text-gray-700">Frontend URL: {order.content.frontend_url || 'N/A'}</p>
                 </div>
               ))
             ) : (
