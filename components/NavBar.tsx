@@ -40,11 +40,6 @@ const NavBar = ({ darkMode, toggleDarkMode }: { darkMode: boolean, toggleDarkMod
         </ul>
 
         <div className="flex items-center space-x-4">
-          <input
-            type="text"
-            placeholder="Search..."
-            className={`border rounded-full w-48 py-1 px-2 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-black'}`}
-          />
           <button onClick={toggleDarkMode} className={`hover:text-orange-500 ${darkMode ? 'text-yellow-300' : 'text-gray-800'}`}>
             {darkMode ? <IoSunnyOutline /> : <IoMoon />}
           </button>
