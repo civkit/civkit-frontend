@@ -5,6 +5,8 @@ import Link from "next/link";
 import { nip19 } from "nostr-tools";
 import { GiOstrich } from "react-icons/gi";
 import { generatePassword } from "../utils/generatePassword";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const LoginForm = ({ darkMode, toggleDarkMode }: { darkMode: boolean, toggleDarkMode: () => void }) => {
   const [username, setUsername] = useState("");
@@ -48,7 +50,15 @@ const LoginForm = ({ darkMode, toggleDarkMode }: { darkMode: boolean, toggleDark
       router.push("/orders"); // Redirect to orders page
     } catch (error) {
       console.error("Error logging in:", error);
-      alert("Login failed. Please try again.");
+      toast.error("Login failed. Please try again.", {
+        position: "bottom-center",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     }
   };
 
@@ -78,6 +88,7 @@ const LoginForm = ({ darkMode, toggleDarkMode }: { darkMode: boolean, toggleDark
           </div>
         </form>
       </div>
+      <ToastContainer />
     </div>
   );
 };
