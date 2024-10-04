@@ -30,7 +30,7 @@ export default function Home() {
           </div>
           <div className="bg-white p-6 rounded shadow">
             <h5 className="text-lg font-bold mb-2">Customer Support</h5>
-            <p>24/7 customer support to assist you.</p>
+            <p>Customer support to assist you.</p>
           </div>
         </div>
       </div>
