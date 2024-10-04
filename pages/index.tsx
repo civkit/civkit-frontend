@@ -10,13 +10,13 @@ export default function Home({ darkMode, toggleDarkMode }: { darkMode: boolean, 
           Welcome to the future of P2P
         </p>
         <div className="flex justify-center space-x-8">
-          <Link href="/create-order" legacyBehavior>
+          <Link href="/register" legacyBehavior>
             <a className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-3xl text-lg flex items-center">
               Get Started
               <MdArrowOutward className="ml-2" />
             </a>
           </Link>
-          <Link href="/learn-more" legacyBehavior>
+          <Link href="https://civkit.github.io/" legacyBehavior>
             <a className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-3xl text-lg">Learn More</a>
           </Link>
         </div>
