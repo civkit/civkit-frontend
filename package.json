@@ -13,6 +13,7 @@
     "@nostr-dev-kit/ndk": "^2.8.2",
     "@nostr-dev-kit/ndk-react": "^0.1.1",
     "@types/lodash": "^4.17.7",
+    "@types/next": "^9.0.0",
     "axios": "^1.7.2",
     "bolt11": "^1.4.1",
     "bootstrap": "^5.3.3",

@@ -1,26 +1,54 @@
+import Image from 'next/image';
 import Link from 'next/link';
+import { IoSunnyOutline, IoMoon } from "react-icons/io5";
+import { MdArrowOutward } from 'react-icons/md';
 
-const NavBar = () => {
+const NavBar = ({ darkMode, toggleDarkMode }: { darkMode: boolean, toggleDarkMode: () => void }) => {
   return (
-    <nav className="bg-white shadow-md p-4">
+    <nav className={`bg-white shadow-md p-6 ${darkMode ? 'dark:bg-gray-800' : ''}`}>
       <div className="container mx-auto flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold text-blue-600 hover:bg-orange-500 hover:text-white py-1 px-2 rounded">
-          CivKit
-        </Link>
-        <ul className="flex space-x-4">
+        <div className="flex items-center space-x-2">
+          <Image
+            src="/hachiko-logo.svg"
+            alt="CivKit Logo"
+            width={40}
+            height={64}
+          />
+          <Link href="/" className={`text-xl font-bold ${darkMode ? 'text-green-400' : 'text-green-500'} hover:text-green-600 py-1 px-2 rounded`}>
+            CivKit
+          </Link>
+        </div>
+
+        {/* Ensure the ul has flex styling */}
+        <ul className="flex space-x-4 items-center">
           <li>
-            <Link href="/create-order" className="text-gray-800 hover:text-orange-500">Create Order</Link>
+            <Link href="/" className={`py-1 px-2 hover:border-b-2 hover:border-orange-500 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+              Home
+            </Link>
           </li>
           <li>
-            <Link href="/orders" className="text-gray-800 hover:text-orange-500">View Orders</Link>
+            <Link href="/login" className={`py-1 px-2 hover:border-b-2 hover:border-orange-500 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+              Login
+            </Link>
           </li>
           <li>
-            <Link href="/login" className="text-gray-800 hover:text-orange-500">Login</Link>
-          </li>
-          <li>
-            <Link href="/register" className="text-gray-800 hover:text-orange-500">Register</Link>
+            <Link href="/register" className={`py-1 px-2 hover:border-b-2 hover:border-orange-500 flex items-center ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+              Get Started
+              <MdArrowOutward className="ml-2" />
+            </Link>
           </li>
         </ul>
+
+        <div className="flex items-center space-x-4">
+          <input
+            type="text"
+            placeholder="Search..."
+            className={`border rounded-full w-48 py-1 px-2 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-black'}`}
+          />
+          <button onClick={toggleDarkMode} className={`hover:text-orange-500 ${darkMode ? 'text-yellow-300' : 'text-gray-800'}`}>
+            {darkMode ? <IoSunnyOutline /> : <IoMoon />}
+          </button>
+        </div>
       </div>
     </nav>
   );
