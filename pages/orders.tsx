@@ -84,24 +84,41 @@ const Orders = () => {
     window.location.href = `/take-order?orderId=${orderId}`;
   };
 
-  const handleOpenChat = async (orderId) => {
-    try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`,
-        { orderId },
-        {
+const handleOpenChat = async () => {
+  try {
+    console.log(`Fetching chat details for order ID: ${orderId}`);
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/order/${orderId}/latest-chat-details`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('Chatroom Response:', response.data);
+
+    const { chatUrl, isMaker, isTaker } = response.data;
+    
+    if (chatUrl) {
+      if (isTaker) {
+        // For takers, always fetch the latest accept offer URL
+        const latestUrlResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/latest-accept-chat-url/${orderId}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
           },
-        }
-      );
-      console.log('Chat URLs response:', response.data);
-      setChatUrls(response.data);
-    } catch (error) {
-      console.error('Error opening chat:', error);
+        });
+        const latestAcceptChatUrl = latestUrlResponse.data.url;
+        console.log(`Redirecting taker to ${latestAcceptChatUrl}`);
+        window.location.href = latestAcceptChatUrl;
+      } else {
+        console.log(`Redirecting maker to ${chatUrl}`);
+        window.location.href = chatUrl;
+      }
+    } else {
+      console.error('No chat URL received');
     }
-  };
+  } catch (error) {
+    console.error('Error fetching chat details:', error);
+  }
+};
 
   const closeModal = () => {
     setChatUrls(null);
