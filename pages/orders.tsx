@@ -30,6 +30,7 @@ const Orders = () => {
   const checkAndCreateChatrooms = async (orders) => {
     const updatedOrders = await Promise.all(orders.map(async (order) => {
       try {
+        console.log(`Checking/creating chatroom for order ${order.order_id}`);
         const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`,
           { orderId: order.order_id },
@@ -40,6 +41,7 @@ const Orders = () => {
             },
           }
         );
+        console.log(`Chatroom response for order ${order.order_id}:`, response.data);
         return {...order, ...response.data};
       } catch (error) {
         console.error(`Error checking chatroom for order ${order.order_id}:`, error);
@@ -114,6 +116,23 @@ const Orders = () => {
     setChatUrls(null);
   };
 
+  const refreshOrder = async (orderId) => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const updatedOrder = response.data;
+      setOrders(prevOrders => prevOrders.map(order => 
+        order.order_id === updatedOrder.order_id ? updatedOrder : order
+      ));
+      await checkAndCreateChatrooms([updatedOrder]);
+    } catch (error) {
+      console.error(`Error refreshing order ${orderId}:`, error);
+    }
+  };
+
   const AcceptOfferUrl = ({ orderId }) => {
     const [acceptOfferUrl, setAcceptOfferUrl] = useState(null);
 
@@ -169,12 +188,20 @@ const Orders = () => {
                     Take Order
                   </button>
                   {order.status === 'chat_open' && (
-                    <button
-                      className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                      onClick={() => handleOpenChat(order.order_id)}
-                    >
-                      Open Chat
-                    </button>
+                    <>
+                      <button
+                        className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                        onClick={() => handleOpenChat(order.order_id)}
+                      >
+                        Open Chat
+                      </button>
+                      <button
+                        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                        onClick={() => refreshOrder(order.order_id)}
+                      >
+                        Refresh
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
