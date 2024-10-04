@@ -14,6 +14,18 @@ interface OrderData {
 interface OrderEvent {
   id: string;
   content: string;
+  content: {
+    orderData: {
+      order_id: number;
+      status: string;
+      amount_msat: number;
+      currency: string;
+      payment_method: string;
+      type: number;
+    };
+    eventKind: number;
+    frontend_url: string;
+  };
   kind: number;
   created_at: number;
   tags: any[];
@@ -31,6 +43,9 @@ const FilteredOrders = () => {
     const dummyEvent = { kind: 1, content: "Initializing connection" };
     console.log("Signing event to initialize connection:");
     signAndSendEvent(dummyEvent)
+    const dummyEvent = { kind: 1, content: "Initializing connection" };
+    console.log("Signing event to initialize connection:");
+    signAndSendEvent(dummyEvent)
       .then(() => {
         console.log("Event signed successfully");
         setIsSigned(true);
@@ -41,6 +56,7 @@ const FilteredOrders = () => {
 
     const handleEventReceived = (event: OrderEvent) => {
       console.log('Event received:', event);
+      if (!event || !event.content) {
       if (!event || !event.content) {
         console.log('No valid event received');
         return;
