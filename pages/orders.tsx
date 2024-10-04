@@ -121,19 +121,23 @@ const fetchLatestChatDetails = async (orderId) => {
   }
 };
 const AcceptOfferUrl = ({ orderId }) => {
-  const [acceptOfferUrl, setAcceptOfferUrl] = useState(null);
+  const [url, setUrl] = useState(null);
 
   useEffect(() => {
-    fetchLatestChatDetails(orderId).then(setAcceptOfferUrl);
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/accept-offer-url/${orderId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    .then(response => setUrl(response.data.url))
+    .catch(error => console.error('Error fetching accept offer URL:', error));
   }, [orderId]);
 
-  if (!acceptOfferUrl) return null;
+  if (!url) return null;
 
   return (
     <p className="text-gray-700">
       <strong>Accept Offer URL:</strong> 
-      <a href={acceptOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
-        {acceptOfferUrl}
+      <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+        {url}
       </a>
     </p>
   );
