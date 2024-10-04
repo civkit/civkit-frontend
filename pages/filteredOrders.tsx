@@ -73,44 +73,43 @@ const FilteredOrders = () => {
     };
   }, [signAndSendEvent, subscribeToEvents]);
 
-return (
-  <div className="min-h-screen flex items-center justify-center bg-gray-100">
-    <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
-      <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Filtered Orders</h2>
-      {isSigned ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {orders.length > 0 ? (
-            orders.map((order) => (
-              <div key={order.order_id} className="bg-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.order_id}</h3>
-                <p className="text-gray-700">Status: {order.status}</p>
-                <p className="text-gray-700">Amount (msat): {order.amount_msat}</p>
-                <p className="text-gray-700">Currency: {order.currency}</p>
-                <p className="text-gray-700">Payment Method: {order.payment_method}</p>
-                <p className="text-gray-700">Type: {order.type}</p>
-                <p className="text-gray-700">
-                  Frontend URL: 
-                  <a 
-                    href={order.frontend_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-blue-500 hover:text-blue-700 ml-1"
-                  >
-                    Take Order
-                  </a>
-                </p>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-gray-700">No orders found.</p>
-          )}
-        </div>
-      ) : (
-        <p className="text-center text-gray-700">Signing event, please wait...</p>
-      )}
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Filtered Orders</h2>
+        {isSigned ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {orders.length > 0 ? (
+              orders.map((order) => (
+                <div key={order.order_id} className="bg-white p-6 rounded-lg shadow-lg">
+                  <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.order_id}</h3>
+                  <p className="text-gray-700">Status: {order.status}</p>
+                  <p className="text-gray-700">Amount (msat): {order.amount_msat}</p>
+                  <p className="text-gray-700">Currency: {order.currency}</p>
+                  <p className="text-gray-700">Payment Method: {order.payment_method}</p>
+                  <p className="text-gray-700">Type: {order.type === 0 ? 'Buy' : 'Sell'}</p>
+                  <p className="text-gray-700">
+                    <a 
+                      href={order.frontend_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      Take Order
+                    </a>
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-gray-700">No orders found.</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-center text-gray-700">Signing event, please wait...</p>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default FilteredOrders;
