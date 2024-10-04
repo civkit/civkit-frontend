@@ -198,31 +198,38 @@ const OrderDetails: React.FC = () => {
     }
   };
 
-  const handleOpenChat = async () => {
-    try {
-      console.log(`Creating or checking chatroom for order ID: ${orderId}`);
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`, {
-        orderId,
-      }, {
+const handleOpenChat = async () => {
+  try {
+    console.log(`Creating or checking chatroom for order ID: ${orderId}`);
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`, {
+      orderId,
+    }, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('Chatroom Response:', response.data);
+
+    const { makeChatUrl, acceptChatUrl } = response.data;
+    if (order?.type === 0 && makeChatUrl) { // Buyer
+      console.log(`Redirecting to ${makeChatUrl}`);
+      router.push(makeChatUrl);
+    } else if (order?.type === 1) { // Seller
+      // Query the database for the latest accept chat URL
+      const latestUrlResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/latest-accept-chat-url`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
         },
       });
-      console.log('Chatroom Response:', response.data);
-
-      const { makeChatUrl, acceptChatUrl } = response.data;
-      if (order?.type === 0 && makeChatUrl) { // Buyer
-        console.log(`Redirecting to ${makeChatUrl}`);
-        router.push(makeChatUrl);
-      } else if (order?.type === 1 && acceptChatUrl) { // Seller
-        console.log(`Redirecting to ${acceptChatUrl}`);
-        router.push(acceptChatUrl);
-      }
-    } catch (error) {
-      console.error('Error creating or checking chatroom:', error);
+      const latestAcceptChatUrl = latestUrlResponse.data.url; // Assuming the response contains the URL
+      console.log(`Redirecting to ${latestAcceptChatUrl}`);
+      router.push(latestAcceptChatUrl);
     }
-  };
+  } catch (error) {
+    console.error('Error creating or checking chatroom:', error);
+  }
+};
 
   const [manualTrigger, setManualTrigger] = useState(0);
 
@@ -282,20 +289,21 @@ const OrderDetails: React.FC = () => {
     }
   };
 
-  const handleSendNostrEvent = async () => {
-    if (order) {
-      const orderData = {
-        order_id: order.order_id,
-        status: 'paid',
-        amount_msat: order.amount_msat,
-        currency: order.currency,
-        payment_method: order.payment_method,
-        type: order.type,
-      };
-      await signAndSendEvent(orderData);
-    }
-  };
-
+const handleSendNostrEvent = async () => {
+  if (order) {
+    const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://frontend.civkit.africa';
+    const eventData = {
+      order_id: order.order_id,
+      status: order.status,
+      amount_msat: order.amount_msat,
+      currency: order.currency,
+      payment_method: order.payment_method,
+      type: order.type,
+      frontend_url: `${frontendUrl}/take-order?orderId=${order.order_id}`
+    };
+    await signAndSendEvent(eventData);
+  }
+};
   useEffect(() => {
     console.log('Order state updated:', order);
     console.log('MakerHoldInvoice state updated:', makerHoldInvoice);

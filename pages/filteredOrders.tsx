@@ -1,8 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNostr } from './useNostr';
 
+interface OrderData {
+  order_id: number;
+  status: string;
+  amount_msat: number;
+  currency: string;
+  payment_method: string;
+  type: number;
+  frontend_url: string;
+}
+
 interface OrderEvent {
   id: string;
+  content: string;
   content: {
     orderData: {
       order_id: number;
@@ -18,16 +29,20 @@ interface OrderEvent {
   kind: number;
   created_at: number;
   tags: any[];
+  pubkey: string;
 }
 
 const FilteredOrders = () => {
-  const [orders, setOrders] = useState<OrderEvent[]>([]);
+  const [orders, setOrders] = useState<OrderData[]>([]);
   const [isSigned, setIsSigned] = useState(false);
   const { signAndSendEvent, subscribeToEvents } = useNostr();
 
   useEffect(() => {
     console.log("useEffect triggered");
 
+    const dummyEvent = { kind: 1, content: "Initializing connection" };
+    console.log("Signing event to initialize connection:");
+    signAndSendEvent(dummyEvent)
     const dummyEvent = { kind: 1, content: "Initializing connection" };
     console.log("Signing event to initialize connection:");
     signAndSendEvent(dummyEvent)
@@ -39,30 +54,25 @@ const FilteredOrders = () => {
         console.error("Error signing event:", error);
       });
 
-    const handleEventReceived = (event: any) => {
+    const handleEventReceived = (event: OrderEvent) => {
       console.log('Event received:', event);
+      if (!event || !event.content) {
       if (!event || !event.content) {
         console.log('No valid event received');
         return;
       }
 
       try {
-        const parsedContent = JSON.parse(event.content);
-        const order: OrderEvent = {
-          id: event.id,
-          content: parsedContent,
-          kind: event.kind,
-          created_at: event.created_at,
-          tags: event.tags,
-        };
-        console.log('Order created:', order);
+        const parsedContent: OrderData = JSON.parse(event.content);
+        console.log('Parsed content:', parsedContent);
+        
         setOrders((prevOrders) => {
-          const orderExists = prevOrders.some((prevOrder) => prevOrder.id === order.id);
+          const orderExists = prevOrders.some((prevOrder) => prevOrder.order_id === parsedContent.order_id);
           if (orderExists) {
-            console.log(`Order with ID ${order.id} already exists. Skipping.`);
+            console.log(`Order with ID ${parsedContent.order_id} already exists. Skipping.`);
             return prevOrders;
           }
-          return [...prevOrders, order];
+          return [...prevOrders, parsedContent];
         });
       } catch (error) {
         console.error('Error parsing event content:', error);
@@ -87,15 +97,23 @@ const FilteredOrders = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {orders.length > 0 ? (
               orders.map((order) => (
-                <div key={order.id} className="bg-white p-6 rounded-lg shadow-lg">
-                  <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.content.orderData.order_id}</h3>
-                  <p className="text-gray-700">Status: {order.content.orderData.status}</p>
-                  <p className="text-gray-700">Amount (msat): {order.content.orderData.amount_msat}</p>
-                  <p className="text-gray-700">Currency: {order.content.orderData.currency}</p>
-                  <p className="text-gray-700">Payment Method: {order.content.orderData.payment_method}</p>
-                  <p className="text-gray-700">Type: {order.content.orderData.type}</p>
-                  <p className="text-gray-700">Event Kind: {order.content.eventKind}</p>
-                  <p className="text-gray-700">Frontend URL: {order.content.frontend_url}</p>
+                <div key={order.order_id} className="bg-white p-6 rounded-lg shadow-lg">
+                  <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.order_id}</h3>
+                  <p className="text-gray-700">Status: {order.status}</p>
+                  <p className="text-gray-700">Amount (msat): {order.amount_msat}</p>
+                  <p className="text-gray-700">Currency: {order.currency}</p>
+                  <p className="text-gray-700">Payment Method: {order.payment_method}</p>
+                  <p className="text-gray-700">Type: {order.type === 0 ? 'Buy' : 'Sell'}</p>
+                  <p className="text-gray-700">
+                    <a 
+                      href={`${order.frontend_url}/take-order?orderId=${order.order_id}`}
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      Take Order
+                    </a>
+                  </p>
                 </div>
               ))
             ) : (
