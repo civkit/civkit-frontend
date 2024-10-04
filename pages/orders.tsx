@@ -8,38 +8,29 @@ const Orders = () => {
   const [chatUrls, setChatUrls] = useState(null);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        console.log('Orders fetched:', response.data);
-        let fetchedOrders;
-        if (response.data && response.data.orders) {
-          fetchedOrders = response.data.orders;
-        } else {
-          fetchedOrders = response.data;
-        }
-        setOrders(fetchedOrders);
-        console.log(orders);
-
-        // Check and create chatrooms for all fetched orders
-        await checkAndCreateChatrooms(fetchedOrders);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-      }
-    };
-  
     fetchOrders();
   }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      console.log('Orders fetched:', response.data);
+      let fetchedOrders = Array.isArray(response.data) ? response.data : response.data.orders || [];
+      setOrders(fetchedOrders);
+      await checkAndCreateChatrooms(fetchedOrders);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    }
+  };
   
   const checkAndCreateChatrooms = async (orders) => {
-    const updatedOrders = [];
-    for (const order of orders) {
+    const updatedOrders = await Promise.all(orders.map(async (order) => {
       try {
-        await axios.post(
+        const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`,
           { orderId: order.order_id },
           {
@@ -49,12 +40,12 @@ const Orders = () => {
             },
           }
         );
-        updatedOrders.push({...order, ...response.data});
+        return {...order, ...response.data};
       } catch (error) {
         console.error(`Error checking chatroom for order ${order.order_id}:`, error);
-        updatedOrders.push(order);
+        return order;
       }
-    }
+    }));
     setOrders(updatedOrders);
   };
 
@@ -84,65 +75,62 @@ const Orders = () => {
     window.location.href = `/take-order?orderId=${orderId}`;
   };
 
-const handleOpenChat = async () => {
-  try {
-    console.log(`Fetching chat details for order ID: ${orderId}`);
-    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/order/${orderId}/latest-chat-details`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    console.log('Chatroom Response:', response.data);
-
-    const { chatUrl, isMaker, isTaker } = response.data;
-    
-    if (chatUrl) {
-      if (isTaker) {
-        // For takers, always fetch the latest accept offer URL
-        const latestUrlResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/latest-accept-chat-url/${orderId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        const latestAcceptChatUrl = latestUrlResponse.data.url;
-        console.log(`Redirecting taker to ${latestAcceptChatUrl}`);
-        window.location.href = latestAcceptChatUrl;
-      } else {
-        console.log(`Redirecting maker to ${chatUrl}`);
-        window.location.href = chatUrl;
-      }
-    } else {
-      console.error('No chat URL received');
-    }
-  } catch (error) {
-    console.error('Error fetching chat details:', error);
-  }
-};
-
-  const closeModal = () => {
-    setChatUrls(null);
-  };
-
-  const fetchLatestChatDetails = async (orderId) => {
+  const handleOpenChat = async (orderId) => {
     try {
+      console.log(`Fetching chat details for order ID: ${orderId}`);
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/order/${orderId}/latest-chat-details`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
         },
       });
-      return response.data.acceptOfferUrl;
+      console.log('Chatroom Response:', response.data);
+
+      const { chatUrl, isMaker, isTaker } = response.data;
+      
+      if (chatUrl) {
+        if (isTaker) {
+          const latestUrlResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/latest-accept-chat-url/${orderId}`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+          const latestAcceptChatUrl = latestUrlResponse.data.url;
+          console.log(`Redirecting taker to ${latestAcceptChatUrl}`);
+          window.location.href = latestAcceptChatUrl;
+        } else {
+          console.log(`Redirecting maker to ${chatUrl}`);
+          window.location.href = chatUrl;
+        }
+      } else {
+        console.error('No chat URL received');
+      }
     } catch (error) {
-      console.error('Error fetching latest chat details:', error);
-      return null;
+      console.error('Error fetching chat details:', error);
     }
+  };
+
+  const closeModal = () => {
+    setChatUrls(null);
   };
 
   const AcceptOfferUrl = ({ orderId }) => {
     const [acceptOfferUrl, setAcceptOfferUrl] = useState(null);
 
     useEffect(() => {
-      fetchLatestChatDetails(orderId).then(setAcceptOfferUrl);
+      const fetchUrl = async () => {
+        try {
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/order/${orderId}/latest-chat-details`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+          setAcceptOfferUrl(response.data.chatUrl);
+        } catch (error) {
+          console.error('Error fetching latest chat details:', error);
+        }
+      };
+      fetchUrl();
     }, [orderId]);
 
     if (!acceptOfferUrl) return null;
