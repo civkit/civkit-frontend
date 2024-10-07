@@ -134,7 +134,7 @@ const AcceptOfferUrl = ({ orderId }) => {
     .then(response => {
       // Replace http://localhost with https://chat.civkit.africa
       const originalUrl = response.data.url;
-      const updatedUrl = originalUrl.replace('http://localhost', 'https://chat.civkit.africa');
+      const updatedUrl = originalUrl.replace('http://localhost:3456', 'https://chat.civkit.africa');
       setUrl(updatedUrl);
       setIsLoading(false);
     })
