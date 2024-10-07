@@ -122,20 +122,32 @@ const fetchLatestChatDetails = async (orderId) => {
 };
 const AcceptOfferUrl = ({ orderId }) => {
   const [url, setUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    setIsLoading(true);
+    setError(null);
     axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/accept-offer-url/${orderId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
     .then(response => {
+      // Replace http://localhost with https://chat.civkit.africa
       const originalUrl = response.data.url;
-      const updatedUrl = originalUrl.replace('http://localhost:3456', 'https://chat.civkit.africa');
+      const updatedUrl = originalUrl.replace('http://localhost', 'https://chat.civkit.africa');
       setUrl(updatedUrl);
+      setIsLoading(false);
     })
-    .catch(error => console.error('Error fetching accept offer URL:', error));
+    .catch(error => {
+      console.error('Error fetching accept offer URL:', error);
+      setError('Failed to load URL');
+      setIsLoading(false);
+    });
   }, [orderId]);
 
-  if (!url) return null;
+  if (isLoading) return <p>Loading accept offer URL...</p>;
+  if (error) return <p>{error}</p>;
+  if (!url) return <p>No accept offer URL available</p>;
 
   return (
     <p className="text-gray-700">
