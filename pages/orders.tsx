@@ -132,7 +132,10 @@ const AcceptOfferUrl = ({ orderId }) => {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
     .then(response => {
-      setUrl(response.data.url);
+      // Replace http://localhost with https://chat.civkit.africa
+      const originalUrl = response.data.url;
+      const updatedUrl = originalUrl.replace('http://localhost', 'https://chat.civkit.africa');
+      setUrl(updatedUrl);
       setIsLoading(false);
     })
     .catch(error => {
