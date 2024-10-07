@@ -107,38 +107,57 @@ const Orders = () => {
     setChatUrls(null);
   };
 
-  const fetchLatestChatDetails = async (orderId) => {
-    try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/order/${orderId}/latest-chat-details`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      return response.data.acceptOfferUrl;
-    } catch (error) {
-      console.error('Error fetching latest chat details:', error);
-      return null;
-    }
-  };
+const fetchLatestChatDetails = async (orderId) => {
+  try {
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/latest-accept-chat-url/${orderId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    return response.data.url;
+  } catch (error) {
+    console.error('Error fetching latest chat details:', error);
+    return null;
+  }
+};
+const AcceptOfferUrl = ({ orderId }) => {
+  const [url, setUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const AcceptOfferUrl = ({ orderId }) => {
-    const [acceptOfferUrl, setAcceptOfferUrl] = useState(null);
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/accept-offer-url/${orderId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    .then(response => {
+      // Replace http://localhost with https://chat.civkit.africa
+      const originalUrl = response.data.url;
+      const updatedUrl = originalUrl.replace('http://localhost:3456', 'https://chat.civkit.africa');
+      setUrl(updatedUrl);
+      setIsLoading(false);
+    })
+    .catch(error => {
+      console.error('Error fetching accept offer URL:', error);
+      setError('Failed to load URL');
+      setIsLoading(false);
+    });
+  }, [orderId]);
 
-    useEffect(() => {
-      fetchLatestChatDetails(orderId).then(setAcceptOfferUrl);
-    }, [orderId]);
+  if (isLoading) return <p>Loading accept offer URL...</p>;
+  if (error) return <p>{error}</p>;
+  if (!url) return <p>No accept offer URL available</p>;
 
-    if (!acceptOfferUrl) return null;
-
-    return (
-      <p className="text-gray-700">
-        <strong>Accept Offer URL:</strong> 
-        <a href={acceptOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
-          {acceptOfferUrl}
-        </a>
-      </p>
-    );
-  };
+  return (
+    <p className="text-gray-700">
+      <strong>Accept Offer URL:</strong> 
+      <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+        {url}
+      </a>
+    </p>
+  );
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
