@@ -12,10 +12,13 @@ export default function LoginForm() {
     event.preventDefault();
 
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/login`, {
-        username,
-        password,
-      });
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/login`,
+        {
+          username,
+          password,
+        }
+      );
 
       const token = response.data.token;
       localStorage.setItem('token', token); // Store the token in local storage
@@ -31,7 +34,7 @@ export default function LoginForm() {
       <div>
         <label>Username</label>
         <input
-          type="text"
+          type='text'
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
@@ -40,13 +43,13 @@ export default function LoginForm() {
       <div>
         <label>Password</label>
         <input
-          type="password"
+          type='password'
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
       </div>
-      <button type="submit">Login</button>
+      <button type='submit'>Login</button>
     </form>
   );
 }

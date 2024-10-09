@@ -19,9 +19,12 @@ const SubmitPayout = () => {
 
   const fetchOrderDetails = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }
+      );
       setOrderDetails(response.data);
     } catch (error) {
       console.error('Error fetching order details:', error);
@@ -71,7 +74,10 @@ const SubmitPayout = () => {
           throw new Error('Unsupported amount unit in invoice');
       }
 
-      console.log('Decoded invoice amount (msat):', invoiceAmountMsat.toString());
+      console.log(
+        'Decoded invoice amount (msat):',
+        invoiceAmountMsat.toString()
+      );
       console.log('Order amount (msat):', orderAmountMsat);
 
       // Convert order amount to BigInt for comparison
@@ -79,7 +85,9 @@ const SubmitPayout = () => {
 
       // Calculate
       if (invoiceAmountMsat !== orderAmountMsatBigInt) {
-        throw new Error(`Invoice amount (${invoiceAmountMsat} msat) does not match order amount (${orderAmountMsatBigInt} msat)`);
+        throw new Error(
+          `Invoice amount (${invoiceAmountMsat} msat) does not match order amount (${orderAmountMsatBigInt} msat)`
+        );
       }
 
       return true;
@@ -98,15 +106,19 @@ const SubmitPayout = () => {
       // Validate the invoice
       validateInvoice(lnInvoice, orderDetails.amount_msat);
 
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payouts/submit`, {
-        order_id: parseInt(orderId),
-        ln_invoice: lnInvoice,
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payouts/submit`,
+        {
+          order_id: parseInt(orderId),
+          ln_invoice: lnInvoice,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
         }
-      });
+      );
 
       if (response.data.message) {
         setSuccessMessage('Payout submitted successfully.');
@@ -121,34 +133,46 @@ const SubmitPayout = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Submit Payout</h1>
+    <div className='flex min-h-screen items-center justify-center bg-gray-100'>
+      <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
+        <h1 className='mb-6 text-center text-2xl font-bold text-blue-600'>
+          Submit Payout
+        </h1>
         {orderDetails && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-gray-700"><strong>Order ID:</strong> {orderDetails.order_id}</p>
-            <p className="text-gray-700"><strong>Amount:</strong> {orderDetails.amount_msat} msat</p>
-            <p className="text-gray-700"><strong>Currency:</strong> {orderDetails.currency}</p>
+          <div className='mb-6 rounded-lg bg-gray-50 p-4'>
+            <p className='text-gray-700'>
+              <strong>Order ID:</strong> {orderDetails.order_id}
+            </p>
+            <p className='text-gray-700'>
+              <strong>Amount:</strong> {orderDetails.amount_msat} msat
+            </p>
+            <p className='text-gray-700'>
+              <strong>Currency:</strong> {orderDetails.currency}
+            </p>
           </div>
         )}
         {successMessage && (
-          <div className="mb-4 p-2 bg-green-100 text-green-700 rounded">{successMessage}</div>
+          <div className='mb-4 rounded bg-green-100 p-2 text-green-700'>
+            {successMessage}
+          </div>
         )}
         {errorMessage && (
-          <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">{errorMessage}</div>
+          <div className='mb-4 rounded bg-red-100 p-2 text-red-700'>
+            {errorMessage}
+          </div>
         )}
         <form onSubmit={handleSubmit}>
           <input
-            type="text"
+            type='text'
             value={lnInvoice}
             onChange={(e) => setLnInvoice(e.target.value)}
-            placeholder="Enter Signet Lightning Invoice"
+            placeholder='Enter Signet Lightning Invoice'
             required
-            className="w-full p-2 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className='mb-4 w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-blue-400'
           />
-          <button 
-            type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          <button
+            type='submit'
+            className='focus:shadow-outline w-full rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
           >
             Submit Payout
           </button>

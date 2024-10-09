@@ -15,11 +15,15 @@ const TakerFullInvoice = () => {
     setLoading(true);
     try {
       // First, try to create the full invoice
-      const createResponse = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taker-full-invoice/${orderId}`, {}, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const createResponse = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taker-full-invoice/${orderId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
       console.log('Create full invoice response:', createResponse.data);
 
       if (createResponse.data && createResponse.data.invoice) {
@@ -27,13 +31,16 @@ const TakerFullInvoice = () => {
         setError(null);
       } else {
         // If creation fails, try to fetch an existing invoice
-        const fetchResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/full-invoice/${orderId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        const fetchResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/full-invoice/${orderId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
         console.log('Fetched taker full invoice:', fetchResponse.data);
-        
+
         if (fetchResponse.data && fetchResponse.data.invoice) {
           setFullInvoice(fetchResponse.data.invoice);
           setError(null);
@@ -46,7 +53,9 @@ const TakerFullInvoice = () => {
       if (error.response && error.response.status === 404) {
         setError('Failed to create or fetch full invoice. Please try again.');
       } else {
-        setError(`Failed to create or fetch taker full invoice: ${error.response?.data?.error || error.message}`);
+        setError(
+          `Failed to create or fetch taker full invoice: ${error.response?.data?.error || error.message}`
+        );
       }
     } finally {
       setLoading(false);
@@ -101,7 +110,9 @@ const TakerFullInvoice = () => {
         <p>Expires At: {new Date(fullInvoice.expires_at).toLocaleString()}</p>
         <p>Payment Hash: {fullInvoice.payment_hash}</p>
       </div>
-      <button onClick={createAndFetchTakerFullInvoice}>Refresh Invoice Status</button>
+      <button onClick={createAndFetchTakerFullInvoice}>
+        Refresh Invoice Status
+      </button>
     </div>
   );
 };
