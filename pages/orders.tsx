@@ -10,11 +10,14 @@ const Orders = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
         console.log('Orders fetched:', response.data);
         let fetchedOrders;
         if (response.data && response.data.orders) {
@@ -31,10 +34,10 @@ const Orders = () => {
         console.error('Error fetching orders:', error);
       }
     };
-  
+
     fetchOrders();
   }, []);
-  
+
   const checkAndCreateChatrooms = async (orders) => {
     const updatedOrders = [];
     for (const order of orders) {
@@ -49,9 +52,12 @@ const Orders = () => {
             },
           }
         );
-        updatedOrders.push({...order, ...response.data});
+        updatedOrders.push({ ...order, ...response.data });
       } catch (error) {
-        console.error(`Error checking chatroom for order ${order.order_id}:`, error);
+        console.error(
+          `Error checking chatroom for order ${order.order_id}:`,
+          error
+        );
         updatedOrders.push(order);
       }
     }
@@ -160,31 +166,51 @@ const AcceptOfferUrl = ({ orderId }) => {
 };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Order Book</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div className='flex min-h-screen items-center justify-center bg-gray-100'>
+      <div className='w-full max-w-5xl rounded-lg bg-white p-8 shadow-lg'>
+        <h2 className='mb-6 text-center text-2xl font-bold text-blue-600'>
+          Order Book
+        </h2>
+        <div className='grid grid-cols-1 gap-8 md:grid-cols-3'>
           {orders.length > 0 ? (
             orders.map((order) => (
-              <div key={order.order_id} className="bg-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-lg font-bold mb-2 text-gray-700">Order #{order.order_id}</h3>
-                <p className="text-gray-700"><strong>Details:</strong> {order.order_details}</p>
-                <p className="text-gray-700"><strong>Amount:</strong> {order.amount_msat} msat</p>
-                <p className="text-gray-700"><strong>Currency:</strong> {order.currency}</p>
-                <p className="text-gray-700"><strong>Payment Method:</strong> {order.payment_method}</p>
-                <p className="text-gray-700"><strong>Status:</strong> {order.status}</p>
-                <p className="text-gray-700"><strong>Order Type:</strong> {order.type === 0 ? 'Buy' : 'Sell'}</p>
+              <div
+                key={order.order_id}
+                className='rounded-lg bg-white p-6 shadow-lg'
+              >
+                <h3 className='mb-2 text-lg font-bold text-gray-700'>
+                  Order #{order.order_id}
+                </h3>
+                <p className='text-gray-700'>
+                  <strong>Details:</strong> {order.order_details}
+                </p>
+                <p className='text-gray-700'>
+                  <strong>Amount:</strong> {order.amount_msat} msat
+                </p>
+                <p className='text-gray-700'>
+                  <strong>Currency:</strong> {order.currency}
+                </p>
+                <p className='text-gray-700'>
+                  <strong>Payment Method:</strong> {order.payment_method}
+                </p>
+                <p className='text-gray-700'>
+                  <strong>Status:</strong> {order.status}
+                </p>
+                <p className='text-gray-700'>
+                  <strong>Order Type:</strong>{' '}
+                  {order.type === 0 ? 'Buy' : 'Sell'}
+                </p>
                 <AcceptOfferUrl orderId={order.order_id} />
-                <div className="flex justify-between items-center mt-4">
+                <div className='mt-4 flex items-center justify-between'>
                   <button
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    className='focus:shadow-outline rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
                     onClick={() => handleTakeOrder(order.order_id)}
                   >
                     Take Order
                   </button>
                   {order.status === 'chat_open' && (
                     <button
-                      className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                      className='focus:shadow-outline rounded bg-gray-500 px-4 py-2 font-bold text-white hover:bg-gray-600 focus:outline-none'
                       onClick={() => handleOpenChat(order.order_id)}
                     >
                       Open Chat
@@ -194,31 +220,43 @@ const AcceptOfferUrl = ({ orderId }) => {
               </div>
             ))
           ) : (
-            <p className="text-center text-gray-700">No orders found.</p>
+            <p className='text-center text-gray-700'>No orders found.</p>
           )}
         </div>
       </div>
 
       {chatUrls && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-8 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-bold mb-4 text-center text-blue-600">Chatroom URLs</h2>
-            <p className="text-gray-700">
-              <strong>Make Offer URL:</strong> 
-              <a href={chatUrls.makeOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+        <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50'>
+          <div className='rounded-lg bg-white p-8 shadow-lg'>
+            <h2 className='mb-4 text-center text-2xl font-bold text-blue-600'>
+              Chatroom URLs
+            </h2>
+            <p className='text-gray-700'>
+              <strong>Make Offer URL:</strong>
+              <a
+                href={chatUrls.makeOfferUrl}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-blue-500 underline'
+              >
                 {chatUrls.makeOfferUrl}
               </a>
             </p>
             {chatUrls.acceptOfferUrl && (
-              <p className="text-gray-700">
-                <strong>Accept Offer URL:</strong> 
-                <a href={chatUrls.acceptOfferUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+              <p className='text-gray-700'>
+                <strong>Accept Offer URL:</strong>
+                <a
+                  href={chatUrls.acceptOfferUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-blue-500 underline'
+                >
                   {chatUrls.acceptOfferUrl}
                 </a>
               </p>
             )}
             <button
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded mt-4 focus:outline-none focus:shadow-outline"
+              className='focus:shadow-outline mt-4 rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
               onClick={closeModal}
             >
               Close

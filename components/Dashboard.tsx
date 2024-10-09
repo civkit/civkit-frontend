@@ -1,19 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { FaBell, FaMoon, FaSun, FaCog, FaFileInvoice, FaFilter, FaPlus, FaQuestionCircle } from 'react-icons/fa';
-import { BsJournalBookmarkFill, BsChevronDown, BsChevronUp } from "react-icons/bs";
-import { CgProfile } from "react-icons/cg";
-import { MdOutlinePayments } from "react-icons/md";
-import { RxDashboard } from "react-icons/rx";
-import { LuPanelLeftOpen } from 'react-icons/lu'; // Import the icon
+import {
+  FaBell,
+  FaMoon,
+  FaSun,
+  FaCog,
+  FaFileInvoice,
+  FaFilter,
+  FaPlus,
+  FaQuestionCircle,
+  FaChevronRight,
+  FaChevronLeft,
+} from 'react-icons/fa';
+import {
+  BsJournalBookmarkFill,
+  BsChevronDown,
+  BsChevronUp,
+} from 'react-icons/bs';
+import { CgProfile } from 'react-icons/cg';
+import { MdOutlinePayments } from 'react-icons/md';
+import { RxDashboard } from 'react-icons/rx';
+import { LuPanelLeftOpen } from 'react-icons/lu';
 import axios from 'axios';
-import { useNostr } from '../pages/useNostr'; // Adjust the path as necessary
+import { useNostr } from '../pages/useNostr';
 import { useRouter } from 'next/router';
+import Modal from './Modal';
+import CreateOrderForm from './CreateOrderForm';
 
-const Dashboard: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = ({
-  darkMode,
-  toggleDarkMode,
-}) => {
+const Dashboard: React.FC<{
+  darkMode: boolean;
+  toggleDarkMode: () => void;
+}> = ({ darkMode, toggleDarkMode }) => {
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [showOrderbookLinks, setShowOrderbookLinks] = useState<boolean>(false);
   const [orders, setOrders] = useState<any[]>([]);
@@ -22,11 +39,34 @@ const Dashboard: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = (
   const { signAndSendEvent, subscribeToEvents } = useNostr();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const recordsPerPage = 10;
-  const maxPageButtons = 5; // Maximum number of page buttons to display at a time
-  const [selectedOrderbook, setSelectedOrderbook] = useState<string | null>(null);
+  const maxPageButtons = 5;
+  const [selectedOrderbook, setSelectedOrderbook] = useState<string | null>(
+    null
+  );
   const router = useRouter();
   const [chatUrls, setChatUrls] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(true);
+  const [showProfileSettings, setShowProfileSettings] =
+    useState<boolean>(false);
+  const [isTableScrollable, setIsTableScrollable] = useState<boolean>(false);
+
+  const [npub, setNpub] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setNpub(localStorage.getItem('npub'));
+    }
+  }, []);
+
+  const [confirmationStatus, setConfirmationStatus] = useState<string>('');
+  const [relayUrl, setRelayUrl] = useState<string>(
+    process.env.NEXT_PUBLIC_NOSTR_RELAY || ''
+  );
+
+  const truncateNpub = (npub: string | null, length: number = 6) => {
+    if (!npub) return 'Profile';
+    return npub.length > length ? `${npub.substring(0, length)}...` : npub;
+  };
 
   const indexOfLastRecord = currentPage * recordsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
@@ -38,21 +78,39 @@ const Dashboard: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = (
   const [currentOrderbookPage, setCurrentOrderbookPage] = useState<number>(1);
   const orderbooksPerPage = 5; // Adjust as needed
 
-  // Calculate indices for orderbooks pagination
   const indexOfLastOrderbook = currentOrderbookPage * orderbooksPerPage;
   const indexOfFirstOrderbook = indexOfLastOrderbook - orderbooksPerPage;
-  const currentOrderbooks = orders.slice(indexOfFirstOrderbook, indexOfLastOrderbook);
+  const currentOrderbooks = orders.slice(
+    indexOfFirstOrderbook,
+    indexOfLastOrderbook
+  );
 
   const totalOrderbookPages = Math.ceil(orders.length / orderbooksPerPage);
 
-  const handleOrderbookPageClick = (pageNumber: number) => {
-    setCurrentOrderbookPage(pageNumber);
+  // State variables for orders pagination
+  const [currentOrdersPage, setCurrentOrdersPage] = useState<number>(1);
+  const ordersPerPage = 10;
+
+  const indexOfLastOrder = currentOrdersPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrdersPageData = orders.slice(
+    indexOfFirstOrder,
+    indexOfLastOrder
+  );
+
+  const totalOrdersPages = Math.ceil(orders.length / ordersPerPage);
+
+  const handleOrdersPageClick = (pageNumber: number) => {
+    setCurrentOrdersPage(pageNumber);
   };
 
-  const getOrderbookPageNumbers = () => {
+  const getOrdersPageNumbers = () => {
     const pageNumbers = [];
-    const startPage = Math.max(1, currentOrderbookPage - Math.floor(maxPageButtons / 2));
-    const endPage = Math.min(totalOrderbookPages, startPage + maxPageButtons - 1);
+    const startPage = Math.max(
+      1,
+      currentOrdersPage - Math.floor(maxPageButtons / 2)
+    );
+    const endPage = Math.min(totalOrdersPages, startPage + maxPageButtons - 1);
 
     for (let i = startPage; i <= endPage; i++) {
       pageNumbers.push(i);
@@ -61,14 +119,44 @@ const Dashboard: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = (
     return pageNumbers;
   };
 
+  const handleOrderbookPageClick = (pageNumber: number) => {
+    setCurrentOrderbookPage(pageNumber);
+  };
+
+  const getOrderbookPageNumbers = () => {
+    const pageNumbers = [];
+    const startPage = Math.max(
+      1,
+      currentOrderbookPage - Math.floor(maxPageButtons / 2)
+    );
+    const endPage = Math.min(
+      totalOrderbookPages,
+      startPage + maxPageButtons - 1
+    );
+
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    return pageNumbers;
+  };
+
+  const toggleRowExpansion = (orderId: number) => {
+    setExpandedRow(expandedRow === orderId ? null : orderId);
+    setIsTableScrollable(expandedRow !== orderId); // Toggle scrollbar visibility
+  };
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
         setOrders(response.data.orders || response.data);
         await checkAndCreateChatrooms(response.data.orders || response.data);
       } catch (error) {
@@ -95,7 +183,10 @@ const Dashboard: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = (
         );
         updatedOrders.push({ ...order, ...response.data });
       } catch (error) {
-        console.error(`Error checking chatroom for order ${order.order_id}:`, error);
+        console.error(
+          `Error checking chatroom for order ${order.order_id}:`,
+          error
+        );
         updatedOrders.push(order);
       }
     }
@@ -159,7 +250,11 @@ const Dashboard: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = (
       try {
         const parsedContent = JSON.parse(event.content);
         setFilteredOrders((prevOrders) => {
-          if (prevOrders.some((order) => order.order_id === parsedContent.order_id)) {
+          if (
+            prevOrders.some(
+              (order) => order.order_id === parsedContent.order_id
+            )
+          ) {
             return prevOrders;
           }
           return [...prevOrders, parsedContent];
@@ -175,6 +270,7 @@ const Dashboard: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = (
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('npub');
     window.location.href = '/';
   };
 
@@ -198,272 +294,445 @@ const Dashboard: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = (
     setIsDrawerOpen(!isDrawerOpen);
   };
 
+  const handlePreviousPageClick = () => {
+    if (currentOrdersPage > 1) {
+      setCurrentOrdersPage(currentOrdersPage - 1);
+    }
+  };
+
+  const handleNextPageClick = () => {
+    if (currentOrdersPage < totalOrdersPages) {
+      setCurrentOrdersPage(currentOrdersPage + 1);
+    }
+  };
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOrderCreated = (order: any) => {
+    console.log('Order created:', order);
+    setIsModalOpen(false);
+  };
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
-        <div className="w-60 bg-gray-800 text-white h-screen p-4 flex flex-col justify-between">
+        <div className='fixed flex h-screen w-60 flex-col justify-between bg-gray-800 p-4 text-white'>
           <div>
-            <div className="mb-8 flex items-center justify-center gap-2 mt-6 relative">
-              <Image src="/hachiko-logo.svg" alt="CivKit Logo" width={40} height={40} />
-              <h1 className="text-2xl font-bold">CivKit</h1>
-              <button
-                onClick={toggleDrawer}
-                className="relative left-11 p-1 bg-gray-500 z-10" // Removed 'rounded-full'
+            <div className='relative mt-6 flex flex-col items-center justify-center gap-2'>
+              <Image
+                src='/hachiko-logo.svg'
+                alt='CivKit Logo'
+                width={40}
+                height={40}
+              />
+              <h1
+                className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-black'}`}
               >
-                <LuPanelLeftOpen className={`transform transition-transform ${isDrawerOpen ? 'rotate-180' : ''}`} />
-              </button>
+                CivKit
+              </h1>
             </div>
             <nav>
-              <hr className="my-8" />
-              <div className="flex flex-col justify-center items-center gap-8">
-                <a href="#" className="flex items-center justify-center gap-2">
-                  <span className="w-6 flex justify-center">
-                    <RxDashboard className="text-xl text-gray-400" />
+              <hr className='my-8' />
+              <div className='flex flex-col items-center justify-center gap-8'>
+                <a href='#' className='flex items-center justify-center gap-2'>
+                  <span className='flex w-6 justify-center'>
+                    <RxDashboard className='text-xl text-gray-400' />
                   </span>
-                  Dashboard
-                </a>
-                <a
-                  href="#"
-                  className="flex items-center justify-center gap-2 ml-8"
-                  onClick={() => setShowOrderbookLinks(!showOrderbookLinks)}
-                >
-                  <span className="w-6 flex justify-center">
-                    <BsJournalBookmarkFill className="text-xl text-gray-400" />
-                  </span>
-                  Orderbook
-                  <span className="w-6 flex justify-center">
-                    {showOrderbookLinks ? (
-                      <BsChevronUp className="text-xl text-gray-400" />
-                    ) : (
-                      <BsChevronDown className="text-xl text-gray-400" />
-                    )}
+                  <span className={`${darkMode ? 'text-white' : 'text-black'}`}>
+                    Dashboard
                   </span>
                 </a>
-                {showOrderbookLinks && (
-                  <>
-                    <a
-                      href="/orders"
-                      className="flex items-center justify-center gap-2"
-                      onClick={() => setSelectedOrderbook('local')}
-                    >
-                      <span className="w-6 flex justify-center">
-                        <BsJournalBookmarkFill className="text-xl text-gray-400" />
-                      </span>
-                      Local Orderbook
-                    </a>
-                    <a
-                      href="/filteredOrders"
-                      className="flex items-center justify-center gap-2"
-                      onClick={() => setSelectedOrderbook('global')}
-                    >
-                      <span className="w-6 flex justify-center">
-                        <BsJournalBookmarkFill className="text-xl text-gray-400" />
-                      </span>
-                      Global Orderbook
-                    </a>
-                  </>
-                )}
-                <a href="#" className="flex items-center justify-center gap-8">
-                  <span className="w-6 flex justify-center">
-                    <FaFileInvoice className="text-xl text-gray-400" />
+                <a href='#' className='flex items-center justify-center gap-2'>
+                  <span className='flex w-6 justify-center'>
+                    <BsJournalBookmarkFill className='text-xl text-gray-400' />
                   </span>
-                  Invoices
-                </a>
-                <a href="#" className="flex items-center justify-center gap-8">
-                  <span className="w-6 flex justify-center">
-                    <MdOutlinePayments className="text-xl text-gray-400" />
+                  <span className={`${darkMode ? 'text-white' : 'text-black'}`}>
+                    My Orders
                   </span>
-                  Payouts
                 </a>
               </div>
-              <ul className="mt-8 flex flex-col items-center justify-center gap-4">
-                <li className="mb-4 flex items-center justify-center gap-8">
-                  <span className="w-6 flex justify-center">
-                    <FaCog className="text-xl text-gray-400" />
-                  </span>
-                  <a href="#">
-                    Settings
-                  </a>
-                </li>
-                <li className="mb-4 flex items-center justify-center gap-8">
-                  <span className="w-6 flex justify-center">
-                    <CgProfile className="text-xl text-gray-400" />
-                  </span>
-                  <a href="#">Profile</a>
-                </li>
-              </ul>
             </nav>
           </div>
-          <button onClick={handleLogout} className="mt-4 p-2 bg-red-500 text-white rounded">
-            Logout
-          </button>
+          <div className='mb-4 flex flex-col items-center'>
+            <ul className='mt-8 flex flex-col items-center justify-center gap-4'>
+              <div className='mb-4 rounded-lg bg-gray-700 p-4 shadow-lg'>
+                <li className='flex items-center justify-center gap-2'>
+                  <span className='flex w-6 justify-center'>
+                    <CgProfile className='text-xl text-white' />
+                  </span>
+                  <a
+                    href='#'
+                    className={`${darkMode ? 'text-white' : 'text-black'}`}
+                    onClick={() => setShowProfileSettings(!showProfileSettings)}
+                  >
+                    {truncateNpub(npub)}
+                  </a>
+                  <FaChevronRight
+                    className='cursor-pointer text-white'
+                    onClick={() => setShowProfileSettings(!showProfileSettings)}
+                  />
+                </li>
+              </div>
+            </ul>
+            <button
+              onClick={handleLogout}
+              className='w-36 rounded bg-red-500 p-2 text-white'
+            >
+              Logout
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="flex-1 p-6 bg-gray-100 dark:bg-gray-900 relative">
-        <div className="flex justify-between items-center mb-6">
+      <button
+        onClick={toggleDrawer}
+        className={`fixed top-12 z-10 bg-gray-500 p-1 ${isDrawerOpen ? 'left-56' : 'left-0'}`}
+      >
+        <LuPanelLeftOpen
+          className={`transform transition-transform ${isDrawerOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      <div
+        className='fixed relative h-screen flex-1 bg-gray-100 p-6 dark:bg-gray-900'
+        style={{ marginLeft: isDrawerOpen ? '15rem' : '0' }}
+      >
+        <div className='mb-6 mt-4 flex items-center justify-between'>
           <input
-            type="text"
-            placeholder="Find Order..."
-            className="p-2 border border-gray-300 w-1/2 rounded-3xl"
+            type='text'
+            placeholder='Find Order...'
+            className='ml-12 w-1/2 rounded-lg border border-gray-300 p-2'
           />
-          <div className="flex items-center space-x-4">
-            <FaQuestionCircle className="text-gray-600 dark:text-gray-300 cursor-pointer" />
-            <FaBell className="text-gray-600 dark:text-gray-300 cursor-pointer" />
+          <div className='mr-12 flex items-center space-x-6'>
+            <FaQuestionCircle className='cursor-pointer text-gray-600 dark:text-gray-300' />
+            <FaBell className='cursor-pointer text-gray-600 dark:text-gray-300' />
             <button onClick={toggleDarkMode}>
-              {darkMode ? <FaSun className="text-yellow-500" /> : <FaMoon className="text-gray-600" />}
+              {darkMode ? (
+                <FaSun className='text-yellow-500' />
+              ) : (
+                <FaMoon className='text-gray-600' />
+              )}
             </button>
           </div>
         </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Welcome 👋</h2>
-          <div className="flex space-x-6">
-            <button className="p-2 w-36 bg-orange-500 hover:bg-orange-600 text-white rounded-3xl flex items-center justify-center gap-2">
+        <div className='mb-6 ml-12 flex items-center justify-between'>
+          <h2
+            className={`text-xl font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}
+          >
+            Welcome 👋
+          </h2>
+          <div className='mr-12 flex space-x-6'>
+            <button
+              className='flex w-36 items-center justify-center gap-2 rounded-lg bg-orange-500 p-2 text-white hover:bg-orange-600'
+              disabled
+            >
               <FaFilter />
               Filter
             </button>
-            <button className="p-2 w-36 bg-orange-500 hover:bg-orange-600 text-white rounded-3xl flex items-center justify-center gap-2">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className='flex w-36 items-center justify-center gap-2 rounded-lg bg-orange-500 p-2 text-white hover:bg-orange-600'
+            >
               <FaPlus />
               Create Order
             </button>
           </div>
         </div>
-        
-        <hr className="mb-6" />
 
-        {selectedOrderbook === 'local' && (
-          <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
-            <h3 className="text-lg font-semibold mb-4 text-white">Local Orderbook</h3>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-              {currentOrderbooks.length > 0 ? (
-                currentOrderbooks.map((order) => (
-                  <div key={order.order_id} className="rounded-lg bg-white p-6 shadow-lg">
-                    {/* Render orderbook details */}
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-gray-700">No orders found.</p>
-              )}
-            </div>
-            <div className="flex justify-center mt-4">
-              {getOrderbookPageNumbers().map((number) => (
-                <button
-                  key={number}
-                  onClick={() => handleOrderbookPageClick(number)}
-                  className={`mx-1 px-3 py-1 rounded ${
-                    currentOrderbookPage === number ? 'bg-blue-500 text-white' : 'bg-gray-300'
-                  }`}
+        <hr className='mb-6' />
+
+        {showProfileSettings ? (
+          <div className='w-3/4 rounded bg-white p-4 shadow dark:bg-gray-800'>
+            <h3
+              className={`mb-4 text-lg font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}
+            >
+              Profile Settings
+            </h3>
+            <form className='space-y-4'>
+              <div>
+                <label
+                  className={`mb-2 block ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}
                 >
-                  {number}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {selectedOrderbook === 'global' && (
-          <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
-            <h3 className="text-lg font-semibold mb-4 text-white">Global Orderbook</h3>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-              {currentOrderbooks.length > 0 ? (
-                currentOrderbooks.map((order) => (
-                  <div key={order.order_id} className="rounded-lg bg-white p-6 shadow-lg">
-                    {/* Render orderbook details */}
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-gray-700">No orders found.</p>
-              )}
-            </div>
-            <div className="flex justify-center mt-4">
-              {getOrderbookPageNumbers().map((number) => (
-                <button
-                  key={number}
-                  onClick={() => handleOrderbookPageClick(number)}
-                  className={`mx-1 px-3 py-1 rounded ${
-                    currentOrderbookPage === number ? 'bg-blue-500 text-white' : 'bg-gray-300'
-                  }`}
+                  Public Key
+                </label>
+                <input
+                  type='text'
+                  value={npub || ''}
+                  readOnly
+                  className='w-full rounded border border-gray-300 p-2 dark:bg-gray-700 dark:text-white'
+                />
+              </div>
+              <div>
+                <label
+                  className={`mb-2 block ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}
                 >
-                  {number}
-                </button>
-              ))}
-            </div>
+                  Relay URL
+                </label>
+                <div className='flex flex-row items-center justify-center gap-2'>
+                  <input
+                    type='text'
+                    value={relayUrl}
+                    onChange={(e) => setRelayUrl(e.target.value)}
+                    className='w-full rounded border border-gray-300 p-2 dark:bg-gray-700 dark:text-white'
+                  />
+                  <button className='w-24 rounded-lg bg-orange-500 p-2 text-white'>
+                    Save
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
-        )}
-
-        {selectedOrderbook === null && (
-          <div className="bg-white dark:bg-gray-800 p-4 rounded shadow mb-6">
-            <h3 className="text-lg font-semibold mb-4 text-white">Orders</h3>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-              {orders.length > 0 ? (
-                orders.map((order) => (
-                  <div key={order.order_id} className="rounded-lg bg-white p-6 shadow-lg">
-                    <h3 className="mb-2 text-lg font-bold text-gray-700">Order #{order.order_id}</h3>
-                    <p className="text-gray-700"><strong>Details:</strong> {order.order_details}</p>
-                    <p className="text-gray-700"><strong>Amount:</strong> {order.amount_msat} msat</p>
-                    <p className="text-gray-700"><strong>Currency:</strong> {order.currency}</p>
-                    <p className="text-gray-700"><strong>Payment Method:</strong> {order.payment_method}</p>
-                    <p className="text-gray-700"><strong>Status:</strong> {order.status}</p>
-                    <p className="text-gray-700"><strong>Order Type:</strong> {order.type === 0 ? 'Buy' : 'Sell'}</p>
-                    <div className="mt-4 flex items-center justify-between">
-                      <button
-                        className="focus:shadow-outline rounded-3xl bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none"
-                        onClick={() => handleTakeOrder(order.order_id)}
-                      >
-                        Take Order
-                      </button>
-                      {order.status === 'chat_open' && (
-                        <button
-                          className="focus:shadow-outline rounded bg-gray-500 px-4 py-2 font-bold text-white hover:bg-gray-600 focus:outline-none"
-                          onClick={() => handleOpenChat(order.order_id)}
-                        >
-                          Open Chat
-                        </button>
-                      )}
-                    </div>
+        ) : (
+          <>
+            {selectedOrderbook === null && (
+              <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
+                <h3 className='mb-4 ml-12 text-lg font-semibold text-white'>
+                  Orders
+                </h3>
+                {currentOrdersPageData.length > 0 ? (
+                  <div
+                    className={`overflow-y-auto ${isTableScrollable ? 'max-h-96' : ''}`}
+                  >
+                    <table
+                      className='ml-12 bg-white dark:bg-gray-800'
+                      style={{ width: '156vh' }}
+                    >
+                      <thead>
+                        <tr className='text-white'>
+                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            Order ID
+                          </th>
+                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            Details
+                          </th>
+                          <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                            Amount (sats)
+                          </th>
+                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            Currency
+                          </th>
+                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            Payment Method
+                          </th>
+                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            Status
+                          </th>
+                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            Order Type
+                          </th>
+                          <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className='text-white'>
+                        {currentOrdersPageData.map((order) => (
+                          <React.Fragment key={order.order_id}>
+                            <tr className='h-13 odd:bg-gray-100 even:bg-white dark:odd:bg-gray-700 dark:even:bg-gray-800'>
+                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                {order.order_id}
+                              </td>
+                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                {order.order_details}
+                              </td>
+                              <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                                {(order.amount_msat / 1000).toFixed(3)}
+                              </td>
+                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                {order.currency}
+                              </td>
+                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                {order.payment_method}
+                              </td>
+                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                {order.status}
+                              </td>
+                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                {order.type === 0 ? 'Buy' : 'Sell'}
+                              </td>
+                              <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                                <button
+                                  onClick={() =>
+                                    toggleRowExpansion(order.order_id)
+                                  }
+                                >
+                                  {expandedRow === order.order_id ? (
+                                    <BsChevronUp className='text-xl' />
+                                  ) : (
+                                    <BsChevronDown className='text-xl' />
+                                  )}
+                                </button>
+                              </td>
+                            </tr>
+                            {expandedRow === order.order_id && (
+                              <tr>
+                                <td
+                                  colSpan={8}
+                                  className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'
+                                >
+                                  <div className='rounded bg-gray-100 p-4 dark:bg-gray-700'>
+                                    <table className='min-w-full bg-white dark:bg-gray-800'>
+                                      <tbody>
+                                        <tr>
+                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                            Customer ID
+                                          </td>
+                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                            {order.customer_id}
+                                          </td>
+                                        </tr>
+                                        <tr>
+                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                            Escrow Status
+                                          </td>
+                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                            {order.escrow_status}
+                                          </td>
+                                        </tr>
+                                        <tr>
+                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                            Taker Customer ID
+                                          </td>
+                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                            {order.taker_customer_id}
+                                          </td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                    <button
+                                      className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                                      onClick={() =>
+                                        handleTakeOrder(order.order_id)
+                                      }
+                                    >
+                                      Take Order
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))
-              ) : (
-                <p className="text-center text-gray-700">No orders found.</p>
-              )}
-            </div>
-          </div>
-        )}
+                ) : (
+                  <p className='text-center text-gray-700'>No orders found.</p>
+                )}
+                <div className='mt-4 flex items-center justify-center'>
+                  {currentOrdersPage > 1 && (
+                    <button
+                      onClick={handlePreviousPageClick}
+                      className='mx-1 rounded bg-orange-500 px-3 py-1 text-white'
+                    >
+                      <FaChevronLeft className='text-white' />
+                    </button>
+                  )}
+                  <span className='mx-2 text-white'>
+                    Page {currentOrdersPage} of {totalOrdersPages}
+                  </span>
+                  <button
+                    onClick={handleNextPageClick}
+                    className={`mx-1 rounded px-3 py-1 ${
+                      currentOrdersPage === totalOrdersPages
+                        ? 'cursor-not-allowed bg-orange-300'
+                        : 'bg-orange-500 text-white'
+                    }`}
+                    disabled={currentOrdersPage === totalOrdersPages}
+                  >
+                    <FaChevronRight className='rounded-lg text-white' />
+                  </button>
+                </div>
+              </div>
+            )}
 
-        <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
-          <h3 className="text-lg font-semibold mb-4 text-white">Filtered Orders</h3>
-          {isSigned ? (
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-              {filteredOrders.length > 0 ? (
-                filteredOrders.map((order) => (
-                  <div key={order.order_id} className="rounded-lg bg-white p-6 shadow-lg">
-                    <h3 className="mb-2 text-lg font-bold text-gray-700">Order ID: {order.order_id}</h3>
-                    <p className="text-gray-700">Status: {order.status}</p>
-                    <p className="text-gray-700">Amount (msat): {order.amount_msat}</p>
-                    <p className="text-gray-700">Currency: {order.currency}</p>
-                    <p className="text-gray-700">Payment Method: {order.payment_method}</p>
-                    <p className="text-gray-700">Type: {order.type === 0 ? 'Buy' : 'Sell'}</p>
-                    <p className="text-gray-700">
-                      <a
-                        href={`${order.frontend_url}/take-order?orderId=${order.order_id}`}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='text-blue-500 hover:text-blue-700'
-                      >
-                        Take Order
-                      </a>
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-gray-700">No filtered orders found.</p>
-              )}
-            </div>
-          ) : (
-            <p className="text-center text-gray-700">Signing event, please wait...</p>
-          )}
-        </div>
+            {showOrderbookLinks && (
+              <div className='mb-6 rounded bg-white p-4 shadow dark:bg-gray-800'>
+                <h3 className='mb-4 text-lg font-semibold text-white'>
+                  Orders
+                </h3>
+                {orders.length > 0 ? (
+                  <table className='min-w-full bg-white dark:bg-gray-800'>
+                    <thead>
+                      <tr>
+                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                          Order ID
+                        </th>
+                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                          Details
+                        </th>
+                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                          Amount (msat)
+                        </th>
+                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                          Currency
+                        </th>
+                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                          Payment Method
+                        </th>
+                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                          Status
+                        </th>
+                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                          Order Type
+                        </th>
+                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.map((order) => (
+                        <tr key={order.order_id}>
+                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                            {order.order_id}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                            {order.order_details}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                            {(order.amount_msat / 1000).toFixed(3)} sats
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                            {order.currency}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                            {order.payment_method}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                            {order.status}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                            {order.type === 0 ? 'Buy' : 'Sell'}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
+                            <button
+                              className='focus:shadow-outline rounded-3xl bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                              onClick={() => handleTakeOrder(order.order_id)}
+                            >
+                              Take Order
+                            </button>
+                            {order.status === 'chat_open' && (
+                              <button
+                                className='focus:shadow-outline rounded bg-gray-500 px-4 py-2 font-bold text-white hover:bg-gray-600 focus:outline-none'
+                                onClick={() => handleOpenChat(order.order_id)}
+                              >
+                                Open Chat
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className='text-center text-gray-700'>No orders found.</p>
+                )}
+              </div>
+            )}
+          </>
+        )}
 
         {chatUrls && (
           <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50'>
@@ -504,6 +773,10 @@ const Dashboard: React.FC<{ darkMode: boolean; toggleDarkMode: () => void }> = (
             </div>
           </div>
         )}
+
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+          <CreateOrderForm onOrderCreated={handleOrderCreated} />
+        </Modal>
       </div>
     </div>
   );

@@ -1,7 +1,4 @@
-import { generatePassword } from "./generatePassword";
-import { signBody } from "./sign";
+import { generatePassword } from './generatePassword';
+import { signBody } from './sign';
 
-export {
-  generatePassword,
-  signBody,
-};
+export { generatePassword, signBody };

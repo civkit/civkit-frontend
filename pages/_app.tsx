@@ -2,9 +2,12 @@ import 'tailwindcss/tailwind.css';
 import NavBar from '../components/NavBar';
 import type { AppProps } from 'next/app';
 import { useState, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function MyApp({ Component, pageProps }: AppProps) {
   const [darkMode, setDarkMode] = useState<Boolean>(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<Boolean>(false);
 
   useEffect(() => {
     const savedDarkMode = localStorage.getItem('darkMode');
@@ -13,6 +16,9 @@ function MyApp({ Component, pageProps }: AppProps) {
       setDarkMode(isDarkMode);
       document.documentElement.classList.toggle('dark', isDarkMode);
     }
+
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(token !== null);
   }, []);
 
   const toggleDarkMode = () => {
@@ -24,8 +30,22 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <>
-      <NavBar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      <Component {...pageProps} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <Component
+        {...pageProps}
+        darkMode={darkMode}
+        toggleDarkMode={toggleDarkMode}
+      />
+      <ToastContainer
+        position='bottom-center' // Set the default position for all toasts
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </>
   );
 }

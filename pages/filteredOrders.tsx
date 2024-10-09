@@ -26,17 +26,17 @@ const FilteredOrders = () => {
   const { signAndSendEvent, subscribeToEvents } = useNostr();
 
   useEffect(() => {
-    console.log("useEffect triggered");
+    console.log('useEffect triggered');
 
-    const dummyEvent = { kind: 1, content: "Initializing connection" };
-    console.log("Signing event to initialize connection:");
+    const dummyEvent = { kind: 1, content: 'Initializing connection' };
+    console.log('Signing event to initialize connection:');
     signAndSendEvent(dummyEvent)
       .then(() => {
-        console.log("Event signed successfully");
+        console.log('Event signed successfully');
         setIsSigned(true);
       })
       .catch((error) => {
-        console.error("Error signing event:", error);
+        console.error('Error signing event:', error);
       });
 
     const handleEventReceived = (event: OrderEvent) => {
@@ -49,11 +49,15 @@ const FilteredOrders = () => {
       try {
         const parsedContent: OrderData = JSON.parse(event.content);
         console.log('Parsed content:', parsedContent);
-        
+
         setOrders((prevOrders) => {
-          const orderExists = prevOrders.some((prevOrder) => prevOrder.order_id === parsedContent.order_id);
+          const orderExists = prevOrders.some(
+            (prevOrder) => prevOrder.order_id === parsedContent.order_id
+          );
           if (orderExists) {
-            console.log(`Order with ID ${parsedContent.order_id} already exists. Skipping.`);
+            console.log(
+              `Order with ID ${parsedContent.order_id} already exists. Skipping.`
+            );
             return prevOrders;
           }
           return [...prevOrders, parsedContent];
@@ -63,37 +67,50 @@ const FilteredOrders = () => {
       }
     };
 
-    console.log("Subscribing to orders");
+    console.log('Subscribing to orders');
     const unsubscribe = subscribeToEvents(handleEventReceived, [1506]);
-    console.log("Subscribed to orders");
+    console.log('Subscribed to orders');
 
     return () => {
-      console.log("Unsubscribing from orders");
+      console.log('Unsubscribing from orders');
       unsubscribe();
     };
   }, [signAndSendEvent, subscribeToEvents]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl mt-6">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Filtered Orders</h2>
+    <div className='flex min-h-screen items-center justify-center bg-gray-100'>
+      <div className='mt-6 w-full max-w-5xl rounded-lg bg-white p-8 shadow-lg'>
+        <h2 className='mb-6 text-center text-2xl font-bold text-blue-600'>
+          Filtered Orders
+        </h2>
         {isSigned ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className='grid grid-cols-1 gap-8 md:grid-cols-3'>
             {orders.length > 0 ? (
               orders.map((order) => (
-                <div key={order.order_id} className="bg-white p-6 rounded-lg shadow-lg">
-                  <h3 className="text-lg font-bold mb-2 text-gray-700">Order ID: {order.order_id}</h3>
-                  <p className="text-gray-700">Status: {order.status}</p>
-                  <p className="text-gray-700">Amount (msat): {order.amount_msat}</p>
-                  <p className="text-gray-700">Currency: {order.currency}</p>
-                  <p className="text-gray-700">Payment Method: {order.payment_method}</p>
-                  <p className="text-gray-700">Type: {order.type === 0 ? 'Buy' : 'Sell'}</p>
-                  <p className="text-gray-700">
-                    <a 
+                <div
+                  key={order.order_id}
+                  className='rounded-lg bg-white p-6 shadow-lg'
+                >
+                  <h3 className='mb-2 text-lg font-bold text-gray-700'>
+                    Order ID: {order.order_id}
+                  </h3>
+                  <p className='text-gray-700'>Status: {order.status}</p>
+                  <p className='text-gray-700'>
+                    Amount (msat): {order.amount_msat}
+                  </p>
+                  <p className='text-gray-700'>Currency: {order.currency}</p>
+                  <p className='text-gray-700'>
+                    Payment Method: {order.payment_method}
+                  </p>
+                  <p className='text-gray-700'>
+                    Type: {order.type === 0 ? 'Buy' : 'Sell'}
+                  </p>
+                  <p className='text-gray-700'>
+                    <a
                       href={`${order.frontend_url}/take-order?orderId=${order.order_id}`}
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-blue-500 hover:text-blue-700"
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='text-blue-500 hover:text-blue-700'
                     >
                       Take Order
                     </a>
@@ -101,11 +118,13 @@ const FilteredOrders = () => {
                 </div>
               ))
             ) : (
-              <p className="text-center text-gray-700">No orders found.</p>
+              <p className='text-center text-gray-700'>No orders found.</p>
             )}
           </div>
         ) : (
-          <p className="text-center text-gray-700">Signing event, please wait...</p>
+          <p className='text-center text-gray-700'>
+            Signing event, please wait...
+          </p>
         )}
       </div>
     </div>

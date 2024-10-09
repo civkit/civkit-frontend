@@ -6,9 +6,15 @@ export default function Header() {
     <header>
       <nav>
         <ul>
-          <li><Link href="/">Home</Link></li>
-          <li><Link href="/create-order">Create Order</Link></li>
-          <li><Link href="/orders">View Orders</Link></li>
+          <li>
+            <Link href='/'>Home</Link>
+          </li>
+          <li>
+            <Link href='/create-order'>Create Order</Link>
+          </li>
+          <li>
+            <Link href='/orders'>View Orders</Link>
+          </li>
         </ul>
       </nav>
     </header>

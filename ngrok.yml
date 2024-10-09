@@ -1,4 +1,4 @@
-version: "2"
+version: '2'
 authtoken: 2m0wcgmABoEycBVnGxWuTdW1LvR_6R7J2tfUpGRrd13gHrT2r
 tunnels:
   frontend:
