@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
@@ -21,11 +21,14 @@ const TradeComplete = () => {
 
   const fetchOrder = async () => {
     try {
-      const orderResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const orderResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
       setOrder(orderResponse.data);
     } catch (error) {
       console.error('Error fetching order:', error);
@@ -96,7 +99,9 @@ const TradeComplete = () => {
         }
       } else {
         console.error('nos2x extension is not available.');
-        setSuccessMessage('nos2x extension is not available. Please install it and try again.');
+        setSuccessMessage(
+          'nos2x extension is not available. Please install it and try again.'
+        );
       }
     } catch (error) {
       console.error('Error submitting review:', error);
@@ -109,32 +114,62 @@ const TradeComplete = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
-        <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Trade Complete</h1>
-        <p className="mb-4"><span className="font-bold text-gray-700">Order ID:</span> {order.order_id}</p>
-        <p className="mb-4"><span className="font-bold text-gray-700">Details:</span> {order.order_details}</p>
-        <p className="mb-4"><span className="font-bold text-gray-700">Amount:</span> {order.amount_msat}</p>
-        <p className="mb-4"><span className="font-bold text-gray-700">Currency:</span> {order.currency}</p>
-        <p className="mb-4"><span className="font-bold text-gray-700">Payment Method:</span> {order.payment_method}</p>
-        <p className="mb-4"><span className="font-bold text-gray-700">Status:</span> {order.status}</p>
+    <div className='flex min-h-screen items-center justify-center bg-gray-100'>
+      <div className='w-full max-w-2xl rounded-lg bg-white p-8 shadow-lg'>
+        <h1 className='mb-6 text-center text-2xl font-bold text-blue-600'>
+          Trade Complete
+        </h1>
+        <p className='mb-4'>
+          <span className='font-bold text-gray-700'>Order ID:</span>{' '}
+          {order.order_id}
+        </p>
+        <p className='mb-4'>
+          <span className='font-bold text-gray-700'>Details:</span>{' '}
+          {order.order_details}
+        </p>
+        <p className='mb-4'>
+          <span className='font-bold text-gray-700'>Amount:</span>{' '}
+          {order.amount_msat}
+        </p>
+        <p className='mb-4'>
+          <span className='font-bold text-gray-700'>Currency:</span>{' '}
+          {order.currency}
+        </p>
+        <p className='mb-4'>
+          <span className='font-bold text-gray-700'>Payment Method:</span>{' '}
+          {order.payment_method}
+        </p>
+        <p className='mb-4'>
+          <span className='font-bold text-gray-700'>Status:</span>{' '}
+          {order.status}
+        </p>
 
         <form onSubmit={handleReviewSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="review">Review</label>
+          <div className='mb-4'>
+            <label
+              className='mb-2 block text-sm font-bold text-gray-700'
+              htmlFor='review'
+            >
+              Review
+            </label>
             <textarea
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              id="review"
+              className='focus:shadow-outline w-full appearance-none rounded border px-3 py-2 leading-tight text-gray-700 shadow focus:outline-none'
+              id='review'
               value={review}
               onChange={(e) => setReview(e.target.value)}
               required
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="rating">Rating</label>
+          <div className='mb-4'>
+            <label
+              className='mb-2 block text-sm font-bold text-gray-700'
+              htmlFor='rating'
+            >
+              Rating
+            </label>
             <select
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              id="rating"
+              className='focus:shadow-outline w-full appearance-none rounded border px-3 py-2 leading-tight text-gray-700 shadow focus:outline-none'
+              id='rating'
               value={rating}
               onChange={(e) => setRating(parseInt(e.target.value))}
               required
@@ -147,16 +182,18 @@ const TradeComplete = () => {
               <option value={5}>5</option>
             </select>
           </div>
-          <div className="flex items-center justify-between">
+          <div className='flex items-center justify-between'>
             <button
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              type="submit"
+              className='focus:shadow-outline rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+              type='submit'
             >
               Submit Review
             </button>
           </div>
         </form>
-        {successMessage && <p className="text-green-500 mt-4">{successMessage}</p>}
+        {successMessage && (
+          <p className='mt-4 text-green-500'>{successMessage}</p>
+        )}
       </div>
     </div>
   );
