@@ -11,6 +11,8 @@ import {
   FaQuestionCircle,
   FaChevronRight,
   FaChevronLeft,
+  FaSearch,
+  FaTimes,
 } from 'react-icons/fa';
 import {
   BsJournalBookmarkFill,
@@ -48,6 +50,7 @@ const Dashboard: React.FC<{
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(true);
   const [showProfileSettings, setShowProfileSettings] =
     useState<boolean>(false);
+  const [showOrders, setShowOrders] = useState<boolean>(false);
   const [isTableScrollable, setIsTableScrollable] = useState<boolean>(false);
 
   const [npub, setNpub] = useState<string | null>(null);
@@ -63,6 +66,8 @@ const Dashboard: React.FC<{
     process.env.NEXT_PUBLIC_NOSTR_RELAY || ''
   );
 
+  const [searchQuery, setSearchQuery] = useState<string>(''); // New state for search query
+
   const truncateNpub = (npub: string | null, length: number = 6) => {
     if (!npub) return 'Profile';
     return npub.length > length ? `${npub.substring(0, length)}...` : npub;
@@ -70,9 +75,15 @@ const Dashboard: React.FC<{
 
   const indexOfLastRecord = currentPage * recordsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-  const currentOrders = orders.slice(indexOfFirstRecord, indexOfLastRecord);
 
-  const totalPages = Math.ceil(orders.length / recordsPerPage);
+  // Filter orders based on search query
+  const filteredOrdersData = orders.filter(order =>
+    order.order_details.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const currentOrders = filteredOrdersData.slice(indexOfFirstRecord, indexOfLastRecord);
+
+  const totalPages = Math.ceil(filteredOrdersData.length / recordsPerPage);
 
   // New state variables for orderbook pagination
   const [currentOrderbookPage, setCurrentOrderbookPage] = useState<number>(1);
@@ -80,12 +91,12 @@ const Dashboard: React.FC<{
 
   const indexOfLastOrderbook = currentOrderbookPage * orderbooksPerPage;
   const indexOfFirstOrderbook = indexOfLastOrderbook - orderbooksPerPage;
-  const currentOrderbooks = orders.slice(
+  const currentOrderbooks = filteredOrdersData.slice(
     indexOfFirstOrderbook,
     indexOfLastOrderbook
   );
 
-  const totalOrderbookPages = Math.ceil(orders.length / orderbooksPerPage);
+  const totalOrderbookPages = Math.ceil(filteredOrdersData.length / orderbooksPerPage);
 
   // State variables for orders pagination
   const [currentOrdersPage, setCurrentOrdersPage] = useState<number>(1);
@@ -93,12 +104,12 @@ const Dashboard: React.FC<{
 
   const indexOfLastOrder = currentOrdersPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
-  const currentOrdersPageData = orders.slice(
+  const currentOrdersPageData = filteredOrdersData.slice(
     indexOfFirstOrder,
     indexOfLastOrder
   );
 
-  const totalOrdersPages = Math.ceil(orders.length / ordersPerPage);
+  const totalOrdersPages = Math.ceil(filteredOrdersData.length / ordersPerPage);
 
   const handleOrdersPageClick = (pageNumber: number) => {
     setCurrentOrdersPage(pageNumber);
@@ -346,7 +357,7 @@ const Dashboard: React.FC<{
                   <span className='flex w-6 justify-center'>
                     <BsJournalBookmarkFill className='text-xl text-gray-400' />
                   </span>
-                  <span className={`${darkMode ? 'text-white' : 'text-black'}`}>
+                  <span className={`${darkMode ? 'text-white' : 'text-black'}`} onCli>
                     My Orders
                   </span>
                 </a>
@@ -398,11 +409,23 @@ const Dashboard: React.FC<{
         style={{ marginLeft: isDrawerOpen ? '15rem' : '0' }}
       >
         <div className='mb-6 mt-4 flex items-center justify-between'>
-          <input
-            type='text'
-            placeholder='Find Order...'
-            className='ml-12 w-1/2 rounded-lg border border-gray-300 p-2'
-          />
+          <div className='relative ml-12 w-1/2'>
+            <input
+              type='text'
+              placeholder='Find Order...'
+              className='w-full rounded-lg border border-gray-300 p-2 pl-5'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery ? (
+              <FaTimes
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer'
+                onClick={() => setSearchQuery('')}
+              />
+            ) : (
+              <FaSearch className='absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-400' />
+            )}
+          </div>
           <div className='mr-12 flex items-center space-x-6'>
             <FaQuestionCircle className='cursor-pointer text-gray-600 dark:text-gray-300' />
             <FaBell className='cursor-pointer text-gray-600 dark:text-gray-300' />
@@ -504,7 +527,7 @@ const Dashboard: React.FC<{
                             Order ID
                           </th>
                           <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            Details
+                            Order Details
                           </th>
                           <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
                             Amount (sats)
@@ -735,8 +758,8 @@ const Dashboard: React.FC<{
         )}
 
         {chatUrls && (
-          <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50'>
-            <div className='rounded-lg bg-white p-8 shadow-lg'>
+            <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50'>
+            <div className='rounded-lg bg-white p-8 shadow'>
               <h2 className='mb-4 text-center text-2xl font-bold text-blue-600'>
                 Chatroom URLs
               </h2>
