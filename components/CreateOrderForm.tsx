@@ -86,11 +86,11 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({
         throw new Error('Failed to create hold invoice');
       }
 
-      onOrderCreated(orderResponse.data.order);
+      onOrderCreated(orderResponse.data.order); // Pass order details to parent
       toast.success('Order created successfully!');
 
-      // Redirect to order details page
-      router.push(`/orders/${orderId}`);
+      // Update the URL without redirecting
+      router.push(`/orders/${orderId}`, undefined, { shallow: true });
 
       // If it's a sell order, start polling for hold invoice payment
       if (type === 1) {
@@ -123,7 +123,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({
 
         if (response.data.state === 'accepted') {
           // Redirect to full invoice page
-          router.push(`/full-invoice?orderId=${orderId}`);
+          router.push(`/dashboard/full-invoice?orderId=${orderId}`);
         } else {
           // Continue polling
           setTimeout(checkStatus, 5000); // Check every 5 seconds
@@ -139,7 +139,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({
   };
 
   return (
-    <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
+    <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
       <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>
         Create a New Order
       </h2>
@@ -159,6 +159,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({
             onChange={(e) => setOrderDetails(e.target.value)}
             required
             placeholder='Order details'
+            autoComplete='off'
           />
         </div>
         <div className='mb-4'>
@@ -216,6 +217,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
             required
+            readOnly
           />
         </div>
         <div className='mb-6'>

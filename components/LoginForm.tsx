@@ -23,7 +23,7 @@ export default function LoginForm() {
       const token = response.data.token;
       localStorage.setItem('token', token); // Store the token in local storage
 
-      router.push('/create-order'); // Redirect to create order page or another page
+      router.push('/dashboard'); // Redirect to create order page or another page
     } catch (error) {
       console.error('Error logging in:', error);
     }

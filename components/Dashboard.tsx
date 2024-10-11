@@ -13,6 +13,8 @@ import {
   FaChevronLeft,
   FaSearch,
   FaTimes,
+  FaChevronUp,
+  FaChevronDown,
 } from 'react-icons/fa';
 import {
   BsJournalBookmarkFill,
@@ -28,6 +30,20 @@ import { useNostr } from '../pages/useNostr';
 import { useRouter } from 'next/router';
 import Modal from './Modal';
 import CreateOrderForm from './CreateOrderForm';
+import dynamic from 'next/dynamic';
+import { FaCircleChevronDown } from 'react-icons/fa6';
+
+// Dynamically import the OrderDetails component
+const OrderDetails = dynamic(() => import('../pages/orders/[orderId]'), {
+  ssr: false, // Disable server-side rendering if not needed
+});
+const SubmitPayout = dynamic(() => import('../pages/submit-payout'), {
+  ssr: false, // Disable server-side rendering if not needed
+});
+
+const FullInvoice = dynamic(() => import('../pages/full-invoice'), {
+  ssr: false, // Disable server-side rendering if not needed
+});
 
 const Dashboard: React.FC<{
   darkMode: boolean;
@@ -324,6 +340,74 @@ const Dashboard: React.FC<{
     setIsModalOpen(false);
   };
 
+  const handleCreateOrderClick = () => {
+    setIsModalOpen(true);
+    setShowOrders(false); // Hide orders table when creating a new order
+    setShowProfileSettings(false); // Hide profile settings
+  };
+
+  const handleMyOrdersClick = () => {
+    setShowOrders(true);
+    setIsModalOpen(false); // Hide create order form when viewing orders
+    setShowProfileSettings(false); // Hide profile settings
+  };
+
+  const toggleProfileSettings = () => {
+    setShowProfileSettings(!showProfileSettings);
+    setIsModalOpen(false); // Hide create order form
+    setShowOrders(false); // Hide orders table
+  };
+
+  const [relayInput, setRelayInput] = useState<string>(relayUrl);
+
+  const handleSaveRelay = () => {
+    setRelayUrl(relayInput);
+    localStorage.setItem('relayUrl', relayInput);
+    alert('Relay URL saved successfully!');
+  };
+
+  const [currentStep, setCurrentStep] = useState<number>(1);
+
+  const steps = ['Create Order', 'Hold Invoice', 'Submit Payout', 'Full Invoice', 'Order Completed 🚀'];
+
+  const handleNextStep = () => {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const [orderDetails, setOrderDetails] = useState<Order | null>(66);
+
+  const fetchOrderDetails = async (orderId: string) => {
+    try {
+      const response = await axios.get<Order>(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      setOrderDetails(response.data);
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+    }
+  };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('orderId');
+    if (orderId) {
+      fetchOrderDetails(orderId);
+    }
+  }, [currentStep]);
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
@@ -353,11 +437,11 @@ const Dashboard: React.FC<{
                     Dashboard
                   </span>
                 </a>
-                <a href='#' className='flex items-center justify-center gap-2'>
+                <a href='#' className='flex items-center justify-center gap-2' onClick={handleMyOrdersClick}>
                   <span className='flex w-6 justify-center'>
                     <BsJournalBookmarkFill className='text-xl text-gray-400' />
                   </span>
-                  <span className={`${darkMode ? 'text-white' : 'text-black'}`} onCli>
+                  <span className={`${darkMode ? 'text-white' : 'text-black'}`}>
                     My Orders
                   </span>
                 </a>
@@ -374,13 +458,13 @@ const Dashboard: React.FC<{
                   <a
                     href='#'
                     className={`${darkMode ? 'text-white' : 'text-black'}`}
-                    onClick={() => setShowProfileSettings(!showProfileSettings)}
+                    onClick={toggleProfileSettings}
                   >
                     {truncateNpub(npub)}
                   </a>
                   <FaChevronRight
                     className='cursor-pointer text-white'
-                    onClick={() => setShowProfileSettings(!showProfileSettings)}
+                    onClick={toggleProfileSettings}
                   />
                 </li>
               </div>
@@ -405,7 +489,7 @@ const Dashboard: React.FC<{
       </button>
 
       <div
-        className='fixed relative h-screen flex-1 bg-gray-100 p-6 dark:bg-gray-900'
+        className='fixed relative h-screen flex-1 bg-gray-100 p-8 dark:bg-gray-900'
         style={{ marginLeft: isDrawerOpen ? '15rem' : '0' }}
       >
         <div className='mb-6 mt-4 flex items-center justify-between'>
@@ -454,7 +538,7 @@ const Dashboard: React.FC<{
               Filter
             </button>
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={handleCreateOrderClick}
               className='flex w-36 items-center justify-center gap-2 rounded-lg bg-orange-500 p-2 text-white hover:bg-orange-600'
             >
               <FaPlus />
@@ -465,300 +549,245 @@ const Dashboard: React.FC<{
 
         <hr className='mb-6' />
 
-        {showProfileSettings ? (
-          <div className='w-3/4 rounded bg-white p-4 shadow dark:bg-gray-800'>
-            <h3
-              className={`mb-4 text-lg font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}
-            >
+        {isModalOpen && (
+          <div className='w-full rounded-lg bg-white p-4 shadow dark:bg-gray-800 flex flex-row justify-center mt-6'>
+            <div className='flex flex-col justify-center items-center mb-2 mr-2 text-gray-700 dark:text-gray-200'>
+              <div className='flex items-center justify-center mb-6'>
+                {steps.map((step, index) => (
+                  <React.Fragment key={index}>
+                    <span
+                      className={`cursor-pointer ${currentStep === index + 1 ? 'font-bold text-orange-500' : 'text-gray-500'}`}
+                      onClick={() => setCurrentStep(index + 1)}
+                    >
+                      {step}
+                    </span>
+                    {index < steps.length - 1 && (
+                      <FaChevronRight className='mx-2 text-gray-500' /> // Use right arrow icon as separator
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
+                {currentStep === 1 && <CreateOrderForm />}
+                {currentStep === 2 && <OrderDetails orderDetails={orderDetails} />}
+                {currentStep === 3 && <SubmitPayout />}
+                {currentStep === 4 && <FullInvoice />}
+                {currentStep === 5 && (
+                  <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
+                    <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showOrders && (
+          <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
+            <h3 className='mb-4 ml-12 text-lg font-semibold text-gray-700 dark:text-gray-200'>
+              Orders
+            </h3>
+            {currentOrdersPageData.length > 0 ? (
+              <div
+                className={`overflow-y-auto ${isTableScrollable ? 'max-h-96' : ''}`}
+              >
+                <table
+                  className='ml-12 bg-white dark:bg-gray-800'
+                  style={{ width: '156vh' }}
+                >
+                  <thead>
+                    <tr className='text-gray-700 dark:text-gray-200'>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Order ID
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Order Details
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                        Amount (sats)
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Currency
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Payment Method
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Status
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Order Type
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className='text-gray-700 dark:text-gray-200'>
+                    {currentOrdersPageData.map((order) => (
+                      <React.Fragment key={order.order_id}>
+                        <tr className='h-13 odd:bg-gray-100 even:bg-white dark:odd:bg-gray-700 dark:even:bg-gray-800'>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.order_id}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.order_details}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                            {(order.amount_msat / 1000).toFixed(3)}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.currency}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.payment_method}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.status}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.type === 0 ? 'Buy' : 'Sell'}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                            <button
+                              onClick={() =>
+                                toggleRowExpansion(order.order_id)
+                              }
+                            >
+                              {expandedRow === order.order_id ? (
+                                <BsChevronUp className='text-xl' />
+                              ) : (
+                                <BsChevronDown className='text-xl' />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                        {expandedRow === order.order_id && (
+                          <tr>
+                            <td
+                              colSpan={8}
+                              className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'
+                            >
+                              <div className='rounded bg-gray-100 p-4 dark:bg-gray-700'>
+                                <table className='min-w-full bg-white dark:bg-gray-800'>
+                                  <tbody>
+                                    <tr>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        Customer ID
+                                      </td>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        {order.customer_id}
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        Escrow Status
+                                      </td>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        {order.escrow_status}
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        Taker Customer ID
+                                      </td>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        {order.taker_customer_id}
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <button
+                                  className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                                  onClick={() =>
+                                    handleTakeOrder(order.order_id)
+                                  }
+                                >
+                                  Take Order
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className='text-center text-gray-700'>No orders found.</p>
+            )}
+            <div className='mt-4 flex items-center justify-center'>
+              {currentOrdersPage > 1 && (
+                <button
+                  onClick={handlePreviousPageClick}
+                  className='mx-1 rounded bg-orange-500 px-3 py-1 text-white'
+                >
+                  <FaChevronLeft className='text-white' />
+                </button>
+              )}
+              <span className='mx-2 text-gray-700 dark:text-gray-200'>
+                Page {currentOrdersPage} of {totalOrdersPages}
+              </span>
+              <button
+                onClick={handleNextPageClick}
+                className={`mx-1 rounded px-3 py-1 ${
+                  currentOrdersPage === totalOrdersPages
+                    ? 'cursor-not-allowed bg-orange-300'
+                    : 'bg-orange-500 text-white'
+                }`}
+                disabled={currentOrdersPage === totalOrdersPages}
+              >
+                <FaChevronRight className='rounded-lg text-white' />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showProfileSettings && (
+          <div className='rounded-lg bg-white p-8 shadow dark:bg-gray-800'>
+            <h3 className='mb-4 ml-12 text-lg font-semibold text-white'>
               Profile Settings
             </h3>
-            <form className='space-y-4'>
+            <div className='ml-12 space-y-4'>
               <div>
-                <label
-                  className={`mb-2 block ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}
-                >
-                  Public Key
+                <label htmlFor='npub' className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+                  Username
                 </label>
                 <input
                   type='text'
+                  id='npub'
                   value={npub || ''}
                   readOnly
-                  className='w-full rounded border border-gray-300 p-2 dark:bg-gray-700 dark:text-white'
+                  className='w-full rounded-lg border border-gray-300 p-2 pl-5 text-gray-700'
                 />
               </div>
               <div>
-                <label
-                  className={`mb-2 block ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}
-                >
+                <label htmlFor='relay' className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
                   Relay URL
                 </label>
-                <div className='flex flex-row items-center justify-center gap-2'>
+                <div className='flex items-center gap-2'>
                   <input
                     type='text'
-                    value={relayUrl}
-                    onChange={(e) => setRelayUrl(e.target.value)}
-                    className='w-full rounded border border-gray-300 p-2 dark:bg-gray-700 dark:text-white'
+                  id='relay'
+                  value={relayInput}
+                  onChange={(e) => setRelayInput(e.target.value)}
+                    className='w-full rounded-lg border border-gray-300 p-2 pl-5 text-gray-700'
                   />
-                  <button className='w-24 rounded-lg bg-orange-500 p-2 text-white'>
-                    Save
-                  </button>
+                <button
+                  onClick={handleSaveRelay}
+                  className='focus:shadow-outline w-16 rounded-lg bg-green-600 px-2 py-2 font-bold text-white hover:bg-green-700 focus:outline-none'
+                >
+                  Save
+                </button>
                 </div>
               </div>
-            </form>
+            </div>
           </div>
-        ) : (
-          <>
-            {selectedOrderbook === null && (
-              <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
-                <h3 className='mb-4 ml-12 text-lg font-semibold text-white'>
-                  Orders
-                </h3>
-                {currentOrdersPageData.length > 0 ? (
-                  <div
-                    className={`overflow-y-auto ${isTableScrollable ? 'max-h-96' : ''}`}
-                  >
-                    <table
-                      className='ml-12 bg-white dark:bg-gray-800'
-                      style={{ width: '156vh' }}
-                    >
-                      <thead>
-                        <tr className='text-white'>
-                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            Order ID
-                          </th>
-                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            Order Details
-                          </th>
-                          <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
-                            Amount (sats)
-                          </th>
-                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            Currency
-                          </th>
-                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            Payment Method
-                          </th>
-                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            Status
-                          </th>
-                          <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            Order Type
-                          </th>
-                          <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className='text-white'>
-                        {currentOrdersPageData.map((order) => (
-                          <React.Fragment key={order.order_id}>
-                            <tr className='h-13 odd:bg-gray-100 even:bg-white dark:odd:bg-gray-700 dark:even:bg-gray-800'>
-                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                {order.order_id}
-                              </td>
-                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                {order.order_details}
-                              </td>
-                              <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
-                                {(order.amount_msat / 1000).toFixed(3)}
-                              </td>
-                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                {order.currency}
-                              </td>
-                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                {order.payment_method}
-                              </td>
-                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                {order.status}
-                              </td>
-                              <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                {order.type === 0 ? 'Buy' : 'Sell'}
-                              </td>
-                              <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
-                                <button
-                                  onClick={() =>
-                                    toggleRowExpansion(order.order_id)
-                                  }
-                                >
-                                  {expandedRow === order.order_id ? (
-                                    <BsChevronUp className='text-xl' />
-                                  ) : (
-                                    <BsChevronDown className='text-xl' />
-                                  )}
-                                </button>
-                              </td>
-                            </tr>
-                            {expandedRow === order.order_id && (
-                              <tr>
-                                <td
-                                  colSpan={8}
-                                  className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'
-                                >
-                                  <div className='rounded bg-gray-100 p-4 dark:bg-gray-700'>
-                                    <table className='min-w-full bg-white dark:bg-gray-800'>
-                                      <tbody>
-                                        <tr>
-                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                            Customer ID
-                                          </td>
-                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                            {order.customer_id}
-                                          </td>
-                                        </tr>
-                                        <tr>
-                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                            Escrow Status
-                                          </td>
-                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                            {order.escrow_status}
-                                          </td>
-                                        </tr>
-                                        <tr>
-                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                            Taker Customer ID
-                                          </td>
-                                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                            {order.taker_customer_id}
-                                          </td>
-                                        </tr>
-                                      </tbody>
-                                    </table>
-                                    <button
-                                      className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-                                      onClick={() =>
-                                        handleTakeOrder(order.order_id)
-                                      }
-                                    >
-                                      Take Order
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className='text-center text-gray-700'>No orders found.</p>
-                )}
-                <div className='mt-4 flex items-center justify-center'>
-                  {currentOrdersPage > 1 && (
-                    <button
-                      onClick={handlePreviousPageClick}
-                      className='mx-1 rounded bg-orange-500 px-3 py-1 text-white'
-                    >
-                      <FaChevronLeft className='text-white' />
-                    </button>
-                  )}
-                  <span className='mx-2 text-white'>
-                    Page {currentOrdersPage} of {totalOrdersPages}
-                  </span>
-                  <button
-                    onClick={handleNextPageClick}
-                    className={`mx-1 rounded px-3 py-1 ${
-                      currentOrdersPage === totalOrdersPages
-                        ? 'cursor-not-allowed bg-orange-300'
-                        : 'bg-orange-500 text-white'
-                    }`}
-                    disabled={currentOrdersPage === totalOrdersPages}
-                  >
-                    <FaChevronRight className='rounded-lg text-white' />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {showOrderbookLinks && (
-              <div className='mb-6 rounded bg-white p-4 shadow dark:bg-gray-800'>
-                <h3 className='mb-4 text-lg font-semibold text-white'>
-                  Orders
-                </h3>
-                {orders.length > 0 ? (
-                  <table className='min-w-full bg-white dark:bg-gray-800'>
-                    <thead>
-                      <tr>
-                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                          Order ID
-                        </th>
-                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                          Details
-                        </th>
-                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                          Amount (msat)
-                        </th>
-                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                          Currency
-                        </th>
-                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                          Payment Method
-                        </th>
-                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                          Status
-                        </th>
-                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                          Order Type
-                        </th>
-                        <th className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orders.map((order) => (
-                        <tr key={order.order_id}>
-                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                            {order.order_id}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                            {order.order_details}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                            {(order.amount_msat / 1000).toFixed(3)} sats
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                            {order.currency}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                            {order.payment_method}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                            {order.status}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                            {order.type === 0 ? 'Buy' : 'Sell'}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'>
-                            <button
-                              className='focus:shadow-outline rounded-3xl bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-                              onClick={() => handleTakeOrder(order.order_id)}
-                            >
-                              Take Order
-                            </button>
-                            {order.status === 'chat_open' && (
-                              <button
-                                className='focus:shadow-outline rounded bg-gray-500 px-4 py-2 font-bold text-white hover:bg-gray-600 focus:outline-none'
-                                onClick={() => handleOpenChat(order.order_id)}
-                              >
-                                Open Chat
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className='text-center text-gray-700'>No orders found.</p>
-                )}
-              </div>
-            )}
-          </>
         )}
 
         {chatUrls && (
-            <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50'>
+          <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50'>
             <div className='rounded-lg bg-white p-8 shadow'>
               <h2 className='mb-4 text-center text-2xl font-bold text-blue-600'>
                 Chatroom URLs
@@ -796,10 +825,6 @@ const Dashboard: React.FC<{
             </div>
           </div>
         )}
-
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-          <CreateOrderForm onOrderCreated={handleOrderCreated} />
-        </Modal>
       </div>
     </div>
   );
