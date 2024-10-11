@@ -6,6 +6,7 @@ import QRCode from 'qrcode.react';
 import { NDKContext } from '../../components/NDKContext';
 import { useNostr } from '../useNostr';
 import { FaMoon, FaSun } from 'react-icons/fa';
+import { Spinner } from '../../components';
 
 type Order = {
   order_id: number;
@@ -354,72 +355,39 @@ const OrderDetails: React.FC<{
     console.log('MakerHoldInvoice state updated:', makerHoldInvoice);
   }, [order, makerHoldInvoice]);
 
-  if (!order) {
-    return (
-      <div className='flex min-h-screen items-center justify-center bg-gray-100'>
-        <p className='text-lg font-bold text-blue-600'>Loading...</p>
-      </div>
-    );
-  }
-
   console.log('Rendering order:', order);
-  console.log('Order type:', order.type);
+  console.log('Order type:', order?.type);
   console.log('Hold invoice:', makerHoldInvoice);
 
   console.log('Current order state:', order);
 
   return (
-    <div
-      className={`relative flex min-h-screen items-center justify-center ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
-    >
-      <div className='absolute right-4 top-4'>
-        <button
-          onClick={toggleDarkMode}
-          className='focus:shadow-outline rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-        >
-          {darkMode ? <FaSun /> : <FaMoon />}
-        </button>
-      </div>
-      <div
-        className={`w-full max-w-2xl rounded-lg ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'} p-8 shadow-lg`}
-      >
-        <h1 className='mb-6 text-center text-2xl font-bold'>Order Details</h1>
-        <p className='mb-4'>
-          <span className='font-bold'>Order ID:</span> {order.order_id}
-        </p>
-        <p className='mb-4'>
-          <span className='font-bold'>Type:</span>{' '}
-          {order.type === 0 ? 'Buy' : 'Sell'}
-        </p>
-        <p className='mb-4'>
-          <span className='font-bold'>Details:</span> {order.order_details}
-        </p>
-        <p className='mb-4'>
-          <span className='font-bold'>Amount:</span> {order.amount_msat}
-        </p>
-        <p className='mb-4'>
-          <span className='font-bold'>Currency:</span> {order.currency}
-        </p>
-        <p className='mb-4'>
-          <span className='font-bold'>Payment Method:</span>{' '}
-          {order.payment_method}
-        </p>
-        <p className='mb-4'>
-          <span className='font-bold'>Status:</span> {order.status}
-        </p>
+    <div className='flex h-full w-full max-w-md flex-col gap-4 rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+      <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>
+        Order Details
+      </h2>
+      <span className='font-bold text-gray-700'>Order ID:</span> {order?.order_id}
+        <span className='font-bold text-gray-700 '>Type:</span>{' '}
+        {order?.type === 0 ? 'Buy' : 'Sell'}
+        <span className='font-bold text-gray-700'>Details:</span> {order?.order_details}
+        <span className='font-bold text-gray-700'>Amount:</span> {order?.amount_msat}
+        <span className='font-bold text-gray-700'>Currency:</span> {order?.currency}
+        <span className='font-bold text-gray-700'>Payment Method:</span>{' '}
+        {order?.payment_method}
+        <span className='font-bold text-gray-700'>Status:</span> {order?.status}
 
         {makerHoldInvoice && (
           <div>
             <h2 className='mb-4 text-xl font-bold'>Hold Invoice</h2>
             <p className='mb-4 break-words'>
-              <span className='font-bold'>Invoice:</span>{' '}
+              <span className='font-bold text-gray-700'>Invoice:</span>{' '}
               {makerHoldInvoice.bolt11}
             </p>
             <div className='mb-4 flex justify-center'>
               <QRCode value={makerHoldInvoice.bolt11} size={200} />
             </div>
             <p className='mb-6'>
-              <span className='font-bold'>Status:</span>{' '}
+              <span className='font-bold text-gray-700'>Status:</span>{' '}
               {makerHoldInvoice.status}
             </p>
           </div>
@@ -434,7 +402,6 @@ const OrderDetails: React.FC<{
         )}
 
         <div className='flex justify-center gap-4'>
-          {/* Render "Go to Full Invoice" for sell orders when invoice is paid */}
           {order?.type === 1 && order?.status === 'paid' && (
             <button
               onClick={handleRedirect}
@@ -444,7 +411,6 @@ const OrderDetails: React.FC<{
             </button>
           )}
 
-          {/* Render "Submit Payout" for buy orders when invoice is paid */}
           {order?.type === 0 && order?.status === 'paid' && (
             <button
               onClick={handleRedirect}
@@ -462,7 +428,6 @@ const OrderDetails: React.FC<{
           </button>
         </div>
 
-        {/* Render "Send to Nostr" button for both buy and sell orders when invoice is paid */}
         {order?.status === 'paid' && (
           <div className='mt-4 flex justify-center'>
             <button
@@ -474,7 +439,6 @@ const OrderDetails: React.FC<{
           </div>
         )}
       </div>
-    </div>
   );
 };
 

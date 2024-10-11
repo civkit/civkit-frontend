@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import QRCode from 'qrcode.react';
+import { Spinner } from '../components';
 
 const FullInvoice = () => {
   const router = useRouter();
@@ -98,83 +99,73 @@ const FullInvoice = () => {
     };
   }, [fullInvoice, orderId]);
 
-  if (loading) {
-    return (
-      <div className='flex min-h-screen items-center justify-center bg-gray-100'>
-        Loading...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className='flex min-h-screen items-center justify-center bg-gray-100'>
-        {error}
-      </div>
-    );
-  }
-
-  if (!fullInvoice) {
-    return (
-      <div className='flex min-h-screen items-center justify-center bg-gray-100'>
-        No invoice data available.
-      </div>
-    );
-  }
-
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-100'>
-      <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
-        <h1 className='mb-6 text-center text-2xl font-bold text-blue-600'>
-          Full Invoice Details
-        </h1>
-        <div className='mb-4'>
-          <label className='mb-2 block font-bold text-gray-700'>
-            Invoice (Full):
-          </label>
-          <div className='break-words rounded bg-gray-100 p-2'>
-            <p className='text-xs'>{fullInvoice.bolt11}</p>
+    <div className='flex h-full w-full max-w-md flex-col gap-4 rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+      {loading ? (
+        <div className='flex items-center justify-center gap-2 text-gray-500'>
+          <Spinner /> Loading...
+        </div>
+      ) : error ? (
+        <div className='text-center text-red-500'>
+            {error}
           </div>
-        </div>
-        <div className='my-4 flex justify-center'>
-          <QRCode value={fullInvoice.bolt11} />
-        </div>
-        <div className='mt-4'>
-          <p>
-            <strong>Invoice ID:</strong> {fullInvoice.invoice_id}
-          </p>
-          <p>
-            <strong>Order ID:</strong> {fullInvoice.order_id}
-          </p>
-          <p>
-            <strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000}{' '}
-            sats
-          </p>
-          <p>
-            <strong>Description:</strong> {fullInvoice.description}
-          </p>
-          <p>
-            <strong>Status:</strong> {fullInvoice.status}
-          </p>
-          <p>
-            <strong>Created At:</strong>{' '}
-            {new Date(fullInvoice.created_at).toLocaleString()}
-          </p>
-          <p>
-            <strong>Expires At:</strong>{' '}
-            {new Date(fullInvoice.expires_at).toLocaleString()}
-          </p>
-          <p>
-            <strong>Payment Hash:</strong> {fullInvoice.payment_hash}
-          </p>
-        </div>
-        <button
-          onClick={checkFullInvoice}
-          className='mt-4 w-full rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700'
-        >
-          Check Invoice Status
-        </button>
-      </div>
+        ) : !fullInvoice ? (
+          <div className='text-center text-gray-500'>
+            No invoice data available.
+          </div>
+        ) : (
+          <>
+            <h1 className='mb-6 text-center text-2xl font-bold text-gray-600'>
+              Full Invoice Details
+            </h1>
+            <div className='mb-4'>
+              <label className='mb-2 block font-bold text-gray-700'>
+                Invoice (Full):
+              </label>
+              <div className='break-words rounded bg-gray-100 p-2'>
+                <p className='text-xs'>{fullInvoice.bolt11}</p>
+              </div>
+            </div>
+            <div className='my-4 flex justify-center'>
+              <QRCode value={fullInvoice.bolt11} />
+            </div>
+            <div className='mt-4'>
+              <p>
+                <strong>Invoice ID:</strong> {fullInvoice.invoice_id}
+              </p>
+              <p>
+                <strong>Order ID:</strong> {fullInvoice.order_id}
+              </p>
+              <p>
+                <strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000}{' '}
+                sats
+              </p>
+              <p>
+                <strong>Description:</strong> {fullInvoice.description}
+              </p>
+              <p>
+                <strong>Status:</strong> {fullInvoice.status}
+              </p>
+              <p>
+                <strong>Created At:</strong>{' '}
+                {new Date(fullInvoice.created_at).toLocaleString()}
+              </p>
+              <p>
+                <strong>Expires At:</strong>{' '}
+                {new Date(fullInvoice.expires_at).toLocaleString()}
+              </p>
+              <p>
+                <strong>Payment Hash:</strong> {fullInvoice.payment_hash}
+              </p>
+            </div>
+            <button
+              onClick={checkFullInvoice}
+              className='mt-4 w-full rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700'
+            >
+              Check Invoice Status
+            </button>
+          </>
+        )}
     </div>
   );
 };

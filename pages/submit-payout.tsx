@@ -123,7 +123,7 @@ const SubmitPayout = () => {
       if (response.data.message) {
         setSuccessMessage('Payout submitted successfully.');
         setTimeout(() => {
-          router.push(`/orders`);
+          router.push(`/dashboard/orders`);
         }, 2000);
       }
     } catch (error) {
@@ -133,9 +133,8 @@ const SubmitPayout = () => {
   };
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-100'>
-      <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
-        <h1 className='mb-6 text-center text-2xl font-bold text-blue-600'>
+    <div className='flex h-full w-full max-w-md flex-col gap-4 rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+        <h1 className='mb-6 text-center text-2xl font-bold text-orange-600'>
           Submit Payout
         </h1>
         {orderDetails && (
@@ -168,17 +167,16 @@ const SubmitPayout = () => {
             onChange={(e) => setLnInvoice(e.target.value)}
             placeholder='Enter Signet Lightning Invoice'
             required
-            className='mb-4 w-full rounded border p-2 focus:outline-none focus:ring-2 focus:ring-blue-400'
+            className='mb-4 w-full rounded-lg border p-2 focus:outline-none focus:ring-2 focus:ring-blue-400'
           />
           <button
             type='submit'
-            className='focus:shadow-outline w-full rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+            className='focus:shadow-outline w-full rounded-lg bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600 focus:outline-none'
           >
             Submit Payout
           </button>
         </form>
       </div>
-    </div>
   );
 };
 
