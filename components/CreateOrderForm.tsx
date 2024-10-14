@@ -4,7 +4,19 @@ import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-interface CreateOrderFormProps {}
+interface Order {
+  order_id: number;
+  order_details: string;
+  amount_msat: number;
+  currency: string;
+  payment_method: string;
+  status: string;
+  type: number;
+}
+
+interface CreateOrderFormProps {
+  onOrderCreated: (order: Order) => void;
+}
 
 const CreateOrderForm: React.FC<CreateOrderFormProps> = ({
   onOrderCreated,
