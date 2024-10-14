@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useRouter } from 'next/router';
+
+interface Currency {
+  id: string;
+  code: string;
+}
 
 interface Order {
   order_id: number;
@@ -15,32 +20,38 @@ interface Order {
 }
 
 interface CreateOrderFormProps {
-  onOrderCreated: (order: Order) => void;
+  onOrderCreated: (order: Order) => Promise<void>;
 }
 
-const CreateOrderForm: React.FC<CreateOrderFormProps> = ({
-  onOrderCreated,
-}) => {
+const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => {
   const [orderDetails, setOrderDetails] = useState('');
   const [amountMsat, setAmountMsat] = useState('');
   const [currency, setCurrency] = useState('');
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('Credit Card');
-  const [type, setType] = useState(0); // Default to Buy Order
+  const [type, setType] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
-    // Fetch currencies from the JSON file
     const fetchCurrencies = async () => {
-      const response = await fetch('/currencies.json');
-      const data = await response.json();
-      setCurrencies(Object.entries(data).map(([id, code]) => ({ id, code })));
+      try {
+        const response = await fetch('/currencies.json');
+        const data = await response.json();
+        setCurrencies(Object.entries(data).map(([id, code]) => ({ id, code: code as string })));
+      } catch (error) {
+        console.error('Error fetching currencies:', error);
+      }
     };
     fetchCurrencies();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    console.log('Form submitted');
     try {
       const timestamp = Date.now();
       const uniqueLabel = `order_${timestamp}`;
@@ -56,7 +67,6 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({
 
       console.log('Submitting order data:', orderData);
 
-      // Post order data to create the order
       const orderResponse = await axios.post<{ order: Order }>(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`,
         orderData,
@@ -76,7 +86,6 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({
 
       const orderId = orderResponse.data.order.order_id;
 
-      // Post hold invoice with unique label
       const holdInvoiceResponse = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoice`,
         {
@@ -98,19 +107,31 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({
         throw new Error('Failed to create hold invoice');
       }
 
-      onOrderCreated(orderResponse.data.order); // Pass order details to parent
+      console.log('Order created successfully, calling onOrderCreated');
       toast.success('Order created successfully!');
 
-      // Update the URL without redirecting
-      router.push(`/orders/${orderId}`, undefined, { shallow: true });
+      // Add a delay of 2 seconds before calling onOrderCreated
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // If it's a sell order, start polling for hold invoice payment
+      if (typeof onOrderCreated === 'function') {
+        await onOrderCreated(orderResponse.data.order);
+        console.log('onOrderCreated completed');
+      } else {
+        console.error('onOrderCreated is not a function');
+        router.push(`/orders/${orderResponse.data.order.order_id}`);
+      }
+
       if (type === 1) {
         pollHoldInvoiceStatus(holdInvoiceResponse.data.payment_hash, orderId);
       }
     } catch (error) {
-      console.error('Error creating order:', error);
-      toast.error('Failed to create order.');
+      console.error('Error in handleSubmit:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error:', error.response?.data);
+        toast.error(`Failed to create order: ${error.response?.data}`);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
