@@ -123,7 +123,7 @@ const SubmitPayout = () => {
       if (response.data.message) {
         setSuccessMessage('Payout submitted successfully.');
         setTimeout(() => {
-          router.push(`/dashboard/orders`);
+          router.push(`/orders`);
         }, 2000);
       }
     } catch (error) {

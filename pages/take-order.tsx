@@ -4,13 +4,14 @@ import { useRouter } from 'next/router';
 import { useNostr } from './useNostr';
 import { GiOstrich } from 'react-icons/gi';
 import QRCode from 'qrcode.react';
+import { Spinner } from '../components';
 
 const TakeOrder = () => {
   const router = useRouter();
   const { orderId } = router.query;
   const [order, setOrder] = useState(null);
   const [takerHoldInvoice, setTakerHoldInvoice] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const [nostrEventSent, setNostrEventSent] = useState(false);
 
   const { signAndSendEvent } = useNostr();
@@ -127,100 +128,95 @@ const TakeOrder = () => {
     }
   };
 
-  if (error) {
-    return (
-      <div className='flex min-h-screen items-center justify-center text-red-600'>
-        Error: {error}
-      </div>
-    );
-  }
-
-  if (!order || !takerHoldInvoice) {
-    return (
-      <div className='flex min-h-screen items-center justify-center'>
-        Loading...
-      </div>
-    );
-  }
-
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-100'>
-      <div className='w-full max-w-2xl rounded-lg bg-white p-8 text-center shadow-lg'>
-        <h1 className='mb-6 text-3xl font-bold'>Take Order</h1>
+    <div className='flex flex-col gap-4 w-full h-full max-w-2xl rounded-lg bg-white p-8 text-center shadow-lg'>
+      <h1 className='mb-6 text-3xl font-bold text-orange-500'>Take Order</h1>
 
-        <div className='mb-8'>
-          <h2 className='mb-4 text-2xl font-semibold'>Order Details</h2>
-          <p className='mb-2'>
-            <span className='font-semibold'>Order ID:</span> {order.order_id}
-          </p>
-          <p className='mb-2'>
-            <span className='font-semibold'>Amount:</span> {order.amount_msat}{' '}
-            msat
-          </p>
-          <p className='mb-2'>
-            <span className='font-semibold'>Status:</span> {order.status}
-          </p>
-        </div>
-
-        <div className='mb-8'>
-          <h2 className='mb-4 text-2xl font-semibold'>Taker Hold Invoice</h2>
-          <div className='mb-4 flex justify-center'>
-            <QRCode value={takerHoldInvoice.bolt11} size={200} />
+        {error ? (
+          <div className='flex min-h-screen items-center justify-center text-red-600'>
+            Error: {error}
           </div>
-          <div className='mb-4 rounded-lg bg-gray-100 p-4'>
-            <p className='break-all font-mono text-sm'>
-              {takerHoldInvoice.bolt11}
-            </p>
+        ) : !order || !takerHoldInvoice ? (
+          <div className='flex gap-2 h-full w-full items-center justify-center text-green-500'>
+            Loading...
+            <Spinner />
           </div>
-          <p className='mb-2'>
-            <span className='font-semibold'>Amount:</span>{' '}
-            {takerHoldInvoice.amount_msat} msat
-          </p>
-          <p className='mb-4'>
-            <span className='font-semibold'>Status:</span>
-            <span
-              className={`ml-2 ${takerHoldInvoice.status === 'ACCEPTED' ? 'text-green-600' : 'text-yellow-600'}`}
-            >
-              {takerHoldInvoice.status}
-            </span>
-          </p>
-          {takerHoldInvoice.status === 'ACCEPTED' && (
-            <p className='mb-4 font-semibold text-green-600'>
-              Hold invoice has been paid! Proceeding with the order...
-            </p>
-          )}
-          <button
-            onClick={() => checkHoldInvoiceStatus()}
-            className='focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
-          >
-            Refresh Invoice Status
-          </button>
-        </div>
+        ) : (
+          <div className='flex flex-col gap-4'>
+            <div className='mb-8'>
+              <h2 className='mb-4 text-2xl font-semibold'>Order Details</h2>
+              <p className='mb-2'>
+                <span className='font-semibold'>Order ID:</span> {order.order_id}
+              </p>
+              <p className='mb-2'>
+                <span className='font-semibold'>Amount:</span> {order.amount_msat}{' '}
+                msat
+              </p>
+              <p className='mb-2'>
+                <span className='font-semibold'>Status:</span> {order.status}
+              </p>
+            </div>
 
-        {takerHoldInvoice.status === 'ACCEPTED' && !nostrEventSent && (
-          <button
-            onClick={sendNostrEvent}
-            className='focus:shadow-outline mr-2 rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
-          >
-            Send to Relay
-          </button>
-        )}
+            <div className='mb-8'>
+              <h2 className='mb-4 text-2xl font-semibold'>Taker Hold Invoice</h2>
+              <div className='mb-4 flex justify-center'>
+                <QRCode value={takerHoldInvoice.bolt11} size={200} />
+              </div>
+              <div className='mb-4 rounded-lg bg-gray-100 p-4'>
+                <p className='break-all font-mono text-sm'>
+                  {takerHoldInvoice.bolt11}
+                </p>
+              </div>
+              <p className='mb-2'>
+                <span className='font-semibold'>Amount:</span>{' '}
+                {takerHoldInvoice.amount_msat} msat
+              </p>
+              <p className='mb-4'>
+                <span className='font-semibold'>Status:</span>
+                <span
+                  className={`ml-2 ${takerHoldInvoice.status === 'ACCEPTED' ? 'text-green-600' : 'text-yellow-600'}`}
+                >
+                  {takerHoldInvoice.status}
+                </span>
+              </p>
+              {takerHoldInvoice.status === 'ACCEPTED' && (
+                <p className='mb-4 font-semibold text-green-600'>
+                  Hold invoice has been paid! Proceeding with the order...
+                </p>
+              )}
+              <button
+                onClick={() => checkHoldInvoiceStatus()}
+                className='focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+              >
+                Refresh Invoice Status
+              </button>
+            </div>
 
-        {nostrEventSent && (
-          <p className='mb-4 font-bold text-green-500'>
-            Nostr event sent successfully!
-          </p>
-        )}
+            {takerHoldInvoice.status === 'ACCEPTED' && !nostrEventSent && (
+              <button
+                onClick={sendNostrEvent}
+                className='focus:shadow-outline mr-2 rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+              >
+                Send to Relay
+              </button>
+            )}
 
-        {takerHoldInvoice.status === 'ACCEPTED' && (
-          <button
-            onClick={handleRedirect}
-            className='focus:shadow-outline rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-          >
-            {order.type === 1 ? 'Go to Payout Page' : 'Go to Full Invoice'}
-          </button>
+            {nostrEventSent && (
+              <p className='mb-4 font-bold text-green-500'>
+                Nostr event sent successfully!
+              </p>
+            )}
+
+            {takerHoldInvoice.status === 'ACCEPTED' && (
+              <button
+                onClick={handleRedirect}
+                className='focus:shadow-outline rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+              >
+                {order.type === 1 ? 'Go to Payout Page' : 'Go to Full Invoice'}
+              </button>
+            )}
+          </div>
         )}
-      </div>
     </div>
   );
 };

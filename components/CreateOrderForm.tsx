@@ -85,6 +85,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
       }
 
       const orderId = orderResponse.data.order.order_id;
+      console.log('Order ID:', orderId); // Log the orderId
 
       const holdInvoiceResponse = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoice`,
@@ -156,7 +157,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
 
         if (response.data.state === 'accepted') {
           // Redirect to full invoice page
-          router.push(`/dashboard/full-invoice?orderId=${orderId}`);
+          router.push(`/full-invoice?orderId=${orderId}`);
         } else {
           // Continue polling
           setTimeout(checkStatus, 5000); // Check every 5 seconds

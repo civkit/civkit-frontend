@@ -45,6 +45,15 @@ const FullInvoice = dynamic(() => import('../pages/full-invoice'), {
   ssr: false, // Disable server-side rendering if not needed
 });
 
+// Dynamically import the TakeOrder component
+const TakeOrder = dynamic(() => import('../pages/take-order'), {
+  ssr: false, // Disable server-side rendering if not needed
+});
+
+const TakerFullInvoice = dynamic(() => import('../pages/taker-full-invoice'), {
+  ssr: false, // Disable server-side rendering if not needed
+});
+
 const Dashboard: React.FC<{
   darkMode: boolean;
   toggleDarkMode: () => void;
@@ -220,30 +229,6 @@ const Dashboard: React.FC<{
     setOrders(updatedOrders);
   };
 
-  const handleTakeOrder = async (orderId) => {
-    try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/take`,
-        {
-          orderId,
-          takerDetails: { description: 'Detailed description for the taker' },
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        }
-      );
-      console.log('Order taken successfully:', response.data);
-    } catch (error) {
-      console.error('Error taking order:', error);
-      if (axios.isAxiosError(error)) {
-        console.error('Error details:', error.response?.data);
-      }
-      alert('Redirecting...');
-    }
-
-    window.location.href = `/take-order?orderId=${orderId}`;
-  };
-
   const handleOpenChat = async (orderId) => {
     try {
       const response = await axios.post(
@@ -350,6 +335,7 @@ const Dashboard: React.FC<{
     setShowOrders(true);
     setIsModalOpen(false); // Hide create order form when viewing orders
     setShowProfileSettings(false); // Hide profile settings
+    setIsTakeOrderModalOpen(false);
   };
 
   const toggleProfileSettings = () => {
@@ -407,6 +393,36 @@ const Dashboard: React.FC<{
       fetchOrderDetails(orderId);
     }
   }, [currentStep]);
+
+  const [isTakeOrderModalOpen, setIsTakeOrderModalOpen] = useState(false);
+  const [takeOrderSteps, setTakeOrderSteps] = useState<string[]>([]);
+  const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+
+  const handleTakeOrder = (order: any) => {
+    const steps = order.type === 0 
+      ? ['Hold Invoice', 'Full Invoice'] // Buy order steps
+      : ['Hold Invoice', 'Submit Payout']; // Sell order steps
+
+    setTakeOrderSteps(steps);
+    setCurrentTakeOrderStep(1);
+    setSelectedOrder(order); // Set the selected order
+    setIsTakeOrderModalOpen(true);
+  };
+
+  const handleNextTakeOrderStep = () => {
+    if (currentTakeOrderStep < takeOrderSteps.length) {
+      setCurrentTakeOrderStep(currentTakeOrderStep + 1);
+    } else {
+      setIsTakeOrderModalOpen(false);
+    }
+  };
+
+  const handlePreviousTakeOrderStep = () => {
+    if (currentTakeOrderStep > 1) {
+      setCurrentTakeOrderStep(currentTakeOrderStep - 1);
+    }
+  };
 
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
@@ -582,7 +598,35 @@ const Dashboard: React.FC<{
           </div>
         )}
 
-        {showOrders && (
+        {isTakeOrderModalOpen && (
+          <div className='w-full rounded-lg bg-white p-4 shadow dark:bg-gray-800 flex flex-row justify-center mt-6'>
+            <div className='flex flex-col justify-center items-center mb-2 mr-2 text-gray-700 dark:text-gray-200'>
+              <div className='flex items-center justify-center mb-6'>
+                {takeOrderSteps.map((step, index) => (
+                  <React.Fragment key={index}>
+                    <span
+                      className={`cursor-pointer ${currentTakeOrderStep === index + 1 ? 'font-bold text-orange-500' : 'text-gray-500'}`}
+                      onClick={() => setCurrentTakeOrderStep(index + 1)}
+                    >
+                      {step}
+                    </span>
+                    {index < takeOrderSteps.length - 1 && (
+                      <FaChevronRight className='mx-2 text-gray-500' />
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
+                {currentTakeOrderStep === 1 && <TakeOrder orderId={selectedOrder.order_id} />}
+                {currentTakeOrderStep === 2 && (
+                  selectedOrder.type === 0 ? <TakerFullInvoice orderId={selectedOrder.order_id} /> : <SubmitPayout orderId={selectedOrder.order_id} />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isTakeOrderModalOpen && showOrders && (
           <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
             <h3 className='mb-4 ml-12 text-lg font-semibold text-gray-700 dark:text-gray-200'>
               Orders
@@ -700,7 +744,7 @@ const Dashboard: React.FC<{
                                 <button
                                   className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
                                   onClick={() =>
-                                    handleTakeOrder(order.order_id)
+                                    handleTakeOrder(order)
                                   }
                                 >
                                   Take Order
