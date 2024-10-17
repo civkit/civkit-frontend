@@ -54,6 +54,22 @@ const TakerFullInvoice = dynamic(() => import('../pages/taker-full-invoice'), {
   ssr: false, // Disable server-side rendering if not needed
 });
 
+// Define the Order interface
+interface Order {
+  order_id: number;
+  order_details: string;
+  amount_msat: number;
+  currency: string;
+  payment_method: string;
+  status: string;
+  type: number;
+}
+
+interface HoldInvoice {
+  invoice: string;
+  order_id: number;
+}
+
 const Dashboard: React.FC<{
   darkMode: boolean;
   toggleDarkMode: () => void;
@@ -320,7 +336,11 @@ const Dashboard: React.FC<{
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleOrderCreated = (order: any) => {
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [orderDetails, setOrderDetails] = useState<Order | null>(null);
+  const [holdInvoice, setHoldInvoice] = useState<HoldInvoice | null>(null);
+
+  const handleOrderCreated = async (order: Order, holdInvoice: HoldInvoice) => {
     console.log('Order created:', order);
     setIsModalOpen(false);
   };
@@ -352,8 +372,6 @@ const Dashboard: React.FC<{
     alert('Relay URL saved successfully!');
   };
 
-  const [currentStep, setCurrentStep] = useState<number>(1);
-
   const steps = ['Create Order', 'Hold Invoice', 'Submit Payout', 'Full Invoice', 'Order Completed 🚀'];
 
   const handleNextStep = () => {
@@ -368,7 +386,6 @@ const Dashboard: React.FC<{
     }
   };
 
-  const [orderDetails, setOrderDetails] = useState<Order | null>(66);
 
   const fetchOrderDetails = async (orderId: string) => {
     try {
