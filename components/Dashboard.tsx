@@ -32,6 +32,7 @@ import Modal from './Modal';
 import CreateOrderForm from './CreateOrderForm';
 import dynamic from 'next/dynamic';
 import { FaCircleChevronDown } from 'react-icons/fa6';
+import QRCode from 'qrcode.react';
 
 // Dynamically import the OrderDetails component
 const OrderDetails = dynamic(() => import('../pages/orders/[orderId]'), {
@@ -53,6 +54,17 @@ const TakeOrder = dynamic(() => import('../pages/take-order'), {
 const TakerFullInvoice = dynamic(() => import('../pages/taker-full-invoice'), {
   ssr: false, // Disable server-side rendering if not needed
 });
+
+// Define the Order interface
+interface Order {
+  order_id: number;
+  order_details: string;
+  amount_msat: number;
+  currency: string;
+  payment_method: string;
+  status: string;
+  type: number;
+}
 
 const Dashboard: React.FC<{
   darkMode: boolean;
@@ -320,9 +332,17 @@ const Dashboard: React.FC<{
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleOrderCreated = (order: any) => {
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [orderDetails, setOrderDetails] = useState<Order | null>(null);
+  const [holdInvoice, setHoldInvoice] = useState<string | null>(null);
+
+  const handleOrderCreated = async (order: Order, holdInvoice: string) => {
     console.log('Order created:', order);
-    setIsModalOpen(false);
+    console.log('Hold invoice:', holdInvoice);
+    setOrderDetails(order);
+    setHoldInvoice(holdInvoice);
+    setCurrentStep(2); // Move to the "Hold Invoice" step
+    setIsModalOpen(true); // Keep the modal open to show the invoice
   };
 
   const handleCreateOrderClick = () => {
@@ -352,8 +372,6 @@ const Dashboard: React.FC<{
     alert('Relay URL saved successfully!');
   };
 
-  const [currentStep, setCurrentStep] = useState<number>(1);
-
   const steps = ['Create Order', 'Hold Invoice', 'Submit Payout', 'Full Invoice', 'Order Completed 🚀'];
 
   const handleNextStep = () => {
@@ -365,24 +383,6 @@ const Dashboard: React.FC<{
   const handlePreviousStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const [orderDetails, setOrderDetails] = useState<Order | null>(66);
-
-  const fetchOrderDetails = async (orderId: string) => {
-    try {
-      const response = await axios.get<Order>(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      setOrderDetails(response.data);
-    } catch (error) {
-      console.error('Error fetching order details:', error);
     }
   };
 
@@ -578,14 +578,39 @@ const Dashboard: React.FC<{
                       {step}
                     </span>
                     {index < steps.length - 1 && (
-                      <FaChevronRight className='mx-2 text-gray-500' /> // Use right arrow icon as separator
+                      <FaChevronRight className='mx-2 text-gray-500' />
                     )}
                   </React.Fragment>
                 ))}
               </div>
               <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
-                {currentStep === 1 && <CreateOrderForm />}
-                {currentStep === 2 && <OrderDetails orderDetails={orderDetails} />}
+                {currentStep === 1 && <CreateOrderForm onOrderCreated={handleOrderCreated} />}
+                {currentStep === 2 && orderDetails && holdInvoice && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Hold Invoice</h2>
+                    <p className='mb-4 break-words'>
+                      <span className='font-bold text-gray-700'>Invoice:</span> {holdInvoice}
+                    </p>
+                    <div className='mb-4 flex justify-center'>
+                      <QRCode value={holdInvoice} size={200} />
+                    </div>
+                    <p className='mb-4'>
+                      <span className='font-bold text-gray-700'>Order ID:</span> {orderDetails.order_id}
+                    </p>
+                    <p className='mb-4'>
+                      <span className='font-bold text-gray-700'>Amount:</span> {orderDetails.amount_msat / 1000} sats
+                    </p>
+                    <p className='mb-4'>
+                      <span className='font-bold text-gray-700'>Status:</span> {orderDetails.status}
+                    </p>
+                    <button
+                      onClick={() => setCurrentStep(3)}
+                      className='focus:shadow-outline w-full rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                    >
+                      Next Step
+                    </button>
+                  </div>
+                )}
                 {currentStep === 3 && <SubmitPayout />}
                 {currentStep === 4 && <FullInvoice />}
                 {currentStep === 5 && (

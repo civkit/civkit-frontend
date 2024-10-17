@@ -20,7 +20,7 @@ interface Order {
 }
 
 interface CreateOrderFormProps {
-  onOrderCreated: (order: Order) => Promise<void>;
+  onOrderCreated: (order: Order, holdInvoice: string) => void;
 }
 
 const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => {
@@ -104,7 +104,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
 
       console.log('Hold invoice response:', holdInvoiceResponse.data);
 
-      if (!holdInvoiceResponse.data.payment_hash) {
+      if (!holdInvoiceResponse.data.bolt11) {
         throw new Error('Failed to create hold invoice');
       }
 
@@ -114,17 +114,9 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
       // Add a delay of 2 seconds before calling onOrderCreated
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      if (typeof onOrderCreated === 'function') {
-        await onOrderCreated(orderResponse.data.order);
-        console.log('onOrderCreated completed');
-      } else {
-        console.error('onOrderCreated is not a function');
-        router.push(`/orders/${orderResponse.data.order.order_id}`);
-      }
+      // Call onOrderCreated with the order and hold invoice
+      onOrderCreated(orderResponse.data.order, holdInvoiceResponse.data.bolt11);
 
-      if (type === 1) {
-        pollHoldInvoiceStatus(holdInvoiceResponse.data.payment_hash, orderId);
-      }
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       if (axios.isAxiosError(error)) {
