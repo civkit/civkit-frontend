@@ -66,6 +66,11 @@ interface Order {
   type: number;
 }
 
+interface HoldInvoice {
+  invoice: string;
+  order_id: number;
+}
+
 const Dashboard: React.FC<{
   darkMode: boolean;
   toggleDarkMode: () => void;
@@ -334,9 +339,9 @@ const Dashboard: React.FC<{
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [orderDetails, setOrderDetails] = useState<Order | null>(null);
-  const [holdInvoice, setHoldInvoice] = useState<string | null>(null);
+  const [holdInvoice, setHoldInvoice] = useState<HoldInvoice | null>(null);
 
-  const handleOrderCreated = async (order: Order, holdInvoice: string) => {
+  const handleOrderCreated = async (order: Order, holdInvoice: HoldInvoice) => {
     console.log('Order created:', order);
     console.log('Hold invoice:', holdInvoice);
     setOrderDetails(order);
