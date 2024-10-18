@@ -82,7 +82,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
       }
 
       // Call onOrderCreated with the order, hold invoice, and full invoice (if it exists)
-      onOrderCreated(orderResponse.data.order, orderResponse.data.holdInvoice, orderResponse.data.fullInvoice);
+      onOrderCreated(orderResponse.data.order, orderResponse.data.holdInvoice);
 
     } catch (error) {
       console.error('Error in handleSubmit:', error);

@@ -349,78 +349,74 @@ const OrderDetails: React.FC<{
         Order Details
       </h2>
       <span className='font-bold text-gray-700'>Order ID:</span> {order?.order_id}
-        <span className='font-bold text-gray-700 '>Type:</span>{' '}
-        {order?.type === 0 ? 'Buy' : 'Sell'}
-        <span className='font-bold text-gray-700'>Details:</span> {order?.order_details}
-        <span className='font-bold text-gray-700'>Amount:</span> {order?.amount_msat}
-        <span className='font-bold text-gray-700'>Currency:</span> {order?.currency}
-        <span className='font-bold text-gray-700'>Payment Method:</span>{' '}
-        {order?.payment_method}
-        <span className='font-bold text-gray-700'>Status:</span> {order?.status}
+      <span className='font-bold text-gray-700 '>Type:</span>{' '}
+      {order?.type === 0 ? 'Buy' : 'Sell'}
+      <span className='font-bold text-gray-700'>Details:</span> {order?.order_details}
+      <span className='font-bold text-gray-700'>Amount:</span> {order?.amount_msat}
+      <span className='font-bold text-gray-700'>Currency:</span> {order?.currency}
+      <span className='font-bold text-gray-700'>Payment Method:</span>{' '}
+      {order?.payment_method}
+      <span className='font-bold text-gray-700'>Invoice Status:</span> {order?.status}
 
-        {makerHoldInvoice && (
-          <div>
-            <h2 className='mb-4 text-xl font-bold'>Hold Invoice</h2>
-            <p className='mb-4 break-words'>
-              <span className='font-bold text-gray-700'>Invoice:</span>{' '}
-              {makerHoldInvoice.bolt11}
-            </p>
-            <div className='mb-4 flex justify-center'>
-              <QRCode value={makerHoldInvoice.bolt11} size={200} />
-            </div>
-            <p className='mb-6'>
-              <span className='font-bold text-gray-700'>Status:</span>{' '}
-              {makerHoldInvoice.status}
-            </p>
+      {makerHoldInvoice && (
+        <div>
+          <h2 className='mb-4 text-xl font-bold'>Hold Invoice</h2>
+          <p className='mb-4 break-words'>
+            <span className='font-bold text-gray-700'>Invoice:</span>{' '}
+            {makerHoldInvoice.bolt11}
+          </p>
+          <div className='mb-4 flex justify-center'>
+            <QRCode value={makerHoldInvoice.bolt11} size={200} />
           </div>
-        )}
+        </div>
+      )}
 
-        {!makerHoldInvoice && (
-          <div>
-            <p className='mb-4 text-red-600'>
-              No hold invoice available for this order.
-            </p>
-          </div>
-        )}
+      {!makerHoldInvoice && (
+        <div>
+          <p className='mb-4 text-red-600'>
+            No hold invoice available for this order.
+          </p>
+        </div>
+      )}
 
-        <div className='flex justify-center gap-4'>
-          {order?.type === 1 && order?.status === 'paid' && (
-            <button
-              onClick={handleRedirect}
-              className='focus:shadow-outline rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-            >
-              Go to Full Invoice
-            </button>
-          )}
-
-          {order?.type === 0 && order?.status === 'paid' && (
-            <button
-              onClick={handleRedirect}
-              className='focus:shadow-outline rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-            >
-              Submit Payout
-            </button>
-          )}
-
+      <div className='flex justify-center gap-4'>
+        {order?.type === 1 && order?.status === 'paid' && (
           <button
-            onClick={handleManualCheck}
-            className='focus:shadow-outline rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-gray-600 focus:outline-none'
+            onClick={handleRedirect}
+            className='focus:shadow-outline rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
           >
-            Check Invoice Status
+            Go to Full Invoice
+          </button>
+        )}
+
+        {order?.type === 0 && order?.status === 'paid' && (
+          <button
+            onClick={handleRedirect}
+            className='focus:shadow-outline rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+          >
+            Submit Payout
+          </button>
+        )}
+
+        <button
+          onClick={handleManualCheck}
+          className='focus:shadow-outline rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-gray-600 focus:outline-none'
+        >
+          Check Invoice Status
+        </button>
+      </div>
+
+      {order?.status === 'paid' && (
+        <div className='mt-4 flex justify-center'>
+          <button
+            onClick={handleSendNostrEvent}
+            className='focus:shadow-outline rounded-lg bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600 focus:outline-none'
+          >
+            Send to Nostr
           </button>
         </div>
-
-        {order?.status === 'paid' && (
-          <div className='mt-4 flex justify-center'>
-            <button
-              onClick={handleSendNostrEvent}
-              className='focus:shadow-outline rounded-lg bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600 focus:outline-none'
-            >
-              Send to Nostr
-            </button>
-          </div>
-        )}
-      </div>
+      )}
+    </div>
   );
 };
 

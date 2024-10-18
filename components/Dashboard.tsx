@@ -72,6 +72,12 @@ interface HoldInvoice {
   order_id: number;
 }
 
+interface Invoice {
+  bolt11: string;
+  payment_hash: string;
+  status: string;
+}
+
 const Dashboard: React.FC<{
   darkMode: boolean;
   toggleDarkMode: () => void;
@@ -340,19 +346,103 @@ const Dashboard: React.FC<{
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [currentStep, setCurrentStep] = useState<number>(1);
-  const [orderDetails, setOrderDetails] = useState<Order | null>(null);
-  const [holdInvoice, setHoldInvoice] = useState<string | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [makerHoldInvoice, setMakerHoldInvoice] = useState<Invoice | null>(null);
   const [fullInvoice, setFullInvoice] = useState<string | null>(null);
+  const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
+  const [orderStatus, setOrderStatus] = useState<string | null>(null);
 
-  const handleOrderCreated = (order: Order, holdInvoice: string, fullInvoice: string | null) => {
-    console.log('Order created:', order);
-    console.log('Hold invoice:', holdInvoice);
-    console.log('Full invoice:', fullInvoice);
-    setOrderDetails(order);
-    setHoldInvoice(holdInvoice);
-    setFullInvoice(fullInvoice);
-    setCurrentStep(2); // Move to the "Hold Invoice" step
-    setIsModalOpen(true);
+  const checkInvoiceStatus = async (paymentHash: string): Promise<string | null> => {
+    try {
+      console.log(`Checking invoice status for payment hash: ${paymentHash}`);
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoicelookup`,
+        { payment_hash: paymentHash },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      console.log('Full response data:', response.data);
+
+      const invoiceState = response.data.state;
+      console.log(`Invoice state: ${invoiceState}`);
+
+      if (invoiceState === 'ACCEPTED') {
+        console.log(`Invoice accepted for order type ${order?.type}`);
+
+        // Update the order status in the state
+        setOrder((prevOrder) => ({ ...prevOrder!, status: 'paid' }));
+
+        // Update the order status in the database
+        if (order) {
+          await axios.put(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}`,
+            { status: 'paid' },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
+            }
+          );
+        }
+      } else {
+        console.log(`Invoice not accepted. Current state: ${invoiceState}`);
+      }
+      return invoiceState;
+    } catch (error) {
+      console.error(`Error checking invoice status:`, error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (makerHoldInvoice?.payment_hash && order) {
+      const interval = setInterval(async () => {
+        const newState = await checkInvoiceStatus(makerHoldInvoice.payment_hash);
+        if (newState) {
+          setMakerHoldInvoice((prevInvoice) => ({
+            ...prevInvoice!,
+            status: newState,
+          }));
+          if (newState === 'ACCEPTED') {
+            clearInterval(interval);
+          }
+        }
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [makerHoldInvoice, order]);
+
+  const handleOrderCreated = async (createdOrder: Order, holdInvoice: string) => {
+    setOrder(createdOrder);
+    const invoicesResponse = await axios.get<Invoice[]>(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${createdOrder.order_id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+    console.log('Received invoices data:', invoicesResponse.data);
+
+    const invoices = Array.isArray(invoicesResponse.data)
+      ? invoicesResponse.data
+      : [invoicesResponse.data];
+
+    const makerHoldInvoice = invoices.find(
+      (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
+    );
+
+    if (makerHoldInvoice) {
+      console.log('Setting maker hold invoice:', makerHoldInvoice);
+      setMakerHoldInvoice(makerHoldInvoice);
+    } else {
+      console.log('No maker hold invoice found');
+    }
+
+    setCurrentStep(2);
   };
 
   const handleCreateOrderClick = () => {
@@ -436,8 +526,8 @@ const Dashboard: React.FC<{
 
   useEffect(() => {
     // Reset all relevant state here
-    setOrderDetails(null);
-    setHoldInvoice(null);
+    setOrder(null);
+    setMakerHoldInvoice(null);
     setCurrentStep(1);
     // ... reset any other state variables
   }, []); // Empty dependency array means this runs once on mount
@@ -603,33 +693,41 @@ const Dashboard: React.FC<{
               </div>
               <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
                 {currentStep === 1 && <CreateOrderForm onOrderCreated={handleOrderCreated} />}
-                {currentStep === 2 && orderDetails && holdInvoice && (
+                {currentStep === 2 && order && makerHoldInvoice && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                     <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Hold Invoice</h2>
                     <p className='mb-4 break-words'>
-                      <span className='font-bold text-gray-700'>Invoice:</span> {holdInvoice}
+                      <span className='font-bold text-gray-700'>Invoice:</span> {makerHoldInvoice.bolt11}
                     </p>
                     <div className='mb-4 flex justify-center'>
-                      <QRCode value={holdInvoice} size={200} />
+                      <QRCode value={makerHoldInvoice.bolt11} size={200} />
                     </div>
                     <p className='mb-4'>
-                      <span className='font-bold text-gray-700'>Order ID:</span> {orderDetails.order_id}
+                      <span className='font-bold text-gray-700'>Order ID:</span> {order.order_id}
                     </p>
                     <p className='mb-4'>
-                      <span className='font-bold text-gray-700'>Amount:</span> {orderDetails.amount_msat / 1000} sats
+                      <span className='font-bold text-gray-700'>Amount:</span> {order.amount_msat / 1000} sats
                     </p>
                     <p className='mb-4'>
-                      <span className='font-bold text-gray-700'>Status:</span> {orderDetails.status}
+                      <span className='font-bold text-gray-700'>Order Status:</span> {order.status}
                     </p>
                     <button
-                      onClick={() => setCurrentStep(3)}
-                      className='focus:shadow-outline w-full rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                      onClick={() => checkInvoiceStatus(makerHoldInvoice.payment_hash)}
+                      className='focus:shadow-outline rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
                     >
-                      Next Step
+                      Check Invoice Status
                     </button>
+                    {order.status === 'paid' && (
+                      <button
+                        onClick={() => setCurrentStep(3)}
+                        className='focus:shadow-outline mt-4 w-full rounded-lg bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600 focus:outline-none'
+                      >
+                        Next Step
+                      </button>
+                    )}
                   </div>
                 )}
-                {currentStep === 3 && orderDetails && fullInvoice && (
+                {currentStep === 3 && order && fullInvoice && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                     <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Full Invoice</h2>
                     <p className='mb-4 break-words'>
