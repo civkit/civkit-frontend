@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from 'next/router';
+import { AxiosError } from 'axios';
 
 interface Currency {
   id: string;
@@ -20,7 +21,7 @@ interface Order {
 }
 
 interface CreateOrderFormProps {
-  onOrderCreated: (order: Order, holdInvoice: string) => void;
+  onOrderCreated: (order: Order, holdInvoice: string, fullInvoice: string | null) => void;
 }
 
 const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => {
@@ -51,11 +52,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
     e.preventDefault();
     if (isSubmitting) return;
     setIsSubmitting(true);
-    console.log('Form submitted');
     try {
-      const timestamp = Date.now();
-      const uniqueLabel = `order_${timestamp}`;
-
       const orderData = {
         order_details: orderDetails,
         amount_msat: parseInt(amountMsat),
@@ -67,7 +64,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
 
       console.log('Submitting order data:', orderData);
 
-      const orderResponse = await axios.post<{ order: Order }>(
+      const orderResponse = await axios.post<{ order: Order; holdInvoice: string; fullInvoice: string | null }>(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`,
         orderData,
         {
@@ -80,48 +77,21 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
 
       console.log('Order creation response:', orderResponse.data);
 
-      if (!orderResponse.data.order || !orderResponse.data.order.order_id) {
-        throw new Error('Failed to create order');
+      if (!orderResponse.data.order || !orderResponse.data.holdInvoice) {
+        throw new Error('Failed to create order or generate invoice');
       }
 
-      const orderId = orderResponse.data.order.order_id;
-      console.log('Order ID:', orderId); // Log the orderId
-
-      const holdInvoiceResponse = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoice`,
-        {
-          amount_msat: parseInt(amountMsat),
-          label: uniqueLabel,
-          description: orderDetails,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-
-      console.log('Hold invoice response:', holdInvoiceResponse.data);
-
-      if (!holdInvoiceResponse.data.bolt11) {
-        throw new Error('Failed to create hold invoice');
-      }
-
-      console.log('Order created successfully, calling onOrderCreated');
-      toast.success('Order created successfully!');
-
-      // Add a delay of 2 seconds before calling onOrderCreated
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Call onOrderCreated with the order and hold invoice
-      onOrderCreated(orderResponse.data.order, holdInvoiceResponse.data.bolt11);
+      // Call onOrderCreated with the order, hold invoice, and full invoice (if it exists)
+      onOrderCreated(orderResponse.data.order, orderResponse.data.holdInvoice, orderResponse.data.fullInvoice);
 
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       if (axios.isAxiosError(error)) {
-        console.error('Axios error:', error.response?.data);
-        toast.error(`Failed to create order: ${error.response?.data}`);
+        const axiosError = error as AxiosError<{ message: string }>;
+        console.error('Axios error:', axiosError.response?.data);
+        toast.error(`Failed to create order: ${axiosError.response?.data?.message || 'Unknown error'}`);
+      } else {
+        toast.error('An unexpected error occurred');
       }
     } finally {
       setIsSubmitting(false);

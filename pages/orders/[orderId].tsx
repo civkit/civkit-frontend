@@ -57,9 +57,8 @@ const OrderDetails: React.FC<{
 
   const { signAndSendEvent } = useNostr();
 
-  const fetchOrder = async () => {
+  const fetchOrderDetails = async (orderId: string) => {
     try {
-      console.log(`Fetching order with ID: ${orderId}`);
       const orderResponse = await axios.get<Order>(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`,
         {
@@ -71,7 +70,6 @@ const OrderDetails: React.FC<{
       console.log('Fetched order:', orderResponse.data);
       setOrder(orderResponse.data);
 
-      console.log(`Fetching invoices for order ID: ${orderId}`);
       const invoicesResponse = await axios.get<Invoice[]>(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${orderId}`,
         {
@@ -85,33 +83,17 @@ const OrderDetails: React.FC<{
       const invoices = Array.isArray(invoicesResponse.data)
         ? invoicesResponse.data
         : [invoicesResponse.data];
-      console.log('All invoices:', invoices);
 
-      // Always look for the hold invoice, regardless of order type
-      const holdInvoice = invoices.find(
-        (invoice) => invoice.invoice_type === 'hold'
-      );
-      const fullInvoice = invoices.find(
-        (invoice) => invoice.invoice_type === 'full'
+      const makerHoldInvoice = invoices.find(
+        (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
       );
 
-      console.log('Hold invoice:', holdInvoice);
-      console.log('Full invoice:', fullInvoice);
-
-      // Set the appropriate invoice based on order type
-      if (orderResponse.data.type === 0) {
-        // Buy order
-        setMakerHoldInvoice(holdInvoice || null);
+      if (makerHoldInvoice) {
+        console.log('Setting maker hold invoice:', makerHoldInvoice);
+        setMakerHoldInvoice(makerHoldInvoice);
       } else {
-        // Sell order
-        setMakerHoldInvoice(holdInvoice || fullInvoice || null);
+        console.log('No maker hold invoice found');
       }
-
-      console.log(`Order type: ${orderResponse.data.type}`);
-      console.log(
-        `This is a ${orderResponse.data.type === 0 ? 'buy' : 'sell'} order.`
-      );
-      console.log('Setting makerHoldInvoice to:', makerHoldInvoice);
     } catch (error) {
       console.error('Error fetching order or invoice:', error);
     }
@@ -276,8 +258,8 @@ const OrderDetails: React.FC<{
 
   useEffect(() => {
     if (orderId) {
-      fetchOrder();
-      const interval = setInterval(fetchOrder, 10000); // Refresh every 10 seconds
+      fetchOrderDetails(orderId as string);
+      const interval = setInterval(fetchOrderDetails, 10000, orderId as string); // Refresh every 10 seconds
       return () => clearInterval(interval);
     }
   }, [orderId]);

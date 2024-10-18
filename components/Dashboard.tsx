@@ -33,6 +33,7 @@ import CreateOrderForm from './CreateOrderForm';
 import dynamic from 'next/dynamic';
 import { FaCircleChevronDown } from 'react-icons/fa6';
 import QRCode from 'qrcode.react';
+import { useClearStorageOnLoad } from '../hooks/useClearStorageOnLoad';
 
 // Dynamically import the OrderDetails component
 const OrderDetails = dynamic(() => import('../pages/orders/[orderId]'), {
@@ -75,6 +76,7 @@ const Dashboard: React.FC<{
   darkMode: boolean;
   toggleDarkMode: () => void;
 }> = ({ darkMode, toggleDarkMode }) => {
+  useClearStorageOnLoad();
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [showOrderbookLinks, setShowOrderbookLinks] = useState<boolean>(false);
   const [orders, setOrders] = useState<any[]>([]);
@@ -339,15 +341,18 @@ const Dashboard: React.FC<{
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [orderDetails, setOrderDetails] = useState<Order | null>(null);
-  const [holdInvoice, setHoldInvoice] = useState<HoldInvoice | null>(null);
+  const [holdInvoice, setHoldInvoice] = useState<string | null>(null);
+  const [fullInvoice, setFullInvoice] = useState<string | null>(null);
 
-  const handleOrderCreated = async (order: Order, holdInvoice: HoldInvoice) => {
+  const handleOrderCreated = (order: Order, holdInvoice: string, fullInvoice: string | null) => {
     console.log('Order created:', order);
     console.log('Hold invoice:', holdInvoice);
+    console.log('Full invoice:', fullInvoice);
     setOrderDetails(order);
     setHoldInvoice(holdInvoice);
+    setFullInvoice(fullInvoice);
     setCurrentStep(2); // Move to the "Hold Invoice" step
-    setIsModalOpen(true); // Keep the modal open to show the invoice
+    setIsModalOpen(true);
   };
 
   const handleCreateOrderClick = () => {
@@ -428,6 +433,14 @@ const Dashboard: React.FC<{
       setCurrentTakeOrderStep(currentTakeOrderStep - 1);
     }
   };
+
+  useEffect(() => {
+    // Reset all relevant state here
+    setOrderDetails(null);
+    setHoldInvoice(null);
+    setCurrentStep(1);
+    // ... reset any other state variables
+  }, []); // Empty dependency array means this runs once on mount
 
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
@@ -616,7 +629,18 @@ const Dashboard: React.FC<{
                     </button>
                   </div>
                 )}
-                {currentStep === 3 && <SubmitPayout />}
+                {currentStep === 3 && orderDetails && fullInvoice && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Full Invoice</h2>
+                    <p className='mb-4 break-words'>
+                      <span className='font-bold text-gray-700'>Invoice:</span> {fullInvoice}
+                    </p>
+                    <div className='mb-4 flex justify-center'>
+                      <QRCode value={fullInvoice} size={200} />
+                    </div>
+                    {/* ... (display other full invoice details) */}
+                  </div>
+                )}
                 {currentStep === 4 && <FullInvoice />}
                 {currentStep === 5 && (
                   <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
