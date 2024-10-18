@@ -252,11 +252,12 @@ const Dashboard: React.FC<{
     setOrders(updatedOrders);
   };
 
-  const handleOpenChat = async (orderId) => {
+  const handleOpenChat = async () => {
+    if (!order) return;
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`,
-        { orderId },
+        { orderId: order.order_id },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -476,8 +477,8 @@ const Dashboard: React.FC<{
   const getSteps = () => {
     if (!order) return ['Create Order', 'Hold Invoice', 'Order Completed 🚀'];
     return order.type === 0
-      ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Order Completed 🚀']
-      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Order Completed 🚀'];
+      ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat', 'Order Completed 🚀']
+      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Order Completed 🚀'];
   };
 
   const handleNextStep = () => {
@@ -932,7 +933,37 @@ const Dashboard: React.FC<{
                     )}
                   </div>
                 )}
-                {currentStep === 4 && <FullInvoice />}
+                {currentStep === 4 && order && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
+                    <button
+                      onClick={handleOpenChat}
+                      className='focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+                    >
+                      Open Chat
+                    </button>
+                    {chatUrls && (
+                      <div className='mt-4'>
+                        {chatUrls.makeOfferUrl && (
+                          <p className='text-gray-700'>
+                            <strong>Make Offer URL:</strong>{' '}
+                            <a href={chatUrls.makeOfferUrl} target='_blank' rel='noopener noreferrer' className='text-blue-500 underline'>
+                              {chatUrls.makeOfferUrl}
+                            </a>
+                          </p>
+                        )}
+                        {chatUrls.acceptOfferUrl && (
+                          <p className='text-gray-700'>
+                            <strong>Accept Offer URL:</strong>{' '}
+                            <a href={chatUrls.acceptOfferUrl} target='_blank' rel='noopener noreferrer' className='text-blue-500 underline'>
+                              {chatUrls.acceptOfferUrl}
+                            </a>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {currentStep === 5 && (
                   <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
                     <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
