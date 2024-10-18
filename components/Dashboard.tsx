@@ -35,7 +35,7 @@ import { FaCircleChevronDown } from 'react-icons/fa6';
 import QRCode from 'qrcode.react';
 import { useClearStorageOnLoad } from '../hooks/useClearStorageOnLoad';
 import { decode } from 'bolt11';
-
+import SubmitPayout from '../pages/submit-payout';
 // Dynamically import the OrderDetails component
 const OrderDetails = dynamic(() => import('../pages/orders/[orderId]'), {
   ssr: false, // Disable server-side rendering if not needed
@@ -680,6 +680,22 @@ const Dashboard: React.FC<{
     }
   };
 
+  const fetchOrderDetails = async (orderId: string) => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      setOrder(response.data.order);
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+    }
+  };
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
@@ -878,7 +894,10 @@ const Dashboard: React.FC<{
                 {currentStep === 3 && order && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                     {order.type === 0 ? (
-                      <SubmitPayout orderId={order.order_id.toString()} />
+                      <SubmitPayout 
+                        orderId={order.order_id.toString()} 
+                        onPayoutSubmitted={() => setCurrentStep(4)}
+                      />
                     ) : fullInvoice ? (
                       <>
                         <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Full Invoice Details</h2>
