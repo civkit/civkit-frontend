@@ -346,7 +346,7 @@ const Dashboard: React.FC<{
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [order, setOrder] = useState<Order | null>(null);
   const [makerHoldInvoice, setMakerHoldInvoice] = useState<Invoice | null>(null);
-  const [fullInvoice, setFullInvoice] = useState<string | null>(null);
+  const [fullInvoice, setFullInvoice] = useState<any>(null);
   const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
   const [lnInvoice, setLnInvoice] = useState('');
@@ -633,6 +633,53 @@ const Dashboard: React.FC<{
     }
   };
 
+  const fetchFullInvoice = async (orderId: string) => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/full-invoice/${orderId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      console.log('Full invoice data:', response.data);
+      setFullInvoice(response.data.invoice);
+    } catch (error) {
+      console.error('Error fetching full invoice:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (currentStep === 3 && order && order.type === 1) {
+      fetchFullInvoice(order.order_id.toString());
+    }
+  }, [currentStep, order]);
+
+  const checkFullInvoice = async () => {
+    if (!order) return;
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${order.order_id}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      console.log('Check full invoice response:', response.data);
+      if (response.data && response.data.status) {
+        setFullInvoice((prevInvoice) => ({
+          ...prevInvoice,
+          status: response.data.status,
+        }));
+      }
+    } catch (error) {
+      console.error('Error checking full invoice:', error);
+    }
+  };
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
@@ -830,34 +877,40 @@ const Dashboard: React.FC<{
                 )}
                 {currentStep === 3 && order && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
-                    <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Submit Payout</h2>
-                    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                      <p className="text-gray-700"><strong>Order ID:</strong> {order.order_id}</p>
-                      <p className="text-gray-700"><strong>Amount:</strong> {order.amount_msat} msat</p>
-                      <p className="text-gray-700"><strong>Currency:</strong> {order.currency}</p>
-                    </div>
-                    {successMessage && (
-                      <div className="mb-4 p-2 bg-green-100 text-green-700 rounded">{successMessage}</div>
+                    {order.type === 0 ? (
+                      <SubmitPayout orderId={order.order_id.toString()} />
+                    ) : fullInvoice ? (
+                      <>
+                        <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Full Invoice Details</h2>
+                        <div className='mb-4'>
+                          <label className='mb-2 block font-bold text-gray-700'>Invoice (Full):</label>
+                          <div className='break-words rounded bg-gray-100 p-2'>
+                            <p className='text-xs'>{fullInvoice.bolt11}</p>
+                          </div>
+                        </div>
+                        <div className='my-4 flex justify-center'>
+                          <QRCode value={fullInvoice.bolt11} />
+                        </div>
+                        <div className='mt-4'>
+                          <p><strong>Invoice ID:</strong> {fullInvoice.invoice_id}</p>
+                          <p><strong>Order ID:</strong> {fullInvoice.order_id}</p>
+                          <p><strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000} sats</p>
+                          <p><strong>Description:</strong> {fullInvoice.description}</p>
+                          <p><strong>Status:</strong> {fullInvoice.status}</p>
+                          <p><strong>Created At:</strong> {new Date(fullInvoice.created_at).toLocaleString()}</p>
+                          <p><strong>Expires At:</strong> {new Date(fullInvoice.expires_at).toLocaleString()}</p>
+                          <p><strong>Payment Hash:</strong> {fullInvoice.payment_hash}</p>
+                        </div>
+                        <button
+                          onClick={() => checkFullInvoice()}
+                          className='mt-4 w-full rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700'
+                        >
+                          Check Invoice Status
+                        </button>
+                      </>
+                    ) : (
+                      <p>Loading full invoice...</p>
                     )}
-                    {errorMessage && (
-                      <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">{errorMessage}</div>
-                    )}
-                    <form onSubmit={handleSubmitPayout}>
-                      <input
-                        type="text"
-                        value={lnInvoice}
-                        onChange={(e) => setLnInvoice(e.target.value)}
-                        placeholder="Enter Signet Lightning Invoice"
-                        required
-                        className="w-full p-2 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      />
-                      <button
-                        type="submit"
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                      >
-                        Submit Payout
-                      </button>
-                    </form>
                   </div>
                 )}
                 {currentStep === 4 && <FullInvoice />}
