@@ -15,7 +15,8 @@ const FiatReceived = () => {
     setMessage('');
 
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fiat-received`, 
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fiat-received`,
         { order_id: orderId },
         {
           headers: {
@@ -28,7 +29,9 @@ const FiatReceived = () => {
     } catch (error) {
       console.error('Error processing fiat received:', error);
       if (error.response) {
-        setError(`Error: ${error.response.data.message || 'Unknown error occurred'}`);
+        setError(
+          `Error: ${error.response.data.message || 'Unknown error occurred'}`
+        );
       } else if (error.request) {
         setError('No response received from server. Please try again.');
       } else {
@@ -40,16 +43,20 @@ const FiatReceived = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Confirm Fiat Received</h1>
-        <p className="mb-4 text-gray-700">Are you sure you want to confirm fiat received for Order #{orderId}?</p>
-        {message && <p className="mb-4 text-green-600">{message}</p>}
-        {error && <p className="mb-4 text-red-600">{error}</p>}
+    <div className='flex min-h-screen items-center justify-center bg-gray-100'>
+      <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
+        <h1 className='mb-6 text-center text-2xl font-bold text-blue-600'>
+          Confirm Fiat Received
+        </h1>
+        <p className='mb-4 text-gray-700'>
+          Are you sure you want to confirm fiat received for Order #{orderId}?
+        </p>
+        {message && <p className='mb-4 text-green-600'>{message}</p>}
+        {error && <p className='mb-4 text-red-600'>{error}</p>}
         <button
           onClick={handleFiatReceived}
           disabled={isLoading}
-          className={`w-full ${isLoading ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600'} text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline`}
+          className={`w-full ${isLoading ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600'} focus:shadow-outline rounded px-4 py-2 font-bold text-white focus:outline-none`}
         >
           {isLoading ? 'Processing...' : 'Confirm Fiat Received'}
         </button>
