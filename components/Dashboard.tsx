@@ -473,10 +473,15 @@ const Dashboard: React.FC<{
     alert('Relay URL saved successfully!');
   };
 
-  const steps = ['Create Order', 'Hold Invoice', 'Submit Payout', 'Full Invoice', 'Order Completed 🚀'];
+  const getSteps = () => {
+    if (!order) return ['Create Order', 'Hold Invoice', 'Order Completed 🚀'];
+    return order.type === 0
+      ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Order Completed 🚀']
+      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Order Completed 🚀'];
+  };
 
   const handleNextStep = () => {
-    if (currentStep < steps.length) {
+    if (currentStep < getSteps().length) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -773,7 +778,7 @@ const Dashboard: React.FC<{
           <div className='w-full rounded-lg bg-white p-4 shadow dark:bg-gray-800 flex flex-row justify-center mt-6'>
             <div className='flex flex-col justify-center items-center mb-2 mr-2 text-gray-700 dark:text-gray-200'>
               <div className='flex items-center justify-center mb-6'>
-                {steps.map((step, index) => (
+                {getSteps().map((step, index) => (
                   <React.Fragment key={index}>
                     <span
                       className={`cursor-pointer ${currentStep === index + 1 ? 'font-bold text-orange-500' : 'text-gray-500'}`}
@@ -781,7 +786,7 @@ const Dashboard: React.FC<{
                     >
                       {step}
                     </span>
-                    {index < steps.length - 1 && (
+                    {index < getSteps().length - 1 && (
                       <FaChevronRight className='mx-2 text-gray-500' />
                     )}
                   </React.Fragment>
