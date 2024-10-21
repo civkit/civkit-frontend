@@ -54,6 +54,11 @@ const TakerFullInvoice = dynamic(() => import('../pages/taker-full-invoice'), {
   ssr: false, // Disable server-side rendering if not needed
 });
 
+// Dynamically import the FiatReceived component
+const FiatReceived = dynamic(() => import('../pages/fiat-received'), {
+  ssr: false,
+});
+
 // Define the Order interface
 interface Order {
   order_id: number;
@@ -476,9 +481,17 @@ const Dashboard: React.FC<{
 
   const getSteps = () => {
     if (!order) return ['Create Order', 'Hold Invoice', 'Order Completed 🚀'];
-    return order.type === 0
-      ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat', 'Order Completed 🚀']
-      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Order Completed 🚀'];
+    const baseSteps = order.type === 0
+      ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat']
+      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat'];
+    
+    // Add 'Fiat Received' step for sell orders or when taking a buy order
+    if (order.type === 1 || (selectedOrder && selectedOrder.type === 0)) {
+      baseSteps.push('Fiat Received');
+    }
+    
+    baseSteps.push('Order Completed 🚀');
+    return baseSteps;
   };
 
   const handleNextStep = () => {
@@ -964,7 +977,12 @@ const Dashboard: React.FC<{
                     )}
                   </div>
                 )}
-                {currentStep === 5 && (
+                {currentStep === getSteps().indexOf('Fiat Received') + 1 && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    <FiatReceived orderId={order?.order_id.toString() || selectedOrder?.order_id.toString()} />
+                  </div>
+                )}
+                {currentStep === getSteps().length && (
                   <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
                     <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
                   </div>
