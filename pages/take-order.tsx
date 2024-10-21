@@ -141,7 +141,6 @@ const TakeOrder: React.FC<TakeOrderProps> = ({ orderId: propOrderId, onOrderFetc
   return (
     <div className='flex flex-col gap-4 w-full h-full max-w-2xl rounded-lg bg-white p-8 text-center shadow-lg'>
       <h1 className='mb-6 text-3xl font-bold text-orange-500'>Take Order</h1>
-
         {error ? (
           <div className='flex min-h-screen items-center justify-center text-red-600'>
             Error: {error}
@@ -152,7 +151,7 @@ const TakeOrder: React.FC<TakeOrderProps> = ({ orderId: propOrderId, onOrderFetc
             <Spinner />
           </div>
         ) : (
-          <div className='flex flex-col gap-4'>
+          <div className='flex flex-col gap-4 text-gray-700 dark:text-gray-700'>
             <div className='mb-8'>
               <h2 className='mb-4 text-2xl font-semibold'>Order Details</h2>
               <p className='mb-2'>
