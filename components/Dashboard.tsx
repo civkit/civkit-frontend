@@ -36,6 +36,8 @@ import QRCode from 'qrcode.react';
 import { useClearStorageOnLoad } from '../hooks/useClearStorageOnLoad';
 import { decode } from 'bolt11';
 import SubmitPayout from '../pages/submit-payout';
+import FiatReceived from '../pages/fiat-received';
+
 // Dynamically import the OrderDetails component
 const OrderDetails = dynamic(() => import('../pages/orders/[orderId]'), {
   ssr: false, // Disable server-side rendering if not needed
@@ -507,16 +509,15 @@ const Dashboard: React.FC<{
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const handleTakeOrder = (order: any) => {
     const baseSteps = ['Hold Invoice', 'Full Invoice', 'Chat'];
-    const steps = order.type === 0 // Changed from 0 to 1
-      ? [...baseSteps, 'Fiat Received', 'Order Completed 🚀'] // Now for Sell order steps
-      : [...baseSteps, 'Submit Payout', 'Order Completed 🚀']; // Now for Buy order steps
-  
+    const steps = order.type === 0 // 0 represents a buy order
+      ? [...baseSteps, 'Fiat Received', 'Order Completed 🚀'] // For taking a buy order
+      : [...baseSteps, 'Submit Payout', 'Order Completed 🚀']; // For taking a sell order
+
     setTakeOrderSteps(steps);
     setCurrentTakeOrderStep(1);
     setSelectedOrder(order);
     setIsTakeOrderModalOpen(true);
   };
-
   const handleNextTakeOrderStep = () => {
     if (currentTakeOrderStep < takeOrderSteps.length) {
       setCurrentTakeOrderStep(currentTakeOrderStep + 1);
@@ -973,55 +974,57 @@ const Dashboard: React.FC<{
             </div>
           </div>
         )}
-{isTakeOrderModalOpen && (
-  <div className='w-full rounded-lg bg-white p-4 shadow dark:bg-gray-800 flex flex-row justify-center mt-6'>
-    <div className='flex flex-col justify-center items-center mb-2 mr-2 text-gray-700 dark:text-gray-200'>
-      <div className='flex items-center justify-center mb-6'>
-        {takeOrderSteps.map((step, index) => (
-          <React.Fragment key={index}>
-            <span
-              className={`cursor-pointer ${currentTakeOrderStep === index + 1 ? 'font-bold text-orange-500' : 'text-gray-500'}`}
-              onClick={() => setCurrentTakeOrderStep(index + 1)}
-            >
-              {step}
-            </span>
-            {index < takeOrderSteps.length - 1 && (
-              <FaChevronRight className='mx-2 text-gray-500' />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-      <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
-        {currentTakeOrderStep === 1 && <TakeOrder orderId={selectedOrder.order_id} />}
-        {currentTakeOrderStep === 2 && <TakerFullInvoice orderId={selectedOrder.order_id} />}
-        {currentTakeOrderStep === 3 && (
-          <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
-            <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
-            <button
-              onClick={handleOpenChat}
-              className='focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
-            >
-              Open Chat
-            </button>
+  {isTakeOrderModalOpen && (
+        <div className='w-full rounded-lg bg-white p-4 shadow dark:bg-gray-800 flex flex-row justify-center mt-6'>
+          <div className='flex flex-col justify-center items-center mb-2 mr-2 text-gray-700 dark:text-gray-200'>
+            <div className='flex items-center justify-center mb-6'>
+              {takeOrderSteps.map((step, index) => (
+                <React.Fragment key={index}>
+                  <span
+                    className={`cursor-pointer ${currentTakeOrderStep === index + 1 ? 'font-bold text-orange-500' : 'text-gray-500'}`}
+                    onClick={() => setCurrentTakeOrderStep(index + 1)}
+                  >
+                    {step}
+                  </span>
+                  {index < takeOrderSteps.length - 1 && (
+                    <FaChevronRight className='mx-2 text-gray-500' />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
+              {currentTakeOrderStep === 1 && <TakeOrder orderId={selectedOrder.order_id} />}
+              {currentTakeOrderStep === 2 && <TakerFullInvoice orderId={selectedOrder.order_id} />}
+              {currentTakeOrderStep === 3 && (
+                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                  <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
+                  <button
+                    onClick={handleOpenChat}
+                    className='focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+                  >
+                    Open Chat
+                  </button>
+                </div>
+              )}
+          {currentTakeOrderStep === 4 && (
+            <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+              {selectedOrder.type === 0 ? (
+                <FiatReceived orderId={selectedOrder.order_id.toString()} />
+              ) : (
+                <SubmitPayout orderId={selectedOrder.order_id} />
+              )}
+            </div>
+          )}
+              {currentTakeOrderStep === takeOrderSteps.length && (
+                <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
+                  <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        {currentTakeOrderStep === 4 && selectedOrder.type === 1 && ( // Changed from 0 to 1
-          <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
-            <FiatReceived orderId={selectedOrder.order_id.toString()} />
-          </div>
-        )}
-        {currentTakeOrderStep === 4 && selectedOrder.type === 0 && ( // Changed from 1 to 0
-          <SubmitPayout orderId={selectedOrder.order_id} />
-        )}
-        {currentTakeOrderStep === takeOrderSteps.length && (
-          <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
-            <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
+
 
         {!isTakeOrderModalOpen && showOrders && (
           <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
