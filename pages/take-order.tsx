@@ -5,6 +5,15 @@ import { useNostr } from './useNostr';
 import { GiOstrich } from 'react-icons/gi';
 import QRCode from 'qrcode.react';
 import { Spinner } from '../components';
+import dynamic from 'next/dynamic';
+
+const SubmitPayout = dynamic(() => import('./submit-payout'), {
+  ssr: false, // Disable server-side rendering if not needed
+});
+
+const TakerFullInvoice = dynamic(() => import('./taker-full-invoice'), {
+  ssr: false, // Disable server-side rendering if not needed
+});
 
 interface TakeOrderProps {
   orderId?: string | string[];
@@ -19,6 +28,9 @@ const TakeOrder: React.FC<TakeOrderProps> = ({ orderId: propOrderId, onOrderFetc
   const [takerHoldInvoice, setTakerHoldInvoice] = useState(null);
   const [error, setError] = useState('');
   const [nostrEventSent, setNostrEventSent] = useState(false);
+  const [showFullInvoice, setShowFullInvoice] = useState(false);
+  const [showSubmitPayout, setShowSubmitPayout] = useState(false);
+  const [takerFullInvoice, setTakerFullInvoice] = useState(null); // New state for taker full invoice
 
   const { signAndSendEvent } = useNostr();
 
@@ -66,6 +78,15 @@ const TakeOrder: React.FC<TakeOrderProps> = ({ orderId: propOrderId, onOrderFetc
     }
   };
 
+  const fetchTakerFullInvoice = async () => {
+    try {
+      const invoice = await createAndFetchTakerFullInvoice(effectiveOrderId);
+      setTakerFullInvoice(invoice);
+    } catch (error) {
+      console.error('Error fetching taker full invoice:', error);
+    }
+  };
+
   const checkHoldInvoiceStatus = async () => {
     try {
       const paymentHash = takerHoldInvoice?.payment_hash;
@@ -97,7 +118,14 @@ const TakeOrder: React.FC<TakeOrderProps> = ({ orderId: propOrderId, onOrderFetc
 
       if (invoiceState === 'ACCEPTED') {
         console.log('Taker hold invoice has been paid!');
-        // Handle paid state (e.g., show success message, update UI)
+        if (order.type === 0) {
+          // Buy order
+          setShowFullInvoice(true);
+          fetchTakerFullInvoice(); // Fetch the full invoice
+        } else if (order.type === 1) {
+          // Sell order
+          setShowSubmitPayout(true);
+        }
       }
     } catch (error) {
       console.error('Error checking taker hold invoice status:', error);
@@ -141,80 +169,84 @@ const TakeOrder: React.FC<TakeOrderProps> = ({ orderId: propOrderId, onOrderFetc
   return (
     <div className='flex flex-col gap-4 w-full h-full max-w-2xl rounded-lg bg-white p-8 text-center shadow-lg'>
       <h1 className='mb-6 text-3xl font-bold text-orange-500'>Take Order</h1>
-        {error ? (
-          <div className='flex min-h-screen items-center justify-center text-red-600'>
-            Error: {error}
+      {showFullInvoice ? (
+        <TakerFullInvoice orderId={orderId} fullInvoice={takerFullInvoice} />
+      ) : showSubmitPayout ? (
+        <SubmitPayout orderId={order.order_id} onPayoutSubmitted={handleRedirect} />
+      ) : error ? (
+        <div className='flex min-h-screen items-center justify-center text-red-600'>
+          Error: {error}
+        </div>
+      ) : !order || !takerHoldInvoice ? (
+        <div className='flex gap-2 h-full w-full items-center justify-center text-green-500'>
+          Loading...
+          <Spinner />
+        </div>
+      ) : (
+        <div className='flex flex-col gap-4 text-gray-700 dark:text-gray-700'>
+          <div className='mb-8'>
+            <h2 className='mb-4 text-2xl font-semibold'>Order Details</h2>
+            <p className='mb-2'>
+              <span className='font-semibold'>Order ID:</span> {order.order_id}
+            </p>
+            <p className='mb-2'>
+              <span className='font-semibold'>Amount:</span> {order.amount_msat}{' '}
+              msat
+            </p>
+            <p className='mb-2'>
+              <span className='font-semibold'>Status:</span> {order.status}
+            </p>
           </div>
-        ) : !order || !takerHoldInvoice ? (
-          <div className='flex gap-2 h-full w-full items-center justify-center text-green-500'>
-            Loading...
-            <Spinner />
-          </div>
-        ) : (
-          <div className='flex flex-col gap-4 text-gray-700 dark:text-gray-700'>
-            <div className='mb-8'>
-              <h2 className='mb-4 text-2xl font-semibold'>Order Details</h2>
-              <p className='mb-2'>
-                <span className='font-semibold'>Order ID:</span> {order.order_id}
-              </p>
-              <p className='mb-2'>
-                <span className='font-semibold'>Amount:</span> {order.amount_msat}{' '}
-                msat
-              </p>
-              <p className='mb-2'>
-                <span className='font-semibold'>Status:</span> {order.status}
+
+          <div className='mb-8'>
+            <h2 className='mb-4 text-2xl font-semibold'>Taker Hold Invoice</h2>
+            <div className='mb-4 flex justify-center'>
+              <QRCode value={takerHoldInvoice.bolt11} size={200} />
+            </div>
+            <div className='mb-4 rounded-lg bg-gray-100 p-4'>
+              <p className='break-all font-mono text-sm'>
+                {takerHoldInvoice.bolt11}
               </p>
             </div>
-
-            <div className='mb-8'>
-              <h2 className='mb-4 text-2xl font-semibold'>Taker Hold Invoice</h2>
-              <div className='mb-4 flex justify-center'>
-                <QRCode value={takerHoldInvoice.bolt11} size={200} />
-              </div>
-              <div className='mb-4 rounded-lg bg-gray-100 p-4'>
-                <p className='break-all font-mono text-sm'>
-                  {takerHoldInvoice.bolt11}
-                </p>
-              </div>
-              <p className='mb-2'>
-                <span className='font-semibold'>Amount:</span>{' '}
-                {takerHoldInvoice.amount_msat} msat
-              </p>
-              <p className='mb-4'>
-                <span className='font-semibold'>Status:</span>
-                <span
-                  className={`ml-2 ${takerHoldInvoice.status === 'ACCEPTED' ? 'text-green-600' : 'text-yellow-600'}`}
-                >
-                  {takerHoldInvoice.status}
-                </span>
-              </p>
-              {takerHoldInvoice.status === 'ACCEPTED' && (
-                <p className='mb-4 font-semibold text-green-600'>
-                  Hold invoice has been paid! Proceeding with the order...
-                </p>
-              )}
-              <button
-                onClick={() => checkHoldInvoiceStatus()}
-                className='focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+            <p className='mb-2'>
+              <span className='font-semibold'>Amount:</span>{' '}
+              {takerHoldInvoice.amount_msat} msat
+            </p>
+            <p className='mb-4'>
+              <span className='font-semibold'>Status:</span>
+              <span
+                className={`ml-2 ${takerHoldInvoice.status === 'ACCEPTED' ? 'text-green-600' : 'text-yellow-600'}`}
               >
-                Refresh Invoice Status
-              </button>
-            </div>
-
-            {takerHoldInvoice.status === 'ACCEPTED' && !nostrEventSent && (
-              <button
-                onClick={sendNostrEvent}
-                className='focus:shadow-outline mr-2 rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
-              >
-                Send to Relay
-              </button>
-            )}
-
-            {nostrEventSent && (
-              <p className='mb-4 font-bold text-green-500'>
-                Nostr event sent successfully!
+                {takerHoldInvoice.status}
+              </span>
+            </p>
+            {takerHoldInvoice.status === 'ACCEPTED' && (
+              <p className='mb-4 font-semibold text-green-600'>
+                Hold invoice has been paid! Proceeding with the order...
               </p>
             )}
+            <button
+              onClick={() => checkHoldInvoiceStatus()}
+              className='focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+            >
+              Refresh Invoice Status
+            </button>
+          </div>
+
+          {takerHoldInvoice.status === 'ACCEPTED' && !nostrEventSent && (
+            <button
+              onClick={sendNostrEvent}
+              className='focus:shadow-outline mr-2 rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+            >
+              Send to Relay
+            </button>
+          )}
+
+          {nostrEventSent && (
+            <p className='mb-4 font-bold text-green-500'>
+              Nostr event sent successfully!
+            </p>
+          )}
 
           </div>
         )}
