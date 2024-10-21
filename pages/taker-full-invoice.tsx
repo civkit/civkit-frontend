@@ -3,6 +3,25 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import QRCode from 'qrcode.react';
 
+const createAndFetchTakerFullInvoice = async (orderId: string) => {
+  try {
+    const response = await axios.post(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taker-full-invoice/${orderId}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+    console.log('Taker full invoice response:', response.data);
+    return response.data.invoice;
+  } catch (error) {
+    console.error('Error creating or fetching taker full invoice:', error);
+    throw error;
+  }
+};
+
 const TakerFullInvoice = () => {
   const router = useRouter();
   const { orderId } = router.query;
@@ -10,70 +29,22 @@ const TakerFullInvoice = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const createAndFetchTakerFullInvoice = async () => {
-    if (!orderId) return;
-    setLoading(true);
-    try {
-      // First, try to create the full invoice
-      const createResponse = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taker-full-invoice/${orderId}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      console.log('Create full invoice response:', createResponse.data);
-
-      if (createResponse.data && createResponse.data.invoice) {
-        setFullInvoice(createResponse.data.invoice);
-        setError(null);
-      } else {
-        // If creation fails, try to fetch an existing invoice
-        const fetchResponse = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/full-invoice/${orderId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
-        console.log('Fetched taker full invoice:', fetchResponse.data);
-
-        if (fetchResponse.data && fetchResponse.data.invoice) {
-          setFullInvoice(fetchResponse.data.invoice);
-          setError(null);
-        } else {
-          setError('Full invoice not available. Please try again.');
-        }
-      }
-    } catch (error) {
-      console.error('Error creating or fetching taker full invoice:', error);
-      if (error.response && error.response.status === 404) {
-        setError('Failed to create or fetch full invoice. Please try again.');
-      } else {
-        setError(
-          `Failed to create or fetch taker full invoice: ${error.response?.data?.error || error.message}`
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (orderId) {
-      createAndFetchTakerFullInvoice();
-      // Retry every 5 seconds if invoice is not available
-      const intervalId = setInterval(() => {
-        if (!fullInvoice) {
-          createAndFetchTakerFullInvoice();
+    const fetchInvoice = async () => {
+      if (orderId) {
+        try {
+          setLoading(true);
+          const invoice = await createAndFetchTakerFullInvoice(orderId as string);
+          setFullInvoice(invoice);
+        } catch (error) {
+          setError(error.message);
+        } finally {
+          setLoading(false);
         }
-      }, 5000);
+      }
+    };
 
-      return () => clearInterval(intervalId);
-    }
+    fetchInvoice();
   }, [orderId]);
 
   if (loading) {
@@ -110,7 +81,7 @@ const TakerFullInvoice = () => {
         <p>Expires At: {new Date(fullInvoice.expires_at).toLocaleString()}</p>
         <p>Payment Hash: {fullInvoice.payment_hash}</p>
       </div>
-      <button onClick={createAndFetchTakerFullInvoice}>
+      <button onClick={() => createAndFetchTakerFullInvoice(orderId as string)}>
         Refresh Invoice Status
       </button>
     </div>

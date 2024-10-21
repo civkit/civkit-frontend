@@ -6,9 +6,15 @@ import { GiOstrich } from 'react-icons/gi';
 import QRCode from 'qrcode.react';
 import { Spinner } from '../components';
 
-const TakeOrder = () => {
+interface TakeOrderProps {
+  orderId?: string | string[];
+  onOrderFetched?: (order: any) => void;
+  onHoldInvoiceCreated?: (invoice: any) => void;
+}
+
+const TakeOrder: React.FC<TakeOrderProps> = ({ orderId: propOrderId, onOrderFetched, onHoldInvoiceCreated }) => {
   const router = useRouter();
-  const { orderId } = router.query;
+  const { orderId: routerOrderId } = router.query;
   const [order, setOrder] = useState(null);
   const [takerHoldInvoice, setTakerHoldInvoice] = useState(null);
   const [error, setError] = useState('');
@@ -16,18 +22,20 @@ const TakeOrder = () => {
 
   const { signAndSendEvent } = useNostr();
 
+  const effectiveOrderId = propOrderId || routerOrderId;
+
   useEffect(() => {
-    if (orderId) {
+    if (effectiveOrderId) {
       fetchOrderAndCreateInvoice();
       const intervalId = setInterval(() => checkHoldInvoiceStatus(), 5000);
       return () => clearInterval(intervalId);
     }
-  }, [orderId]);
+  }, [effectiveOrderId]);
 
   const fetchOrderAndCreateInvoice = async () => {
     try {
       const orderResponse = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${orderId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${effectiveOrderId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -35,9 +43,10 @@ const TakeOrder = () => {
         }
       );
       setOrder(orderResponse.data);
+      if (onOrderFetched) onOrderFetched(orderResponse.data);
 
       const invoiceResponse = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taker-invoice/${orderId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taker-invoice/${effectiveOrderId}`,
         {},
         {
           headers: {
@@ -47,6 +56,7 @@ const TakeOrder = () => {
       );
       console.log('Taker hold invoice:', invoiceResponse.data.holdInvoice);
       setTakerHoldInvoice(invoiceResponse.data.holdInvoice);
+      if (onHoldInvoiceCreated) onHoldInvoiceCreated(invoiceResponse.data.holdInvoice);
     } catch (error) {
       console.error(
         'Error fetching order or creating taker hold invoice:',
@@ -97,7 +107,7 @@ const TakeOrder = () => {
   const sendNostrEvent = async () => {
     try {
       const nostrEventData = {
-        order_id: orderId,
+        order_id: effectiveOrderId,
         amount_msat: order?.amount_msat,
         type: order?.type,
         status: 'taker_hold_invoice_paid',
@@ -116,12 +126,12 @@ const TakeOrder = () => {
     if (order) {
       if (order.type === 0) {
         // Buy order
-        const fullUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/full-invoice?orderid=${orderId}`;
+        const fullUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/full-invoice?orderid=${effectiveOrderId}`;
         console.log('Redirecting to full invoice page:', fullUrl);
         window.location.href = fullUrl;
       } else {
         // Sell order (type === 1)
-        const payoutUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/submit-payout?orderId=${orderId}`;
+        const payoutUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/submit-payout?orderId=${effectiveOrderId}`;
         console.log('Redirecting to submit payout page:', payoutUrl);
         window.location.href = payoutUrl;
       }
