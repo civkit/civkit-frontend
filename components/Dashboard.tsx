@@ -656,11 +656,17 @@ const Dashboard: React.FC<{
     }
   }, [currentStep, order]);
 
+  useEffect(() => {
+    if (currentTakeOrderStep === 2 && selectedOrder) {
+      fetchFullInvoice(selectedOrder.order_id.toString());
+    }
+  }, [currentTakeOrderStep, selectedOrder]);
+
   const checkFullInvoice = async () => {
-    if (!order) return;
+    if (!selectedOrder) return;
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${order.order_id}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${selectedOrder.order_id}`,
         {},
         {
           headers: {
@@ -999,7 +1005,48 @@ const Dashboard: React.FC<{
             </div>
             <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
               {currentTakeOrderStep === 1 && <TakeOrder orderId={selectedOrder.order_id} />}
-              {currentTakeOrderStep === 2 && <TakerFullInvoice orderId={selectedOrder.order_id} />}
+              {currentTakeOrderStep === 2 && selectedOrder && (
+                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
+                  <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Full Invoice Details</h2>
+                  {fullInvoice ? (
+                    <>
+                      <div className='mb-4'>
+                        <label className='mb-2 block font-bold text-gray-700'>Invoice (Full):</label>
+                        <div className='break-words rounded bg-gray-100 p-2'>
+                          <p className='text-xs'>{fullInvoice.bolt11}</p>
+                        </div>
+                      </div>
+                      <div className='my-4 flex justify-center'>
+                        <QRCode value={fullInvoice.bolt11} />
+                      </div>
+                      <div className='mt-4'>
+                        <p><strong>Invoice ID:</strong> {fullInvoice.invoice_id}</p>
+                        <p><strong>Order ID:</strong> {fullInvoice.order_id}</p>
+                        <p><strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000} sats</p>
+                        <p><strong>Description:</strong> {fullInvoice.description}</p>
+                        <p><strong>Status:</strong> {fullInvoice.status}</p>
+                        <p><strong>Created At:</strong> {new Date(fullInvoice.created_at).toLocaleString()}</p>
+                        <p><strong>Expires At:</strong> {new Date(fullInvoice.expires_at).toLocaleString()}</p>
+                        <p><strong>Payment Hash:</strong> {fullInvoice.payment_hash}</p>
+                      </div>
+                      <button
+                        onClick={checkFullInvoice}
+                        className='mt-4 w-full rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700'
+                      >
+                        Check Invoice Status
+                      </button>
+                    </>
+                  ) : (
+                    <p>Loading full invoice...</p>
+                  )}
+                  <button
+                    onClick={handleNextTakeOrderStep}
+                    className='mt-4 w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600'
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
               {currentTakeOrderStep === 3 && (
                 <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                   <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>

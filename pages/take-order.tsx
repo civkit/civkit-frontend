@@ -217,14 +217,6 @@ const TakeOrder: React.FC<TakeOrderProps> = ({ orderId: propOrderId, onOrderFetc
               </p>
             )}
 
-            {takerHoldInvoice.status === 'ACCEPTED' && (
-              <button
-                onClick={handleRedirect}
-                className='focus:shadow-outline rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-              >
-                {order.type === 1 ? 'Go to Payout Page' : 'Go to Full Invoice'}
-              </button>
-            )}
           </div>
         )}
     </div>
