@@ -67,6 +67,14 @@ const SubmitPayout: React.FC<SubmitPayoutProps> = ({ orderId, onPayoutSubmitted 
       return;
     }
 
+    // New validation logic
+    const invoiceAmount = parseInvoiceAmount(lnInvoice);
+    if (invoiceAmount !== orderDetails.amount_msat) {
+      console.error('Invoice amount does not match order amount:', invoiceAmount, orderDetails.amount_msat);
+      setErrorMessage('Invoice amount does not match order amount');
+      return;
+    }
+
     try {
       console.log('Submitting payout with orderId:', orderId, 'and invoice:', lnInvoice);
       const response = await axios.post(
@@ -96,6 +104,73 @@ const SubmitPayout: React.FC<SubmitPayoutProps> = ({ orderId, onPayoutSubmitted 
         console.error('Response data:', error.response?.data);
       }
       setErrorMessage(error instanceof Error ? error.message : 'An unknown error occurred');
+    }
+  };
+
+  // Helper function to decode a Bech32 string
+  const decodeBech32 = (bech32: string) => {
+    const separatorIndex = bech32.lastIndexOf('1');
+    if (separatorIndex === -1) {
+        throw new Error('Invalid Bech32 string');
+    }
+
+    const prefix = bech32.substring(0, separatorIndex);
+    const data = bech32.substring(separatorIndex + 1);
+
+    return { prefix, data };
+  };
+
+  // Helper function to parse the amount from the Lightning invoice
+  const parseInvoiceAmount = (invoice: string): number => {
+    try {
+        const { prefix, data } = decodeBech32(invoice);
+
+        // Define known prefixes for different networks
+        const knownPrefixes = ['lntbs', 'lntb', 'lnbc']; // Add or adjust prefixes as needed
+
+        // Extract the network prefix (e.g., 'lntbs') and amount part (e.g., '20n')
+        const networkPrefix = knownPrefixes.find(p => prefix.startsWith(p));
+        if (!networkPrefix) {
+            throw new Error(`Unknown prefix: ${prefix}`);
+        }
+
+        // Extract the amount part from the prefix
+        const amountPart = prefix.substring(networkPrefix.length);
+
+        // Parse the amount using the amount part
+        const amountPattern = /^(\d+)([munp]?)$/; // Regex to capture amount and multiplier
+        const match = amountPart.match(amountPattern);
+
+        if (!match) {
+            throw new Error('Invalid amount in invoice');
+        }
+
+        let amount = parseInt(match[1], 10);
+        const multiplier = match[2];
+
+        // Convert amount based on the multiplier
+        switch (multiplier) {
+            case 'm': // millibitcoin
+                amount *= 100000000;
+                break;
+            case 'u': // microbitcoin
+                amount *= 100000;
+                break;
+            case 'n': // nanobitcoin
+                amount *= 100;
+                break;
+            case 'p': // picobitcoin
+                amount /= 10;
+                break;
+            default: // no multiplier, assume satoshis
+                amount *= 1000;
+                break;
+        }
+
+        return amount;
+    } catch (error) {
+        console.error('Error decoding invoice:', error);
+        return 0;
     }
   };
 
