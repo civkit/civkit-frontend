@@ -1,13 +1,16 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import axios from 'axios';
 import QRCode from 'qrcode.react';
 import { nip19 } from 'nostr-tools';
 
-const TradeComplete = () => {
-  const router = useRouter();
-  const { orderId } = router.query;
+interface TradeCompleteProps {
+  orderId: number;
+  orderType: number;
+  onComplete: () => void;
+}
+
+const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId, orderType, onComplete }) => {
   const [order, setOrder] = useState(null);
   const [review, setReview] = useState('');
   const [rating, setRating] = useState(0);
@@ -194,6 +197,12 @@ const TradeComplete = () => {
         {successMessage && (
           <p className='mt-4 text-green-500'>{successMessage}</p>
         )}
+        <button
+          onClick={onComplete}
+          className='mt-4 w-full rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600 focus:outline-none focus:shadow-outline'
+        >
+          Finish Order
+        </button>
       </div>
     </div>
   );

@@ -37,6 +37,7 @@ import { useClearStorageOnLoad } from '../hooks/useClearStorageOnLoad';
 import { decode } from 'bolt11';
 import SubmitPayout from '../pages/submit-payout';
 import FiatReceived from '../pages/fiat-received';
+import TradeComplete from '../pages/trade-complete';
 
 // Dynamically import the OrderDetails component
 const OrderDetails = dynamic(() => import('../pages/orders/[orderId]'), {
@@ -479,8 +480,8 @@ const Dashboard: React.FC<{
   const getSteps = () => {
     if (!order) return ['Create Order', 'Hold Invoice', 'Order Completed 🚀'];
     return order.type === 0
-      ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat', 'Order Completed 🚀']
-      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Order Completed 🚀'];
+      ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat', 'Trade Complete', 'Order Completed 🚀']
+      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
   };
 
   const handleNextStep = () => {
@@ -510,8 +511,8 @@ const Dashboard: React.FC<{
   const handleTakeOrder = (order: any) => {
     const baseSteps = ['Hold Invoice', 'Full Invoice', 'Chat'];
     const steps = order.type === 0 // 0 represents a buy order
-      ? [...baseSteps, 'Fiat Received', 'Order Completed 🚀'] // For taking a buy order
-      : [...baseSteps, 'Submit Payout', 'Order Completed 🚀']; // For taking a sell order
+      ? [...baseSteps, 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'] // For taking a buy order
+      : [...baseSteps, 'Submit Payout', 'Trade Complete', 'Order Completed 🚀']; // For taking a sell order
 
     setTakeOrderSteps(steps);
     setCurrentTakeOrderStep(1);
@@ -965,7 +966,14 @@ const Dashboard: React.FC<{
                     )}
                   </div>
                 )}
-                {currentStep === 5 && (
+                {currentStep === 5 && order && (
+                  <TradeComplete 
+                    orderId={order.order_id}
+                    orderType={order.type}
+                    onComplete={() => setCurrentStep(6)}
+                  />
+                )}
+                {currentStep === 6 && (
                   <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
                     <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
                   </div>
@@ -1015,6 +1023,13 @@ const Dashboard: React.FC<{
               )}
             </div>
           )}
+              {currentTakeOrderStep === takeOrderSteps.length - 1 && selectedOrder && (
+                <TradeComplete 
+                  orderId={selectedOrder.order_id}
+                  orderType={selectedOrder.type}
+                  onComplete={handleNextTakeOrderStep}
+                />
+              )}
               {currentTakeOrderStep === takeOrderSteps.length && (
                 <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
                   <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
