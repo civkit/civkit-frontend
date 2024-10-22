@@ -38,6 +38,7 @@ import { decode } from 'bolt11';
 import SubmitPayout from '../pages/submit-payout';
 import FiatReceived from '../pages/fiat-received';
 import TradeComplete from '../pages/trade-complete';
+import TakerFullInvoice from '../pages/taker-full-invoice';
 
 // Dynamically import the OrderDetails component
 const OrderDetails = dynamic(() => import('../pages/orders/[orderId]'), {
@@ -50,10 +51,6 @@ const FullInvoice = dynamic(() => import('../pages/full-invoice'), {
 
 // Dynamically import the TakeOrder component
 const TakeOrder = dynamic(() => import('../pages/take-order'), {
-  ssr: false, // Disable server-side rendering if not needed
-});
-
-const TakerFullInvoice = dynamic(() => import('../pages/taker-full-invoice'), {
   ssr: false, // Disable server-side rendering if not needed
 });
 
