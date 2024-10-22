@@ -1058,14 +1058,11 @@ const Dashboard: React.FC<{
                   </button>
                 </div>
               )}
-          {currentTakeOrderStep === 4 && (
-            <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
-              {selectedOrder.type === 0 ? (
-                <FiatReceived orderId={selectedOrder.order_id.toString()} />
-              ) : (
-                <SubmitPayout orderId={selectedOrder.order_id} />
-              )}
-            </div>
+          {currentTakeOrderStep === 4 && selectedOrder && (
+            <FiatReceived 
+              orderId={selectedOrder.order_id}
+              onComplete={handleNextTakeOrderStep}
+            />
           )}
               {currentTakeOrderStep === takeOrderSteps.length - 1 && selectedOrder && (
                 <TradeComplete 
