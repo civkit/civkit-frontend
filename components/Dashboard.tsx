@@ -253,21 +253,39 @@ const Dashboard: React.FC<{
   };
 
   const handleOpenChat = async () => {
-    if (!order) return;
+    const currentOrder = order || selectedOrder;
+    if (!currentOrder || !currentOrder.order_id) {
+      console.error('No order ID available');
+      alert('Unable to open chat: Order ID not available');
+      return;
+    }
+
+    const orderId = currentOrder.order_id;
+    console.log('Attempting to open chat for order ID:', orderId);
+
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`,
-        { orderId: order.order_id },
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/create-make-offer`,
+        { orderId },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json',
           },
         }
       );
-      setChatUrls(response.data);
+
+      console.log('Chat creation response:', response.data);
+      const { makeOfferUrl } = response.data;
+      
+      alert(`Make Offer URL: ${makeOfferUrl}`);
+      window.open(makeOfferUrl, '_blank');
+
     } catch (error) {
-      console.error('Error opening chat:', error);
+      console.error('Error creating make-offer:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+      }
+      alert(`Failed to create make-offer: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -478,7 +496,7 @@ const Dashboard: React.FC<{
     if (!order) return ['Create Order', 'Hold Invoice', 'Order Completed 🚀'];
     return order.type === 0
       ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat', 'Trade Complete', 'Order Completed 🚀']
-      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'];
+      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
   };
 
   const handleNextStep = () => {
@@ -506,15 +524,19 @@ const Dashboard: React.FC<{
   const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const handleTakeOrder = (order: any) => {
+    console.log('Taking order:', order);
     const baseSteps = ['Hold Invoice', 'Full Invoice', 'Chat'];
     const steps = order.type === 0 // 0 represents a buy order
       ? [...baseSteps, 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'] // For taking a buy order
       : [...baseSteps, 'Submit Payout', 'Trade Complete', 'Order Completed 🚀']; // For taking a sell order
 
     setTakeOrderSteps(steps);
-    setCurrentTakeOrderStep(1);
     setSelectedOrder(order);
+    setCurrentTakeOrderStep(1);
     setIsTakeOrderModalOpen(true);
+
+    // Store the order in localStorage
+    localStorage.setItem('currentOrder', JSON.stringify(order));
   };
   const handleNextTakeOrderStep = () => {
     if (currentTakeOrderStep < takeOrderSteps.length) {
@@ -942,55 +964,34 @@ const Dashboard: React.FC<{
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                     <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
                     <button
-                      onClick={handleOpenChat}
-                      className='focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+                      onClick={() => handleOpenChat(order.order_id)}
+                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                     >
                       Open Chat
                     </button>
-                    {chatUrls && (
-                      <div className='mt-4'>
-                        {chatUrls.makeOfferUrl && (
-                          <p className='text-gray-700'>
-                            <strong>Make Offer URL:</strong>{' '}
-                            <a href={chatUrls.makeOfferUrl} target='_blank' rel='noopener noreferrer' className='text-blue-500 underline'>
-                              {chatUrls.makeOfferUrl}
-                            </a>
-                          </p>
-                        )}
-                        {chatUrls.acceptOfferUrl && (
-                          <p className='text-gray-700'>
-                            <strong>Accept Offer URL:</strong>{' '}
-                            <a href={chatUrls.acceptOfferUrl} target='_blank' rel='noopener noreferrer' className='text-blue-500 underline'>
-                              {chatUrls.acceptOfferUrl}
-                            </a>
-                          </p>
-                        )}
-                      </div>
+                    {order.customer_id === userId && (
+                      <p className='mt-4 text-gray-700'>
+                        <strong>Make Offer URL:</strong>{' '}
+                        <a 
+                          href={`https://chat.civkit.africa/ui/chat/make-offer?orderid=${order.order_id}`} 
+                          target='_blank' 
+                          rel='noopener noreferrer' 
+                          className='text-blue-500 underline'
+                        >
+                          {`https://chat.civkit.africa/ui/chat/make-offer?orderid=${order.order_id}`}
+                        </a>
+                      </p>
                     )}
                   </div>
                 )}
                 {currentStep === 5 && order && (
-                  order.type === 1 ? (
-                    <FiatReceived 
-                      orderId={order.order_id}
-                      onComplete={() => setCurrentStep(6)}
-                    />
-                  ) : (
-                    <TradeComplete 
-                      orderId={order.order_id}
-                      orderType={order.type}
-                      onComplete={() => setCurrentStep(6)}
-                    />
-                  )
-                )}
-                {currentStep === 6 && order && order.type === 1 && (
                   <TradeComplete 
                     orderId={order.order_id}
                     orderType={order.type}
-                    onComplete={() => setCurrentStep(7)}
+                    onComplete={() => setCurrentStep(6)}
                   />
                 )}
-                {currentStep === (order && order.type === 1 ? 7 : 6) && (
+                {currentStep === 6 && (
                   <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
                     <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
                   </div>
