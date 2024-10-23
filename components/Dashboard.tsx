@@ -524,19 +524,15 @@ const Dashboard: React.FC<{
   const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const handleTakeOrder = (order: any) => {
-    console.log('Taking order:', order);
     const baseSteps = ['Hold Invoice', 'Full Invoice', 'Chat'];
     const steps = order.type === 0 // 0 represents a buy order
       ? [...baseSteps, 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'] // For taking a buy order
       : [...baseSteps, 'Submit Payout', 'Trade Complete', 'Order Completed 🚀']; // For taking a sell order
 
     setTakeOrderSteps(steps);
-    setSelectedOrder(order);
     setCurrentTakeOrderStep(1);
+    setSelectedOrder(order);
     setIsTakeOrderModalOpen(true);
-
-    // Store the order in localStorage
-    localStorage.setItem('currentOrder', JSON.stringify(order));
   };
   const handleNextTakeOrderStep = () => {
     if (currentTakeOrderStep < takeOrderSteps.length) {
@@ -969,19 +965,17 @@ const Dashboard: React.FC<{
                     >
                       Open Chat
                     </button>
-                    {order.customer_id === userId && (
-                      <p className='mt-4 text-gray-700'>
-                        <strong>Make Offer URL:</strong>{' '}
-                        <a 
-                          href={`https://chat.civkit.africa/ui/chat/make-offer?orderid=${order.order_id}`} 
-                          target='_blank' 
-                          rel='noopener noreferrer' 
-                          className='text-blue-500 underline'
-                        >
-                          {`https://chat.civkit.africa/ui/chat/make-offer?orderid=${order.order_id}`}
-                        </a>
-                      </p>
-                    )}
+                    <p className='mt-4 text-gray-700'>
+                      <strong>Make Offer URL:</strong>{' '}
+                      <a 
+                        href={`https://chat.civkit.africa/ui/chat/make-offer?orderid=${order.order_id}`} 
+                        target='_blank' 
+                        rel='noopener noreferrer' 
+                        className='text-blue-500 underline'
+                      >
+                        {`https://chat.civkit.africa/ui/chat/make-offer?orderid=${order.order_id}`}
+                      </a>
+                    </p>
                   </div>
                 )}
                 {currentStep === 5 && order && (
