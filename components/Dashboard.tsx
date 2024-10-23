@@ -254,53 +254,38 @@ const Dashboard: React.FC<{
 
   const handleOpenChat = async () => {
     const currentOrder = order || selectedOrder;
-    if (!currentOrder || !currentOrder.order_id) {
+    if (!currentOrder?.order_id) {
       console.error('No order ID available');
       alert('Unable to open chat: Order ID not available');
       return;
     }
 
-    const orderId = currentOrder.order_id;
-    console.log('Attempting to open chat for order ID:', orderId);
-
     try {
-      // First, try to get the accept-offer URL (for takers)
-      const acceptOfferResponse = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/accept-offer-url/${orderId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const { data } = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/accept-offer-url/${currentOrder.order_id}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' } }
       );
 
-      if (acceptOfferResponse.data.url) {
-        // If we got an accept-offer URL, use it (this means the user is a taker)
-        window.open(acceptOfferResponse.data.url, '_blank');
+      if (data.url) {
+        // Remove any 'http:' or 'https:' prefix and ensure only one 'localhost:3456'
+        const cleanUrl = data.url.replace(/^(https?:)?(\/\/)?localhost:3456/, '');
+        const absoluteUrl = `http://localhost:3456${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
+        window.open(absoluteUrl, '_blank');
       } else {
-        // If we didn't get an accept-offer URL, fall back to the make-offer URL (for makers)
-        const makeOfferResponse = await axios.post(
+        // Keep the make-offer URL handling unchanged
+        const { data: makeOfferData } = await axios.post(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/create-make-offer`,
-          { orderId },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
+          { orderId: currentOrder.order_id },
+          { headers: { 'Content-Type': 'application/json' } }
         );
-
-        if (makeOfferResponse.data.makeOfferUrl) {
-          window.open(makeOfferResponse.data.makeOfferUrl, '_blank');
+        if (makeOfferData.makeOfferUrl) {
+          window.open(makeOfferData.makeOfferUrl, '_blank');
         } else {
           alert('Chat URL not available');
         }
       }
     } catch (error) {
       console.error('Error opening chat:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-      }
       alert(`Failed to open chat: ${error.response?.data?.message || error.message}`);
     }
   };
