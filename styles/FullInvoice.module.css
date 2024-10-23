@@ -13,7 +13,9 @@
   margin-bottom: 20px;
   color: var(--primary-color);
   font-family: 'Orbitron', sans-serif;
-  text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color);
+  text-shadow:
+    0 0 10px var(--primary-color),
+    0 0 20px var(--primary-color);
 }
 
 .container p {
