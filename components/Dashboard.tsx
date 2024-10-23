@@ -264,28 +264,44 @@ const Dashboard: React.FC<{
     console.log('Attempting to open chat for order ID:', orderId);
 
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/create-make-offer`,
-        { orderId },
+      // First, try to get the accept-offer URL (for takers)
+      const acceptOfferResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/accept-offer-url/${orderId}`,
         {
           headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json',
           },
         }
       );
 
-      console.log('Chat creation response:', response.data);
-      const { makeOfferUrl } = response.data;
-      
-      alert(`Make Offer URL: ${makeOfferUrl}`);
-      window.open(makeOfferUrl, '_blank');
+      if (acceptOfferResponse.data.url) {
+        // If we got an accept-offer URL, use it (this means the user is a taker)
+        window.open(acceptOfferResponse.data.url, '_blank');
+      } else {
+        // If we didn't get an accept-offer URL, fall back to the make-offer URL (for makers)
+        const makeOfferResponse = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/create-make-offer`,
+          { orderId },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
 
+        if (makeOfferResponse.data.makeOfferUrl) {
+          window.open(makeOfferResponse.data.makeOfferUrl, '_blank');
+        } else {
+          alert('Chat URL not available');
+        }
+      }
     } catch (error) {
-      console.error('Error creating make-offer:', error);
+      console.error('Error opening chat:', error);
       if (error.response) {
         console.error('Error response:', error.response.data);
       }
-      alert(`Failed to create make-offer: ${error.response?.data?.error || error.message}`);
+      alert(`Failed to open chat: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -968,12 +984,12 @@ const Dashboard: React.FC<{
                     <p className='mt-4 text-gray-700'>
                       <strong>Make Offer URL:</strong>{' '}
                       <a 
-                        href={`https://chat.civkit.africa/ui/chat/make-offer?orderid=${order.order_id}`} 
+                        href={`http://localhost:3456/ui/chat/make-offer?orderId=${order.order_id}`} 
                         target='_blank' 
                         rel='noopener noreferrer' 
                         className='text-blue-500 underline'
                       >
-                        {`https://chat.civkit.africa/ui/chat/make-offer?orderid=${order.order_id}`}
+                        {`http://localhost:3456/ui/chat/make-offer?orderId=${order.order_id}`}
                       </a>
                     </p>
                   </div>
