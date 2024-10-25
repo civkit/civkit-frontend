@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { headers } from 'next/headers';
 import axios from 'axios';
 import { nip19 } from 'nostr-tools';
 import { generatePassword } from '../utils/generatePassword';
@@ -61,6 +60,7 @@ const RegisterForm = ({
       if (username) {
         const userPassword = await generatePassword(username);
         setPassword(userPassword);
+        console.log('Username: ', username);
         console.log('Password: ', userPassword);
       }
     };
@@ -68,13 +68,11 @@ const RegisterForm = ({
     handleGeneratePassword();
   }, [username]);
 
-  const handleRegister = async (event: React.FormEvent) => {
+  const handleRegister = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
 
-    setIsLoading(true);
-    if (!hasNostrExtension) {
-      setExtensionError('Nostr extension is not installed.');
-      toast.error(extensionError, {
+    if (!username || !password) {
+      toast.error('Username and password are required.', {
         position: 'bottom-center',
         autoClose: 5000,
         hideProgressBar: false,
@@ -86,8 +84,25 @@ const RegisterForm = ({
       return;
     }
 
+    setIsLoading(true);
+    setExtensionError('');
+
+    if (!hasNostrExtension) {
+      setExtensionError('Nostr extension is not installed.');
+      toast.error(extensionError, {
+        position: 'bottom-center',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      console.log(process.env.NEXT_PUBLIC_API_BASE_URL);
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/register`,
         { username, password },
@@ -98,24 +113,23 @@ const RegisterForm = ({
         }
       );
       setInvoice(response.data.invoice);
-      setIsLoading(false);
       router.push(`/registerPayment?username=${username}`);
     } catch (error) {
       console.error('Error registering:', error);
       setExtensionError('Registration failed. Please try again.');
+      toast.error('Registration failed. Please try again.', {
+        position: 'bottom-center',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+    } finally {
       setIsLoading(false);
-      extensionError &&
-        toast.error(extensionError, {
-          position: 'bottom-center',
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
     }
-  };
+  }, [username, password, hasNostrExtension, router]);
 
   return (
     <>
