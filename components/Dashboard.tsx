@@ -208,31 +208,41 @@ const Dashboard: React.FC<{
   // Add these state variables at the top with your other states
   const [showMyOrders, setShowMyOrders] = useState(false);
 
-  // Update the fetch functions
-  const fetchPendingOrders = async () => {
+  // Update the Orders button click handler
+  const handleOrdersClick = async () => {
     try {
+      setShowOrders(true);
+      setShowMyOrders(false);
+      setShowProfileSettings(false);
+      setIsModalOpen(false);
+      setCurrentOrdersPage(1);
+      
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`
       );
-      console.log('All orders:', response.data); // Debug log
-
       const pendingOrders = response.data.filter(
         (order: Order) => 
           (order.status === 'pending' || order.status === 'Pending') &&
           order.status !== 'chat_open' &&
           order.status !== 'taker_found'
       );
-      console.log('Filtered pending orders:', pendingOrders); // Debug log
       
       setOrders(pendingOrders);
       setFilteredOrdersData(pendingOrders);
     } catch (error) {
-      console.error('Error fetching pending orders:', error);
+      console.error('Error handling orders click:', error);
     }
   };
 
-  const fetchMyOrders = async () => {
+  // Update the My Orders button click handler
+  const handleMyOrdersClick = async () => {
     try {
+      setShowOrders(true);
+      setShowMyOrders(true);
+      setShowProfileSettings(false);
+      setIsModalOpen(false);
+      setCurrentOrdersPage(1);
+      
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/my-orders`,
         {
@@ -241,10 +251,11 @@ const Dashboard: React.FC<{
           },
         }
       );
+      
       setOrders(response.data);
-      setCurrentOrdersPageData(response.data);
+      setFilteredOrdersData(response.data);
     } catch (error) {
-      console.error('Error fetching my orders:', error);
+      console.error('Error handling my orders click:', error);
     }
   };
 
@@ -515,13 +526,6 @@ const Dashboard: React.FC<{
     setShowProfileSettings(false); // Hide profile settings
   };
 
-  const handleMyOrdersClick = () => {
-    setShowOrders(true);
-    setIsModalOpen(false); // Hide create order form when viewing orders
-    setShowProfileSettings(false); // Hide profile settings
-    setIsTakeOrderModalOpen(false);
-  };
-
   const toggleProfileSettings = () => {
     setShowProfileSettings(!showProfileSettings);
     setIsModalOpen(false); // Hide create order form
@@ -787,13 +791,7 @@ const Dashboard: React.FC<{
               <div className='flex flex-col items-center justify-center gap-8'>
                 <div>
                   <button
-                    onClick={() => {
-                      setShowOrders(true);
-                      setShowMyOrders(false);
-                      setShowProfileSettings(false);
-                      setIsModalOpen(false);
-                      fetchPendingOrders();
-                    }}
+                    onClick={handleOrdersClick}
                     className='mb-2 flex w-full items-center rounded-lg p-2 hover:bg-gray-700'
                   >
                     <RxDashboard className='mr-3' />
@@ -801,13 +799,7 @@ const Dashboard: React.FC<{
                   </button>
 
                   <button
-                    onClick={() => {
-                      setShowOrders(true);
-                      setShowMyOrders(true);
-                      setShowProfileSettings(false);
-                      setIsModalOpen(false);
-                      fetchMyOrders();
-                    }}
+                    onClick={handleMyOrdersClick}
                     className='mb-2 flex w-full items-center rounded-lg p-2 hover:bg-gray-700'
                   >
                     <BsJournalBookmarkFill className='mr-3' />
