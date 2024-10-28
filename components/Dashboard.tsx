@@ -205,6 +205,49 @@ const Dashboard: React.FC<{
     setIsTableScrollable(expandedRow !== orderId); // Toggle scrollbar visibility
   };
 
+  // Add these state variables at the top with your other states
+  const [showMyOrders, setShowMyOrders] = useState(false);
+
+  // Update the fetch functions
+  const fetchPendingOrders = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`
+      );
+      console.log('All orders:', response.data); // Debug log
+
+      const pendingOrders = response.data.filter(
+        (order: Order) => 
+          (order.status === 'pending' || order.status === 'Pending') &&
+          order.status !== 'chat_open' &&
+          order.status !== 'taker_found'
+      );
+      console.log('Filtered pending orders:', pendingOrders); // Debug log
+      
+      setOrders(pendingOrders);
+      setFilteredOrdersData(pendingOrders);
+    } catch (error) {
+      console.error('Error fetching pending orders:', error);
+    }
+  };
+
+  const fetchMyOrders = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/my-orders`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      setOrders(response.data);
+      setCurrentOrdersPageData(response.data);
+    } catch (error) {
+      console.error('Error fetching my orders:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -742,22 +785,35 @@ const Dashboard: React.FC<{
             <nav>
               <hr className='my-8' />
               <div className='flex flex-col items-center justify-center gap-8'>
-                <a href='#' className='flex items-center justify-center gap-2'>
-                  <span className='flex w-6 justify-center'>
-                    <RxDashboard className='text-xl text-gray-400' />
-                  </span>
-                  <span className={`${darkMode ? 'text-white' : 'text-black'}`}>
-                    Dashboard
-                  </span>
-                </a>
-                <a href='#' className='flex items-center justify-center gap-2' onClick={handleMyOrdersClick}>
-                  <span className='flex w-6 justify-center'>
-                    <BsJournalBookmarkFill className='text-xl text-gray-400' />
-                  </span>
-                  <span className={`${darkMode ? 'text-white' : 'text-black'}`}>
+                <div>
+                  <button
+                    onClick={() => {
+                      setShowOrders(true);
+                      setShowMyOrders(false);
+                      setShowProfileSettings(false);
+                      setIsModalOpen(false);
+                      fetchPendingOrders();
+                    }}
+                    className='mb-2 flex w-full items-center rounded-lg p-2 hover:bg-gray-700'
+                  >
+                    <RxDashboard className='mr-3' />
+                    Orders
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowOrders(true);
+                      setShowMyOrders(true);
+                      setShowProfileSettings(false);
+                      setIsModalOpen(false);
+                      fetchMyOrders();
+                    }}
+                    className='mb-2 flex w-full items-center rounded-lg p-2 hover:bg-gray-700'
+                  >
+                    <BsJournalBookmarkFill className='mr-3' />
                     My Orders
-                  </span>
-                </a>
+                  </button>
+                </div>
               </div>
             </nav>
           </div>
@@ -1095,7 +1151,7 @@ const Dashboard: React.FC<{
         {!isTakeOrderModalOpen && showOrders && (
           <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
             <h3 className='mb-4 ml-12 text-lg font-semibold text-gray-700 dark:text-gray-200'>
-              Orders
+              {showMyOrders ? 'My Orders' : 'Available Orders (Pending)'}
             </h3>
             {currentOrdersPageData.length > 0 ? (
               <div
