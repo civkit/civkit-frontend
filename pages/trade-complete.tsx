@@ -41,24 +41,31 @@ const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId, orderType, onCom
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     try {
-      const reviewData = {
-        order_id: orderId,
-        review,
-        rating,
-      };
-
       if (window.nostr) {
         console.log('window.nostr', window.nostr);
         const pubkey = await window.nostr.getPublicKey();
         const npub = nip19.npubEncode(pubkey);
-        console.log('====================================');
-        console.log(npub);
-        console.log('====================================');
+        
+        // Include the order type and taker_customer_id in the review data
+        const reviewData = {
+          order_id: orderId,
+          review,
+          rating,
+          reviewer_npub: npub,
+          order_type: orderType, // We already have this from props
+          taker_id: order.taker_customer_id, // From the order data we fetched
+          maker_id: order.customer_id
+        };
 
         const event = {
           kind: 1508, // Event kind for review
           created_at: Math.floor(Date.now() / 1000),
-          tags: [],
+          tags: [
+            ['e', 'review'],
+            ['p', order.taker_customer_id?.toString() || ''], // Add taker ID as a tag
+            ['maker', order.customer_id?.toString() || ''], // Add maker ID as a tag
+            ['order', orderId.toString()]
+          ],
           content: JSON.stringify(reviewData),
           pubkey: npub,
         };

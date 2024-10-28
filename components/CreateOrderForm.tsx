@@ -21,7 +21,7 @@ interface Order {
 }
 
 interface CreateOrderFormProps {
-  onOrderCreated: (order: Order, holdInvoice: string, fullInvoice: string | null) => void;
+  onOrderCreated: (order: any, holdInvoice: any, fullInvoice?: any) => void;
 }
 
 const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => {

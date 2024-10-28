@@ -271,7 +271,8 @@ const Dashboard: React.FC<{
           }
         );
         setOrders(response.data.orders || response.data);
-        await checkAndCreateChatrooms(response.data.orders || response.data);
+        // Remove this line:
+        // await checkAndCreateChatrooms(response.data.orders || response.data);
       } catch (error) {
         console.error('Error fetching orders:', error);
       }
@@ -280,31 +281,6 @@ const Dashboard: React.FC<{
     fetchOrders();
   }, []);
 
-  const checkAndCreateChatrooms = async (orders) => {
-    const updatedOrders = [];
-    for (const order of orders) {
-      try {
-        const response = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-and-create-chatroom`,
-          { orderId: order.order_id },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-        updatedOrders.push({ ...order, ...response.data });
-      } catch (error) {
-        console.error(
-          `Error checking chatroom for order ${order.order_id}:`,
-          error
-        );
-        updatedOrders.push(order);
-      }
-    }
-    setOrders(updatedOrders);
-  };
 
   const handleOpenChat = async () => {
     const currentOrder = order || selectedOrder;
