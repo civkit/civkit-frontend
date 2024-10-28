@@ -962,7 +962,7 @@ const Dashboard: React.FC<{
                     <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
                     <button
                       onClick={() => handleOpenChat(order.order_id)}
-                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                      className="flex w-36 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600"
                     >
                       Open Chat
                     </button>
@@ -1058,11 +1058,11 @@ const Dashboard: React.FC<{
                 </div>
               )}
               {currentTakeOrderStep === 3 && (
-                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex flex-col items-center justify-center'>
                   <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
                   <button
                     onClick={handleOpenChat}
-                    className='focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+                    className='flex w-36 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600'
                   >
                     Open Chat
                   </button>
