@@ -26,7 +26,9 @@
   border: none;
   cursor: pointer;
   border-radius: 4px;
-  transition: background-color 0.3s ease, transform 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    transform 0.3s ease;
 }
 
 .takeOrderButton:hover {
@@ -43,7 +45,9 @@
   cursor: pointer;
   margin-left: 10px; /* Add some space between the buttons */
   border-radius: 4px;
-  transition: background-color 0.3s ease, transform 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    transform 0.3s ease;
 }
 
 .openChatButton:hover {
@@ -84,7 +88,9 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    transform 0.3s ease;
 }
 
 .modalContent button:hover {

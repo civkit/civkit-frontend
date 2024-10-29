@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  frontend:
+    build: .
+    network_mode: "host"
+    env_file:
+      - .env
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+      - NODE_ENV=development
+      - PORT=3001
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    command: npm run dev -- -p 3001

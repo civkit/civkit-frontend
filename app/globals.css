@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --foreground-color: #0F1111; /* Dark grey for text */
+  --foreground-color: #0f1111; /* Dark grey for text */
   --background-color: #ffffff; /* White background */
-  --primary-color: #FF9900; /* Amazon's orange */
-  --secondary-color: #146EB4; /* Amazon's blue */
-  --nav-bg-color: #232F3E; /* Darker blue for the navigation bar */
-  --nav-border-color: #FFD700; /* Gold for borders */
+  --primary-color: #ff9900; /* Amazon's orange */
+  --secondary-color: #146eb4; /* Amazon's blue */
+  --nav-bg-color: #232f3e; /* Darker blue for the navigation bar */
+  --nav-border-color: #ffd700; /* Gold for borders */
 }
 
 @media (prefers-color-scheme: dark) {

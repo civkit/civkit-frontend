@@ -8,7 +8,7 @@ const nextProcess = exec('npm run dev');
 
 nextProcess.stdout?.on('data', (data) => {
   console.log(`Next.js: ${data}`);
-  
+
   if (data.includes('Ready')) {
     console.log('Next.js is ready, starting ngrok...');
     startNgrok();
@@ -24,12 +24,14 @@ async function startNgrok() {
     console.log('Connecting to ngrok...');
     const url = await ngrok.connect({
       addr: 3001,
-      authtoken: process.env.NGROK_AUTHTOKEN
+      authtoken: process.env.NGROK_AUTHTOKEN,
     });
     console.log(`\n\nNgrok tunnel established at: ${url}\n\n`);
-    
+
     // Log the API URL being used
-    console.log(`API URL: ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}`);
+    console.log(
+      `API URL: ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}`
+    );
   } catch (error) {
     console.error('Error establishing ngrok tunnel:', error);
   }
