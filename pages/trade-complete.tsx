@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import QRCode from 'qrcode.react';
 import { nip19 } from 'nostr-tools';
+import { toast } from 'react-toastify';
+import { useRouter } from 'next/router';
 
 interface TradeCompleteProps {
   orderId: number;
@@ -10,15 +12,27 @@ interface TradeCompleteProps {
   onComplete: () => void;
 }
 
-const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId, orderType, onComplete }) => {
-  const [order, setOrder] = useState(null);
+interface Order {
+  order_id: number;
+  order_details: string;
+  amount_msat: number;
+  currency: string;
+}
+
+const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId: propOrderId, orderType, onComplete }) => {
+  const router = useRouter();
+  const [order, setOrder] = useState<Order | null>(null);
   const [review, setReview] = useState('');
   const [rating, setRating] = useState(0);
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Use orderId from URL if available, otherwise use the prop
+  const orderId = router.query.orderId ? parseInt(router.query.orderId as string) : propOrderId;
+
   useEffect(() => {
     if (orderId) {
       fetchOrder();
+      console.log('orderId', orderId);
     }
   }, [orderId]);
 
@@ -33,14 +47,21 @@ const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId, orderType, onCom
         }
       );
       setOrder(orderResponse.data);
+      console.log('order', orderResponse.data);
     } catch (error) {
       console.error('Error fetching order:', error);
     }
   };
 
-  const handleReviewSubmit = async (e) => {
+  const handleReviewSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      const reviewData = {
+        order_id: orderId,
+        remarks: review,
+        rating,
+      };
+
       if (window.nostr) {
         console.log('window.nostr', window.nostr);
         const pubkey = await window.nostr.getPublicKey();
@@ -69,6 +90,19 @@ const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId, orderType, onCom
           content: JSON.stringify(reviewData),
           pubkey: npub,
         };
+
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ratings/${orderId}`,
+          reviewData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        setSuccessMessage('Review submitted successfully.');
+        toast.success('Review submitted successfully.');
 
         console.log('Event before signing:', event);
 
@@ -129,30 +163,34 @@ const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId, orderType, onCom
         <h1 className='mb-6 text-center text-2xl font-bold text-blue-600'>
           Trade Complete
         </h1>
-        <p className='mb-4'>
-          <span className='font-bold text-gray-700'>Order ID:</span>{' '}
-          {order.order_id}
-        </p>
-        <p className='mb-4'>
-          <span className='font-bold text-gray-700'>Details:</span>{' '}
-          {order.order_details}
-        </p>
-        <p className='mb-4'>
-          <span className='font-bold text-gray-700'>Amount:</span>{' '}
-          {order.amount_msat}
-        </p>
-        <p className='mb-4'>
+        {order && (
+          <>
+            <p className='mb-4'>
+              <span className='font-bold text-gray-700'>Order ID:</span>{' '}
+              {order.order.order_id}
+            </p>
+            <p className='mb-4'>
+              <span className='font-bold text-gray-700'>Details:</span>{' '}
+              {order.order.order_details}
+            </p>
+            <p className='mb-4'>
+              <span className='font-bold text-gray-700'>Amount:</span>{' '}
+              {order.order.amount_msat}
+            </p>
+            <p className='mb-4'>
           <span className='font-bold text-gray-700'>Currency:</span>{' '}
-          {order.currency}
-        </p>
-        <p className='mb-4'>
-          <span className='font-bold text-gray-700'>Payment Method:</span>{' '}
-          {order.payment_method}
-        </p>
-        <p className='mb-4'>
-          <span className='font-bold text-gray-700'>Status:</span>{' '}
-          {order.status}
-        </p>
+              {order.order.currency}
+            </p>
+            <p className='mb-4'>
+              <span className='font-bold text-gray-700'>Payment Method:</span>{' '}
+              {order.order.payment_method}
+            </p>
+            <p className='mb-4'>
+              <span className='font-bold text-gray-700'>Status:</span>{' '}
+              {order.order.status}
+            </p>
+          </>
+        )}
 
         <form onSubmit={handleReviewSubmit}>
           <div className='mb-4'>
