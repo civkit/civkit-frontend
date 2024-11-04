@@ -1,55 +1,63 @@
 // components/LoginForm.js
-import { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
+import Spinner from './Spinner';
 
-export default function LoginForm() {
+const LoginForm: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/login`,
-        {
-          username,
-          password,
-        }
+        { username, password }
       );
-
-      const token = response.data.token;
-      localStorage.setItem('token', token); // Store the token in local storage
-
-      router.push('/dashboard'); // Redirect to create order page or another page
+      localStorage.setItem('token', response.data.token);
+      router.push('/take-order');
     } catch (error) {
-      console.error('Error logging in:', error);
+      setError('Invalid username or password');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleLogin}>
+    <form onSubmit={handleSubmit}>
       <div>
-        <label>Username</label>
+        <label htmlFor="username">Username</label>
         <input
-          type='text'
+          id="username"
+          type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
         />
       </div>
       <div>
-        <label>Password</label>
+        <label htmlFor="password">Password</label>
         <input
-          type='password'
+          id="password"
+          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
       </div>
-      <button type='submit'>Login</button>
+      <button type="submit" disabled={loading}>
+        {loading ? <Spinner /> : 'Login'}
+      </button>
+      {error && <div className="text-red-500">{error}</div>}
     </form>
   );
-}
+};
+
+export default LoginForm;
