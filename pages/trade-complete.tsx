@@ -56,53 +56,54 @@ const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId: propOrderId, ord
   const handleReviewSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      // Define the review data for our backend
       const reviewData = {
         order_id: orderId,
         remarks: review,
-        rating,
+        rating: parseInt(rating.toString())
       };
 
+      // First submit to our backend
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ratings/${orderId}`,
+        reviewData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+
+      // Then handle the Nostr part
       if (window.nostr) {
-        console.log('window.nostr', window.nostr);
         const pubkey = await window.nostr.getPublicKey();
         const npub = nip19.npubEncode(pubkey);
         
-        // Include the order type and taker_customer_id in the review data
-        const reviewData = {
+        // Create Nostr-specific event data
+        const nostrReviewData = {
           order_id: orderId,
           review,
           rating,
           reviewer_npub: npub,
-          order_type: orderType, // We already have this from props
-          taker_id: order.taker_customer_id, // From the order data we fetched
-          maker_id: order.customer_id
+          order_type: orderType,
+          // Use order data directly to determine who to rate
+          rated_user_npub: order?.order?.taker_customer_id 
+            ? order.order.taker_customer_id 
+            : order.order.customer_id
         };
 
         const event = {
-          kind: 1508, // Event kind for review
+          kind: 1508,
           created_at: Math.floor(Date.now() / 1000),
           tags: [
             ['e', 'review'],
-            ['p', order.taker_customer_id?.toString() || ''], // Add taker ID as a tag
-            ['maker', order.customer_id?.toString() || ''], // Add maker ID as a tag
+            ['p', order?.order?.taker_customer_id?.toString() || ''],
+            ['maker', order?.order?.customer_id?.toString() || ''],
             ['order', orderId.toString()]
           ],
-          content: JSON.stringify(reviewData),
+          content: JSON.stringify(nostrReviewData),
           pubkey: npub,
         };
-
-        await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ratings/${orderId}`,
-          reviewData,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
-
-        setSuccessMessage('Review submitted successfully.');
-        toast.success('Review submitted successfully.');
 
         console.log('Event before signing:', event);
 
@@ -123,33 +124,32 @@ const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId: propOrderId, ord
 
           relayWebSocket.onerror = (err) => {
             console.error('WebSocket error:', err);
-            setSuccessMessage('Error submitting review. Please try again.');
+            setSuccessMessage('Error submitting review to Nostr. Database update successful.');
           };
 
           relayWebSocket.onclose = () => {
             console.log('WebSocket connection closed');
           };
 
-          // Add a timeout to close the connection if it doesn't open within 5 seconds
           setTimeout(() => {
             if (relayWebSocket.readyState === WebSocket.CONNECTING) {
               relayWebSocket.close();
-              setSuccessMessage('Connection timeout. Please try again.');
+              setSuccessMessage('Nostr connection timeout. Database update successful.');
             }
           }, 5000);
         } catch (signError) {
           console.error('Error signing event:', signError);
-          setSuccessMessage('Error signing review. Please try again.');
+          setSuccessMessage('Review saved to database. Nostr update failed.');
         }
       } else {
-        console.error('nos2x extension is not available.');
-        setSuccessMessage(
-          'nos2x extension is not available. Please install it and try again.'
-        );
+        setSuccessMessage('Review saved successfully. Nostr extension not available.');
       }
+
+      toast.success('Review submitted successfully.');
     } catch (error) {
       console.error('Error submitting review:', error);
       setSuccessMessage('Error submitting review. Please try again.');
+      toast.error('Error submitting review');
     }
   };
 
