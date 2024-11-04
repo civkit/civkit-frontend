@@ -1,3 +1,4 @@
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { IoSunnyOutline, IoMoon } from 'react-icons/io5';

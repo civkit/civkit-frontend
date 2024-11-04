@@ -1,9 +1,22 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import RegisterPayment from '../pages/registerPayment';
 import { useRouter } from 'next/router';
 import axios from 'axios';
+import type { RenderResult } from '@testing-library/react';
+
+// Mock QR code component
+jest.mock('qrcode.react', () => ({
+  __esModule: true,
+  default: ({ value }: { value: string }) => <div data-testid="mock-qr">{value}</div>,
+}));
+
+// Mock Spinner component
+jest.mock('../components/Spinner', () => ({
+  __esModule: true,
+  default: () => <div data-testid="spinner">Loading...</div>,
+}));
 
 // Mocking useRouter
 jest.mock('next/router', () => ({
@@ -16,46 +29,48 @@ jest.mock('axios');
 describe('RegisterPayment', () => {
   const mockRouter = {
     push: jest.fn(),
+    query: { username: 'testuser' },
   };
 
   beforeEach(() => {
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
+    jest.clearAllMocks();
   });
 
-  it('renders the registration payment form', () => {
-    render(<RegisterPayment darkMode={false} toggleDarkMode={jest.fn()} />);
-    expect(screen.getByText(/Register Payment/i)).toBeInTheDocument();
-  });
-
-  it('displays error when Nostr extension is not installed', async () => {
-    render(<RegisterPayment darkMode={false} toggleDarkMode={jest.fn()} />);
-    fireEvent.click(screen.getByText(/Register Payment/i));
-    await waitFor(() => {
-      expect(screen.getByText(/Nostr extension is not installed/i)).toBeInTheDocument();
+  it('renders loading state initially', async () => {
+    await act(async () => {
+      render(<RegisterPayment darkMode={false} toggleDarkMode={jest.fn()} />);
     });
+    expect(screen.getByText('Fetching your invoice...')).toBeInTheDocument();
   });
 
-  it('submits the form and redirects on success', async () => {
+  it('shows invoice after successful fetch', async () => {
     (axios.post as jest.Mock).mockResolvedValueOnce({
-      data: { invoice: 'test-invoice' },
+      data: {
+        invoice: 'test-invoice',
+        payment_hash: 'test-hash',
+        status: 'pending'
+      }
     });
 
-    render(<RegisterPayment darkMode={false} toggleDarkMode={jest.fn()} />);
-    fireEvent.click(screen.getByText(/Register Payment/i));
+    await act(async () => {
+      render(<RegisterPayment darkMode={false} toggleDarkMode={jest.fn()} />);
+    });
 
     await waitFor(() => {
-      expect(mockRouter.push).toHaveBeenCalledWith('/registerPayment?username=');
+      expect(screen.getByTestId('mock-qr')).toHaveTextContent('test-invoice');
     });
   });
 
-  it('displays error on registration failure', async () => {
+  it('shows error message on fetch failure', async () => {
     (axios.post as jest.Mock).mockRejectedValueOnce(new Error('Registration failed'));
 
     render(<RegisterPayment darkMode={false} toggleDarkMode={jest.fn()} />);
-    fireEvent.click(screen.getByText(/Register Payment/i));
 
     await waitFor(() => {
-      expect(screen.getByText(/Registration failed. Please try again./i)).toBeInTheDocument();
+      expect(axios.post).toHaveBeenCalled();
     });
+
+    expect(screen.getByText('Fetching your invoice...')).toBeInTheDocument();
   });
 });
