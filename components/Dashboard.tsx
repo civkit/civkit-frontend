@@ -985,14 +985,15 @@ const Dashboard: React.FC<{
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                     <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
                     <button
-                      onClick={() => handleOpenChat(order.order_id)}
+                      onClick={() => handleOpenChat()}
                       className="flex w-36 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600"
                     >
                       Open Chat
                     </button>
+
                     <p className='mt-4 text-gray-700'>
                       <strong>Make Offer URL:</strong>{' '}
-                      <a 
+                      <a
                         href={`http://localhost:3456/ui/chat/make-offer?orderId=${order.order_id}`} 
                         target='_blank' 
                         rel='noopener noreferrer' 
@@ -1084,11 +1085,21 @@ const Dashboard: React.FC<{
               {currentTakeOrderStep === 3 && (
                 <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex flex-col items-center justify-center'>
                   <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
-                  <button
+                    {/* <button
                     onClick={handleOpenChat}
                     className='flex w-36 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600'
                   >
                     Open Chat
+                  </button> */}
+                  <button className='flex w-36 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600'>
+                    <a
+                      href={`http://localhost:3456/ui/chat/make-offer?orderId=${selectedOrder.order_id}`}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='text-decoration-none'
+                    >
+                      Open Chat
+                    </a>
                   </button>
                 </div>
               )}
