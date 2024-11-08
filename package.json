@@ -24,7 +24,7 @@
     "json-schema": "^0.4.0",
     "lodash": "^4.17.21",
     "ndk": "^1.0.0",
-    "next": "^14.2.4",
+    "next": "^15.0.2",
     "nostr-tools": "^2.7.2",
     "npm": "^10.8.1",
     "patch-package": "^8.0.0",

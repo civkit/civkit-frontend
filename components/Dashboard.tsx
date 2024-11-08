@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import {
   FaBell,
@@ -15,6 +15,7 @@ import {
   FaTimes,
   FaChevronUp,
   FaChevronDown,
+  FaStar,
 } from 'react-icons/fa';
 import {
   BsJournalBookmarkFill,
@@ -39,6 +40,7 @@ import SubmitPayout from '../pages/submit-payout';
 import FiatReceived from '../pages/fiat-received';
 import TradeComplete from '../pages/trade-complete';
 import TakerFullInvoice from '../pages/taker-full-invoice';
+import Ratings from '../pages/Ratings';
 
 // Dynamically import the OrderDetails component
 const OrderDetails = dynamic(() => import('../pages/orders/[orderId]'), {
@@ -84,7 +86,6 @@ const Dashboard: React.FC<{
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [showOrderbookLinks, setShowOrderbookLinks] = useState<boolean>(false);
   const [orders, setOrders] = useState<any[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [isSigned, setIsSigned] = useState(false);
   const { signAndSendEvent, subscribeToEvents } = useNostr();
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -124,14 +125,17 @@ const Dashboard: React.FC<{
   const indexOfLastRecord = currentPage * recordsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
 
-  // Filter orders based on search query
-  const filteredOrdersData = orders.filter(order =>
-    order.order_details.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Instead of using filteredOrders as state, create a computed value
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      if (!order?.order_details) return false;
+      return order.order_details.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+  }, [orders, searchQuery]);
 
-  const currentOrders = filteredOrdersData.slice(indexOfFirstRecord, indexOfLastRecord);
+  const currentOrders = filteredOrders.slice(indexOfFirstRecord, indexOfLastRecord);
 
-  const totalPages = Math.ceil(filteredOrdersData.length / recordsPerPage);
+  const totalPages = Math.ceil(filteredOrders.length / recordsPerPage);
 
   // New state variables for orderbook pagination
   const [currentOrderbookPage, setCurrentOrderbookPage] = useState<number>(1);
@@ -139,12 +143,12 @@ const Dashboard: React.FC<{
 
   const indexOfLastOrderbook = currentOrderbookPage * orderbooksPerPage;
   const indexOfFirstOrderbook = indexOfLastOrderbook - orderbooksPerPage;
-  const currentOrderbooks = filteredOrdersData.slice(
+  const currentOrderbooks = filteredOrders.slice(
     indexOfFirstOrderbook,
     indexOfLastOrderbook
   );
 
-  const totalOrderbookPages = Math.ceil(filteredOrdersData.length / orderbooksPerPage);
+  const totalOrderbookPages = Math.ceil(filteredOrders.length / orderbooksPerPage);
 
   // State variables for orders pagination
   const [currentOrdersPage, setCurrentOrdersPage] = useState<number>(1);
@@ -152,12 +156,12 @@ const Dashboard: React.FC<{
 
   const indexOfLastOrder = currentOrdersPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
-  const currentOrdersPageData = filteredOrdersData.slice(
+  const currentOrdersPageData = filteredOrders.slice(
     indexOfFirstOrder,
     indexOfLastOrder
   );
 
-  const totalOrdersPages = Math.ceil(filteredOrdersData.length / ordersPerPage);
+  const totalOrdersPages = Math.ceil(filteredOrders.length / ordersPerPage);
 
   const handleOrdersPageClick = (pageNumber: number) => {
     setCurrentOrdersPage(pageNumber);
@@ -211,15 +215,26 @@ const Dashboard: React.FC<{
   // Update the Orders button click handler
   const handleOrdersClick = async () => {
     try {
-      setShowOrders(true);
-      setShowMyOrders(false);
-      setShowProfileSettings(false);
-      setIsModalOpen(false);
       setCurrentOrdersPage(1);
       
+      // Get the auth token
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error('No auth token found');
+        // Redirect to login or handle missing token
+        return;
+      }
+
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
+
       const pendingOrders = response.data.filter(
         (order: Order) => 
           (order.status === 'pending' || order.status === 'Pending') &&
@@ -228,7 +243,6 @@ const Dashboard: React.FC<{
       );
       
       setOrders(pendingOrders);
-      setFilteredOrdersData(pendingOrders);
     } catch (error) {
       console.error('Error handling orders click:', error);
     }
@@ -253,7 +267,6 @@ const Dashboard: React.FC<{
       );
       
       setOrders(response.data);
-      setFilteredOrdersData(response.data);
     } catch (error) {
       console.error('Error handling my orders click:', error);
     }
@@ -334,12 +347,8 @@ const Dashboard: React.FC<{
       if (!event || !event.content) return;
       try {
         const parsedContent = JSON.parse(event.content);
-        setFilteredOrders((prevOrders) => {
-          if (
-            prevOrders.some(
-              (order) => order.order_id === parsedContent.order_id
-            )
-          ) {
+        setOrders(prevOrders => {
+          if (prevOrders.some((order) => order.order_id === parsedContent.order_id)) {
             return prevOrders;
           }
           return [...prevOrders, parsedContent];
@@ -744,6 +753,8 @@ const Dashboard: React.FC<{
     }
   };
 
+  const [showRatings, setShowRatings] = useState<boolean>(false);
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
@@ -780,6 +791,20 @@ const Dashboard: React.FC<{
                   >
                     <BsJournalBookmarkFill className='mr-3' />
                     My Orders
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowRatings(true);
+                      setShowOrders(false);
+                      setShowMyOrders(false);
+                      setShowProfileSettings(false);
+                      setIsModalOpen(false);
+                    }}
+                    className="mb-2 flex w-full items-center rounded-lg p-2 hover:bg-gray-700"
+                  >
+                    <FaStar className="mr-3" />
+                    Ratings
                   </button>
                 </div>
               </div>
@@ -1359,6 +1384,8 @@ const Dashboard: React.FC<{
             </div>
           </div>
         )}
+
+        {showRatings && <Ratings />}
       </div>
     </div>
   );
