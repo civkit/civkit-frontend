@@ -507,8 +507,9 @@ const Dashboard: React.FC<{
 
   const handleCreateOrderClick = () => {
     setIsModalOpen(true);
-    setShowOrders(false); // Hide orders table when creating a new order
-    setShowProfileSettings(false); // Hide profile settings
+    setShowOrders(false);
+    setShowProfileSettings(false);
+    setShowRatings(false);
   };
 
   const toggleProfileSettings = () => {
@@ -1303,8 +1304,19 @@ const Dashboard: React.FC<{
           </div>
         )}
 
-        {showProfileSettings && (
-          <div className='rounded-lg bg-white p-8 shadow dark:bg-gray-800'>
+        {!isTakeOrderModalOpen && !isModalOpen && showRatings && (
+          <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
+            <h3 className='mb-4 ml-12 text-lg font-semibold text-gray-700 dark:text-gray-200'>
+              Ratings
+            </h3>
+            <div className='ml-12'>
+              <Ratings />
+            </div>
+          </div>
+        )}
+
+        {!isTakeOrderModalOpen && showProfileSettings && (
+          <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
             <h3 className='mb-4 ml-12 text-lg font-semibold text-white'>
               Profile Settings
             </h3>
@@ -1384,8 +1396,6 @@ const Dashboard: React.FC<{
             </div>
           </div>
         )}
-
-        {showRatings && <Ratings />}
       </div>
     </div>
   );
