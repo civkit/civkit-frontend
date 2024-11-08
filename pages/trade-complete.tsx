@@ -153,6 +153,27 @@ const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId: propOrderId, ord
     }
   };
 
+  const handleComplete = async () => {
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/complete-trade/${orderId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      
+      toast.success('Trade completed successfully');
+      onComplete(); // Original callback
+      
+    } catch (error) {
+      console.error('Error completing trade:', error);
+      toast.error('Failed to complete trade');
+    }
+  };
+
   if (!order) {
     return <div>Loading...</div>;
   }
@@ -243,7 +264,7 @@ const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId: propOrderId, ord
           <p className='mt-4 text-green-500'>{successMessage}</p>
         )}
         <button
-          onClick={onComplete}
+          onClick={handleComplete}
           className='mt-4 w-full rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600 focus:outline-none focus:shadow-outline'
         >
           Finish Order
