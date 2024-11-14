@@ -1010,23 +1010,23 @@ const Dashboard: React.FC<{
                 {currentStep === 4 && order && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                     <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
-                    <button
-                      onClick={() => handleOpenChat(order.order_id)}
-                      className="flex w-36 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600"
-                    >
-                      Open Chat
-                    </button>
-                    <p className='mt-4 text-gray-700'>
-                      <strong>Make Offer URL:</strong>{' '}
-                      <a 
-                        href={`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`} 
-                        target='_blank' 
-                        rel='noopener noreferrer' 
-                        className='text-blue-500 underline'
+                    {/* If user is maker (customer_id matches npub), show Activate button */}
+                    {order.customer_id === localStorage.getItem('npub') ? (
+                      <button
+                        onClick={() => window.open(`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`, '_blank')}
+                        className="flex w-36 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600"
                       >
-                        {`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`}
-                      </a>
-                    </p>
+                        Activate Chatroom
+                      </button>
+                    ) : (
+                      // Original Open Chat button for non-makers
+                      <button
+                        onClick={() => handleOpenChat(order.order_id)}
+                        className="flex w-36 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600"
+                      >
+                        Open Chat
+                      </button>
+                    )}
                   </div>
                 )}
                 {currentStep === 5 && order && (
