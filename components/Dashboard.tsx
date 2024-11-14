@@ -1019,12 +1019,12 @@ const Dashboard: React.FC<{
                     <p className='mt-4 text-gray-700'>
                       <strong>Make Offer URL:</strong>{' '}
                       <a 
-                        href={`http://localhost:3456/ui/chat/make-offer?orderId=${order.order_id}`} 
+                        href={`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`} 
                         target='_blank' 
                         rel='noopener noreferrer' 
                         className='text-blue-500 underline'
                       >
-                        {`http://localhost:3456/ui/chat/make-offer?orderId=${order.order_id}`}
+                        ${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}
                       </a>
                     </p>
                   </div>
