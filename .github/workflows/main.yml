@@ -1,9 +1,18 @@
-# .github/workflows/deploy.yml
-name: Deploy to Production
+# .github/workflows/deploy-frontend.yml
+name: Deploy Frontend
 
 on:
   push:
-    branches: [ main ]
+    branches: 
+      - main
+      - 'feature/**'
+  # Add manual trigger
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
 
 jobs:
   deploy:
@@ -17,22 +26,27 @@ jobs:
         username: ${{ secrets.DEPLOY_USER }}
         key: ${{ secrets.DEPLOY_KEY }}
         script: |
-          echo "Starting deployment..."
+          echo "Starting deployment of ${{ github.ref_name }}..."
           
           # Stop the frontend service
-          echo "Stopping frontend service..."
           systemctl stop frontend.service
           
           cd /root/civkit-frontend
           
-          echo "Pulling latest changes..."
-          git pull origin main # Will fail if there are issues
+          # Stash any changes and checkout main first
+          git stash
+          git checkout main
           
-          echo "Building application..."
+          # If deploying feature branch
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            echo "Deploying feature branch: ${{ github.ref_name }}"
+            git checkout ${{ github.ref_name }}
+          fi
+          
+          git pull origin ${{ github.ref_name }}
+          
           npm run build || echo "Build had issues but continuing..."
           
-          # Start service with correct name
-          echo "Starting frontend service..."
           systemctl start frontend.service
           
           echo "Deployment completed!"
