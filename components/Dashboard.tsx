@@ -310,8 +310,8 @@ const Dashboard: React.FC<{
       );
 
       if (data.url) {
-        // Just use the chat URL directly with the path from data.url
-        const chatUrl = `${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/accept-offer/${currentOrder.order_id}`;
+        // Clean URL to ensure single https:// prefix
+        const chatUrl = data.url.replace(/^http:\/\/https\/\//, 'https://');
         window.open(chatUrl, '_blank');
       } else {
         const { data: makeOfferData } = await axios.post(
