@@ -310,8 +310,8 @@ const Dashboard: React.FC<{
       );
 
       if (data.url) {
-        // Clean URL to ensure single https:// prefix
-        const chatUrl = data.url.replace(/^http:\/\/https\/\//, 'https://');
+        // Replace localhost:3456 with NEXT_PUBLIC_CHAT_URL, removing any protocol prefix
+        const chatUrl = data.url.replace('http://localhost:3456', process.env.NEXT_PUBLIC_CHAT_URL);
         window.open(chatUrl, '_blank');
       } else {
         const { data: makeOfferData } = await axios.post(
