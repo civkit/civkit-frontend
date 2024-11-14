@@ -18,15 +18,21 @@ jobs:
         key: ${{ secrets.DEPLOY_KEY }}
         script: |
           echo "Starting deployment..."
+          
+          # Stop the frontend service
+          echo "Stopping frontend service..."
+          systemctl stop frontend.service
+          
           cd /root/civkit-frontend
           
           echo "Pulling latest changes..."
-          git pull origin main || echo "Git pull had issues but continuing..."
+          git pull origin main # Will fail if there are issues
           
           echo "Building application..."
           npm run build || echo "Build had issues but continuing..."
           
-          echo "Starting application..."
-          npm run dev || echo "Start had issues but continuing..."
+          # Start service with correct name
+          echo "Starting frontend service..."
+          systemctl start frontend.service
           
           echo "Deployment completed!"
