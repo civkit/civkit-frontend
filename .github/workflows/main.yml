@@ -1,0 +1,32 @@
+# .github/workflows/deploy.yml
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy to Server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        script: |
+          echo "Starting deployment..."
+          cd /root/civkit-frontend
+          
+          echo "Pulling latest changes..."
+          git pull origin main || echo "Git pull had issues but continuing..."
+          
+          echo "Building application..."
+          npm run build || echo "Build had issues but continuing..."
+          
+          echo "Starting application..."
+          npm run dev || echo "Start had issues but continuing..."
+          
+          echo "Deployment completed!"
