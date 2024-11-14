@@ -63,7 +63,7 @@ interface Order {
   amount_msat: number;
   currency: string;
   payment_method: string;
-  status: string;
+  status: 'pending' | 'Pending' | 'chat_open' | 'taker_found' | string;
   type: number;
 }
 
