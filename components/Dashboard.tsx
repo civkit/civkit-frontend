@@ -985,25 +985,27 @@ const Dashboard: React.FC<{
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                     <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
                     
-                    {/* Maker button - only show if user is the maker */}
-                    {order.customer_id === localStorage.getItem('npub') && (
+                    {/* Maker only sees Make Offer button */}
+                    {order.customer_id === localStorage.getItem('npub') ? (
                       <a 
                         href={`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`}
                         target='_blank'
                         rel='noopener noreferrer'
-                        className='flex w-full mb-4 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600'
+                        className='flex w-full items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600'
                       >
                         Make Offer Chat
                       </a>
+                    ) : (
+                      /* Taker only sees Accept Offer button */
+                      order.taker_customer_id === localStorage.getItem('npub') && (
+                        <button
+                          onClick={() => handleOpenChat()}
+                          className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 p-2 text-white hover:bg-orange-600"
+                        >
+                          Accept Offer Chat
+                        </button>
+                      )
                     )}
-
-                    {/* Taker button - show for everyone */}
-                    <button
-                      onClick={() => handleOpenChat()}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 p-2 text-white hover:bg-orange-600"
-                    >
-                      Accept Offer Chat
-                    </button>
                   </div>
                 )}
                 {currentStep === 5 && order && (
