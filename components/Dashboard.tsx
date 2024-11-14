@@ -1024,7 +1024,7 @@ const Dashboard: React.FC<{
                         rel='noopener noreferrer' 
                         className='text-blue-500 underline'
                       >
-                        ${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}
+                        {`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`}
                       </a>
                     </p>
                   </div>
