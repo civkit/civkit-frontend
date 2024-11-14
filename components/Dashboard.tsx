@@ -310,12 +310,10 @@ const Dashboard: React.FC<{
       );
 
       if (data.url) {
-        // Remove any 'http:' or 'https:' prefix and ensure only one 'localhost:3456'
-        const cleanUrl = data.url.replace(/^(https?:)?(\/\/)?localhost:3456/, '');
-        const absoluteUrl = `http://localhost:3456${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
-        window.open(absoluteUrl, '_blank');
+        // Replace localhost:3456 with NEXT_PUBLIC_CHAT_URL
+        const chatUrl = data.url.replace('localhost:3456', process.env.NEXT_PUBLIC_CHAT_URL);
+        window.open(chatUrl, '_blank');
       } else {
-        // Keep the make-offer URL handling unchanged
         const { data: makeOfferData } = await axios.post(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/create-make-offer`,
           { orderId: currentOrder.order_id },
