@@ -551,10 +551,9 @@ const Dashboard: React.FC<{
   const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const handleTakeOrder = (order: any) => {
-    const baseSteps = ['Hold Invoice', 'Chat'];
     const steps = order.type === 0
-      ? [...baseSteps, 'Full Invoice', 'Fiat Received', 'Trade Complete', 'Order Completed 🚀']
-      : [...baseSteps, 'Submit Payout', 'Trade Complete', 'Order Completed 🚀'];
+      ? ['Hold Invoice', 'Full Invoice', 'Chat', 'Fiat Received', 'Trade Complete', 'Order Completed 🚀']
+      : ['Hold Invoice', 'Chat', 'Submit Payout', 'Trade Complete', 'Order Completed 🚀'];
 
     setTakeOrderSteps(steps);
     setCurrentTakeOrderStep(1);
@@ -1068,7 +1067,7 @@ const Dashboard: React.FC<{
             </div>
             <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
               {currentTakeOrderStep === 1 && <TakeOrder orderId={selectedOrder.order_id} />}
-              {currentTakeOrderStep === 2 && selectedOrder && (
+              {currentTakeOrderStep === 2 && selectedOrder && order.type === 0 && (
                 <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
                   <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Full Invoice Details</h2>
                   {fullInvoice ? (
@@ -1111,7 +1110,7 @@ const Dashboard: React.FC<{
                 </div>
               )}
               {currentTakeOrderStep === 3 && (
-                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex flex-col items-center justify-center'>
+                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                   <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
                   <button
                     onClick={handleOpenChat}
@@ -1121,12 +1120,12 @@ const Dashboard: React.FC<{
                   </button>
                 </div>
               )}
-          {currentTakeOrderStep === 4 && selectedOrder && (
-            <FiatReceived 
-              orderId={selectedOrder.order_id}
-              onComplete={handleNextTakeOrderStep}
-            />
-          )}
+              {currentTakeOrderStep === 4 && selectedOrder && (
+                <FiatReceived 
+                  orderId={selectedOrder.order_id}
+                  onComplete={handleNextTakeOrderStep}
+                />
+              )}
               {currentTakeOrderStep === takeOrderSteps.length - 1 && selectedOrder && (
                 <TradeComplete 
                   orderId={selectedOrder.order_id}
