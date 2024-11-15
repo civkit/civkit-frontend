@@ -412,7 +412,6 @@ const Dashboard: React.FC<{
 
   const checkInvoiceStatus = async (paymentHash: string): Promise<string | null> => {
     try {
-      console.log(`Checking invoice status for payment hash: ${paymentHash}`);
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoicelookup`,
         { payment_hash: paymentHash },
@@ -428,22 +427,26 @@ const Dashboard: React.FC<{
       if (invoiceState === 'ACCEPTED') {
         setOrder((prevOrder) => ({ ...prevOrder!, status: 'paid' }));
         
-        // Original update attempt but wrapped in try-catch
+        // Silently catch any errors from the PUT request
         if (order) {
-          axios.put(  // Remove await to prevent blocking
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}`,
-            { status: 'paid' },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            }
-          ).catch(() => {}); // Silent catch
+          try {
+            await axios.put(
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}`,
+              { status: 'paid' },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+              }
+            );
+          } catch {
+            // Silently ignore any errors from the PUT request
+          }
         }
       }
       return invoiceState;
     } catch (error) {
-      return null; // Silently fail
+      return null; // Silently fail the main function
     }
   };
 
