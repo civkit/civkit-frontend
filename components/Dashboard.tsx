@@ -1009,24 +1009,21 @@ const Dashboard: React.FC<{
                     >
                       Open Chat
                     </button>
-                    <p className='mt-4 text-gray-700'>
-                      <strong>Make Offer URL:</strong>{' '}
-                      <a 
-                        href={`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`} 
-                        target='_blank' 
-                        rel='noopener noreferrer' 
-                        className='text-blue-500 underline'
-                      >
-                        {`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`}
-                      </a>
-                    </p>
+                    <button
+                      onClick={handleNextStep}
+                      className='mt-4 w-full rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600'
+                    >
+                      Next
+                    </button>
                   </div>
                 )}
-                {currentStep === 5 && order?.type !== 0 && (
-                  <FiatReceived 
-                    orderId={order.order_id}
-                    onComplete={handleNextStep}
-                  />
+                {currentStep === 5 && order && order.type !== 0 && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    <FiatReceived 
+                      orderId={order.order_id}
+                      onComplete={handleNextStep}
+                    />
+                  </div>
                 )}
                 {currentStep === 6 && (
                   <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
