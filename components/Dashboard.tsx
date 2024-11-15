@@ -1017,7 +1017,7 @@ const Dashboard: React.FC<{
                     </button>
                   </div>
                 )}
-                {currentStep === 5 && order && order.type !== 0 && (
+                {currentStep === 5 && order && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                     <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Fiat Received</h2>
                     <FiatReceived 
