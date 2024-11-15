@@ -523,7 +523,7 @@ const Dashboard: React.FC<{
     
     return order.type === 0  // Buy order
       ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat', 'Trade Complete', 'Order Completed 🚀']
-      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'];  // Added Fiat Received for sell orders
+      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'];
   };
 
   const handleNextStep = () => {
@@ -1019,13 +1019,23 @@ const Dashboard: React.FC<{
                 )}
                 {currentStep === 5 && order && order.type !== 0 && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Fiat Received</h2>
                     <FiatReceived 
                       orderId={order.order_id}
                       onComplete={handleNextStep}
                     />
                   </div>
                 )}
-                {currentStep === 6 && (
+                {currentStep === 6 && order && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    <TradeComplete 
+                      orderId={order.order_id}
+                      orderType={order.type}
+                      onComplete={handleNextStep}
+                    />
+                  </div>
+                )}
+                {currentStep === 7 && (
                   <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
                     <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
                   </div>
