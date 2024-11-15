@@ -422,41 +422,28 @@ const Dashboard: React.FC<{
           },
         }
       );
-      console.log('Full response data:', response.data);
 
       const invoiceState = response.data.state;
-      console.log(`Invoice state: ${invoiceState}`);
 
       if (invoiceState === 'ACCEPTED') {
-        console.log(`Invoice accepted for order type ${order?.type}`);
-
-        // Update the order status in the state
         setOrder((prevOrder) => ({ ...prevOrder!, status: 'paid' }));
-
-        // Keep the update but silently handle any errors
+        
+        // Original update attempt but wrapped in try-catch
         if (order) {
-          try {
-            await axios.put(
-              `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}`,
-              { status: 'paid' },
-              {
-                headers: {
-                  Authorization: `Bearer ${localStorage.getItem('token')}`,
-                },
-              }
-            );
-          } catch (updateError) {
-            // Silently log error but don't throw it
-            console.log('Order status update failed silently:', updateError);
-          }
+          axios.put(  // Remove await to prevent blocking
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}`,
+            { status: 'paid' },
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
+            }
+          ).catch(() => {}); // Silent catch
         }
-      } else {
-        console.log(`Invoice not accepted. Current state: ${invoiceState}`);
       }
       return invoiceState;
     } catch (error) {
-      console.error(`Error checking invoice status:`, error);
-      return null;
+      return null; // Silently fail
     }
   };
 
