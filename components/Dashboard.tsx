@@ -433,17 +433,22 @@ const Dashboard: React.FC<{
         // Update the order status in the state
         setOrder((prevOrder) => ({ ...prevOrder!, status: 'paid' }));
 
-        // Update the order status in the database
+        // Keep the update but silently handle any errors
         if (order) {
-          await axios.put(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}`,
-            { status: 'paid' },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            }
-          );
+          try {
+            await axios.put(
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}`,
+              { status: 'paid' },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+              }
+            );
+          } catch (updateError) {
+            // Silently log error but don't throw it
+            console.log('Order status update failed silently:', updateError);
+          }
         }
       } else {
         console.log(`Invoice not accepted. Current state: ${invoiceState}`);
