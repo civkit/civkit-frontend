@@ -412,7 +412,6 @@ const Dashboard: React.FC<{
 
   const checkInvoiceStatus = async (paymentHash: string): Promise<string | null> => {
     try {
-      console.log(`Checking invoice status for payment hash: ${paymentHash}`);
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/holdinvoicelookup`,
         { payment_hash: paymentHash },
@@ -422,20 +421,14 @@ const Dashboard: React.FC<{
           },
         }
       );
-      console.log('Full response data:', response.data);
 
       const invoiceState = response.data.state;
-      console.log(`Invoice state: ${invoiceState}`);
 
       if (invoiceState === 'ACCEPTED') {
-        console.log(`Invoice accepted for order type ${order?.type}`);
-
-        // Update the order status in the state
         setOrder((prevOrder) => ({ ...prevOrder!, status: 'paid' }));
-
-        // Update the order status in the database
+        
         if (order) {
-          await axios.put(
+          axios.put(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}`,
             { status: 'paid' },
             {
@@ -443,14 +436,11 @@ const Dashboard: React.FC<{
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
               },
             }
-          );
+          ).catch(() => {});
         }
-      } else {
-        console.log(`Invoice not accepted. Current state: ${invoiceState}`);
       }
       return invoiceState;
-    } catch (error) {
-      console.error(`Error checking invoice status:`, error);
+    } catch {
       return null;
     }
   };
