@@ -63,7 +63,7 @@ interface Order {
   amount_msat: number;
   currency: string;
   payment_method: string;
-  status: string;
+  status: 'pending' | 'Pending' | 'chat_open' | 'taker_found' | string;
   type: number;
 }
 
@@ -310,12 +310,10 @@ const Dashboard: React.FC<{
       );
 
       if (data.url) {
-        // Remove any 'http:' or 'https:' prefix and ensure only one 'localhost:3456'
-        const cleanUrl = data.url.replace(/^(https?:)?(\/\/)?localhost:3456/, '');
-        const absoluteUrl = `http://localhost:3456${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
-        window.open(absoluteUrl, '_blank');
+        // Replace localhost:3456 with NEXT_PUBLIC_CHAT_URL, removing any protocol prefix
+        const chatUrl = data.url.replace('http://localhost:3456', process.env.NEXT_PUBLIC_CHAT_URL);
+        window.open(chatUrl, '_blank');
       } else {
-        // Keep the make-offer URL handling unchanged
         const { data: makeOfferData } = await axios.post(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/create-make-offer`,
           { orderId: currentOrder.order_id },
@@ -1019,12 +1017,12 @@ const Dashboard: React.FC<{
                     <p className='mt-4 text-gray-700'>
                       <strong>Make Offer URL:</strong>{' '}
                       <a 
-                        href={`http://localhost:3456/ui/chat/make-offer?orderId=${order.order_id}`} 
+                        href={`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`} 
                         target='_blank' 
                         rel='noopener noreferrer' 
                         className='text-blue-500 underline'
                       >
-                        {`http://localhost:3456/ui/chat/make-offer?orderId=${order.order_id}`}
+                        {`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`}
                       </a>
                     </p>
                   </div>
