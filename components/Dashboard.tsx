@@ -428,20 +428,24 @@ const Dashboard: React.FC<{
         setOrder((prevOrder) => ({ ...prevOrder!, status: 'paid' }));
         
         if (order) {
-          axios.put(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}`,
-            { status: 'paid' },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            }
-          ).catch(() => {});
+          try {
+            await axios.put(
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}`,
+              { status: 'paid' },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+              }
+            );
+          } catch {
+            // Silently ignore PUT errors
+          }
         }
       }
       return invoiceState;
     } catch {
-      return null;
+      return null; // Silently fail the main function
     }
   };
 
@@ -516,9 +520,10 @@ const Dashboard: React.FC<{
 
   const getSteps = () => {
     if (!order) return ['Create Order', 'Hold Invoice', 'Order Completed 🚀'];
-    return order.type === 0
+    
+    return order.type === 0  // Buy order
       ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat', 'Trade Complete', 'Order Completed 🚀']
-      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
+      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'];  // Added Fiat Received for sell orders
   };
 
   const handleNextStep = () => {
@@ -546,10 +551,10 @@ const Dashboard: React.FC<{
   const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const handleTakeOrder = (order: any) => {
-    const baseSteps = ['Hold Invoice', 'Full Invoice', 'Chat'];
-    const steps = order.type === 0 // 0 represents a buy order
-      ? [...baseSteps, 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'] // For taking a buy order
-      : [...baseSteps, 'Submit Payout', 'Trade Complete', 'Order Completed 🚀']; // For taking a sell order
+    const baseSteps = ['Hold Invoice', 'Chat'];
+    const steps = order.type === 0
+      ? [...baseSteps, 'Full Invoice', 'Fiat Received', 'Trade Complete', 'Order Completed 🚀']
+      : [...baseSteps, 'Submit Payout', 'Trade Complete', 'Order Completed 🚀'];
 
     setTakeOrderSteps(steps);
     setCurrentTakeOrderStep(1);
@@ -1017,11 +1022,10 @@ const Dashboard: React.FC<{
                     </p>
                   </div>
                 )}
-                {currentStep === 5 && order && (
-                  <TradeComplete 
+                {currentStep === 5 && order?.type !== 0 && (
+                  <FiatReceived 
                     orderId={order.order_id}
-                    orderType={order.type}
-                    onComplete={() => setCurrentStep(6)}
+                    onComplete={handleNextStep}
                   />
                 )}
                 {currentStep === 6 && (
