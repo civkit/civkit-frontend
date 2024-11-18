@@ -543,12 +543,10 @@ const Dashboard: React.FC<{
   const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const handleTakeOrder = (order: any) => {
-    const baseSteps = ['Hold Invoice', 'Full Invoice', 'Chat'];
-    const steps = order.type === 1 // Sell order
-      ? [...baseSteps, 'Submit Payout', 'Trade Complete', 'Order Completed 🚀']
-      : [...baseSteps, 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'];
-
-    setTakeOrderSteps(steps);
+    const sellOrderSteps = ['Hold Invoice', 'Submit Payout', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
+    const buyOrderSteps = ['Hold Invoice', 'Full Invoice', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
+    
+    setTakeOrderSteps(order.type === 1 ? sellOrderSteps : buyOrderSteps);
     setCurrentTakeOrderStep(1);
     setSelectedOrder(order);
     setIsTakeOrderModalOpen(true);
@@ -1090,12 +1088,6 @@ const Dashboard: React.FC<{
                   </button>
                 </div>
               )}
-          {currentTakeOrderStep === 4 && selectedOrder && (
-            <SubmitPayout 
-              orderId={selectedOrder.order_id.toString()}
-              onPayoutSubmitted={handleNextTakeOrderStep}
-            />
-          )}
               {currentTakeOrderStep === takeOrderSteps.length - 1 && selectedOrder && (
                 <TradeComplete 
                   orderId={selectedOrder.order_id}
