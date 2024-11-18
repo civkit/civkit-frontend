@@ -510,6 +510,9 @@ const Dashboard: React.FC<{
   };
 
   const getSteps = () => {
+    if (!order) {
+      return ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
+    }
     return order.type === 1  // Sell Order
       ? ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Fiat Received', 'Trade Complete', 'Order Completed 🚀']
       : ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
@@ -957,7 +960,7 @@ const Dashboard: React.FC<{
                 )}
                 {currentStep === 3 && order && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
-                    {order.type === 0 ? (
+                    {order?.type === 0 ? (
                       <FiatReceived 
                         orderId={order.order_id.toString()}
                         onComplete={() => setCurrentStep(4)}
