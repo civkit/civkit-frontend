@@ -6,7 +6,6 @@ on:
     branches: 
       - main
       - 'feature/**'
-  # Add manual trigger
   workflow_dispatch:
     inputs:
       branch:
@@ -33,6 +32,9 @@ jobs:
           
           cd /root/civkit-frontend
           
+          # Fetch all branches and tags
+          git fetch --all --prune --tags --force
+          
           # Save current changes
           git stash
           
@@ -42,13 +44,15 @@ jobs:
           
           # Checkout and update main first
           git checkout main
-          git pull origin main
+          git reset --hard origin/main
+          git pull origin main --force
           
           # If deploying feature branch
           if [ "${{ github.ref_name }}" != "main" ]; then
             echo "Deploying feature branch: ${{ github.ref_name }}"
-            git checkout ${{ github.ref_name }} || git checkout -b ${{ github.ref_name }} origin/${{ github.ref_name }}
-            # Force update to match remote
+            # Force checkout and update to latest
+            git fetch origin ${GITHUB_REF#refs/heads/}:${GITHUB_REF#refs/heads/} --force
+            git checkout ${{ github.ref_name }}
             git reset --hard origin/${{ github.ref_name }}
           fi
           
