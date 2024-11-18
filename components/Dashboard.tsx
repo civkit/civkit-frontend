@@ -747,7 +747,7 @@ const Dashboard: React.FC<{
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
-        <div className='fixed flex h-screen w-60 flex-col justify-between bg-gray-800 p-4 text-white'>
+        <div className="fixed flex h-screen w-60 flex-col justify-between bg-gray-800 p-4 text-white">
           <div>
             <div className='relative mt-6 flex flex-col items-center justify-center gap-2'>
               <Image
@@ -839,8 +839,8 @@ const Dashboard: React.FC<{
         />
       </button>
 
-      <div
-        className='fixed relative h-screen flex-1 bg-gray-100 p-8 dark:bg-gray-900'
+      <div 
+        className="fixed relative h-screen flex-1 bg-gray-100 p-8 dark:bg-gray-900"
         style={{ marginLeft: isDrawerOpen ? '15rem' : '0' }}
       >
         <div className='mb-6 mt-4 flex items-center justify-between'>
