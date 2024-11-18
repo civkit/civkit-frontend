@@ -543,8 +543,21 @@ const Dashboard: React.FC<{
   const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const handleTakeOrder = (order: any) => {
-    const sellOrderSteps = ['Hold Invoice', 'Submit Payout', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
-    const buyOrderSteps = ['Hold Invoice', 'Full Invoice', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
+    const sellOrderSteps = [
+      'Hold Invoice', 
+      'Submit Payout', 
+      'Chat', 
+      'Trade Complete', 
+      'Order Completed 🚀'
+    ];
+    const buyOrderSteps = [
+      'Hold Invoice', 
+      'Full Invoice', 
+      'Chat',
+      'Fiat Received',  // Add this step for buy orders
+      'Trade Complete', 
+      'Order Completed 🚀'
+    ];
     
     setTakeOrderSteps(order.type === 1 ? sellOrderSteps : buyOrderSteps);
     setCurrentTakeOrderStep(1);
@@ -1070,13 +1083,20 @@ const Dashboard: React.FC<{
             <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
               {currentTakeOrderStep === 1 && <TakeOrder orderId={selectedOrder.order_id} />}
               {currentTakeOrderStep === 2 && selectedOrder && (
-                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
-                  <SubmitPayout 
-                    orderId={selectedOrder.order_id.toString()}
-                    onPayoutSubmitted={handleNextTakeOrderStep}
-                  />
-                </div>
+            <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
+              {selectedOrder.type === 0 ? (  // Buy order
+                <TakerFullInvoice 
+                  orderId={selectedOrder.order_id.toString()}
+                  onComplete={handleNextTakeOrderStep}
+                />
+              ) : (  // Sell order
+                <SubmitPayout 
+                  orderId={selectedOrder.order_id.toString()}
+                  onPayoutSubmitted={handleNextTakeOrderStep}
+                />
               )}
+            </div>
+          )}
               {currentTakeOrderStep === 3 && (
                 <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex flex-col items-center justify-center'>
                   <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
@@ -1086,6 +1106,14 @@ const Dashboard: React.FC<{
                   >
                     Open Chat
                   </button>
+                </div>
+              )}
+              {currentTakeOrderStep === 4 && selectedOrder && selectedOrder.type === 0 && (
+                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
+                  <FiatReceived 
+                    orderId={selectedOrder.order_id.toString()}
+                    onComplete={handleNextTakeOrderStep}
+                  />
                 </div>
               )}
               {currentTakeOrderStep === takeOrderSteps.length - 1 && selectedOrder && (
