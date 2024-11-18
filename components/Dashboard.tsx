@@ -215,22 +215,17 @@ const Dashboard: React.FC<{
   // Update the Orders button click handler
   const handleOrdersClick = async () => {
     try {
+      setShowOrders(true);        // Show the orders table
+      setShowMyOrders(false);     // Reset to Orders view
+      setShowProfileSettings(false);
+      setIsModalOpen(false);
       setCurrentOrdersPage(1);
       
-      // Get the auth token
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        console.error('No auth token found');
-        // Redirect to login or handle missing token
-        return;
-      }
-
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`,
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            Authorization: `Bearer ${localStorage.getItem('token')}`
           }
         }
       );
