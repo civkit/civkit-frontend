@@ -996,13 +996,29 @@ const Dashboard: React.FC<{
                   </div>
                 )}
                 {currentStep === 5 && order && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    {order.type === 1 ? (
+                      <FiatReceived 
+                        orderId={order.order_id.toString()}
+                        onComplete={() => setCurrentStep(6)}
+                      />
+                    ) : (
+                      <TradeComplete 
+                        orderId={order.order_id}
+                        orderType={order.type}
+                        onComplete={() => setCurrentStep(6)}
+                      />
+                    )}
+                  </div>
+                )}
+                {currentStep === 6 && order && (
                   <TradeComplete 
                     orderId={order.order_id}
                     orderType={order.type}
-                    onComplete={() => setCurrentStep(6)}
+                    onComplete={() => setCurrentStep(7)}
                   />
                 )}
-                {currentStep === 6 && (
+                {currentStep === 7 && (
                   <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
                     <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
                   </div>
