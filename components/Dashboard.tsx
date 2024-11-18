@@ -1001,7 +1001,7 @@ const Dashboard: React.FC<{
                     <div className='flex flex-col gap-4'>
                       <button
                         onClick={() => {
-                          const makeOfferUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/make-offer-url/${order.order_id}`;
+                          const makeOfferUrl = `${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`;
                           window.open(makeOfferUrl, '_blank');
                         }}
                         className='w-full rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600'
