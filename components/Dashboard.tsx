@@ -1252,7 +1252,7 @@ const Dashboard: React.FC<{
                                     </tr>
                                   </tbody>
                                 </table>
-                                {determineUserRole(order) !== 'maker' && (
+                                {!showMyOrders && (
                                   <button
                                     className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
                                     onClick={() => handleTakeOrder(order)}
