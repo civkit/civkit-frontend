@@ -744,6 +744,13 @@ const Dashboard: React.FC<{
 
   const [showRatings, setShowRatings] = useState<boolean>(false);
 
+  const determineUserRole = (order: Order): 'maker' | 'taker' | null => {
+    const userId = localStorage.getItem('userId');
+    if (order.customer_id === userId) return 'maker';
+    if (order.taker_customer_id === userId) return 'taker';
+    return null;
+  };
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
@@ -1245,14 +1252,14 @@ const Dashboard: React.FC<{
                                     </tr>
                                   </tbody>
                                 </table>
-                                <button
-                                  className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-                                  onClick={() =>
-                                    handleTakeOrder(order)
-                                  }
-                                >
-                                  Take Order
-                                </button>
+                                {determineUserRole(order) !== 'maker' && (
+                                  <button
+                                    className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                                    onClick={() => handleTakeOrder(order)}
+                                  >
+                                    Take Order
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
