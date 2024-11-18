@@ -510,10 +510,9 @@ const Dashboard: React.FC<{
   };
 
   const getSteps = () => {
-    if (!order) return ['Create Order', 'Hold Invoice', 'Order Completed 🚀'];
-    return order.type === 0
-      ? ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat', 'Trade Complete', 'Order Completed 🚀']
-      : ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
+    return order.type === 1  // Sell Order
+      ? ['Create Order', 'Hold Invoice', 'Full Invoice', 'Chat', 'Fiat Received', 'Trade Complete', 'Order Completed 🚀']
+      : ['Create Order', 'Hold Invoice', 'Submit Payout', 'Chat', 'Trade Complete', 'Order Completed 🚀'];
   };
 
   const handleNextStep = () => {
@@ -542,9 +541,9 @@ const Dashboard: React.FC<{
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const handleTakeOrder = (order: any) => {
     const baseSteps = ['Hold Invoice', 'Full Invoice', 'Chat'];
-    const steps = order.type === 0 // 0 represents a buy order
-      ? [...baseSteps, 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'] // For taking a buy order
-      : [...baseSteps, 'Submit Payout', 'Trade Complete', 'Order Completed 🚀']; // For taking a sell order
+    const steps = order.type === 1 // Sell order
+      ? [...baseSteps, 'Submit Payout', 'Trade Complete', 'Order Completed 🚀']
+      : [...baseSteps, 'Fiat Received', 'Trade Complete', 'Order Completed 🚀'];
 
     setTakeOrderSteps(steps);
     setCurrentTakeOrderStep(1);
@@ -959,41 +958,15 @@ const Dashboard: React.FC<{
                 {currentStep === 3 && order && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                     {order.type === 0 ? (
+                      <FiatReceived 
+                        orderId={order.order_id.toString()}
+                        onComplete={() => setCurrentStep(4)}
+                      />
+                    ) : (
                       <SubmitPayout 
                         orderId={order.order_id.toString()} 
                         onPayoutSubmitted={() => setCurrentStep(4)}
                       />
-                    ) : fullInvoice ? (
-                      <>
-                        <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Full Invoice Details</h2>
-                        <div className='mb-4'>
-                          <label className='mb-2 block font-bold text-gray-700'>Invoice (Full):</label>
-                          <div className='break-words rounded bg-gray-100 p-2'>
-                            <p className='text-xs'>{fullInvoice.bolt11}</p>
-                          </div>
-                        </div>
-                        <div className='my-4 flex justify-center'>
-                          <QRCode value={fullInvoice.bolt11} />
-                        </div>
-                        <div className='mt-4'>
-                          <p><strong>Invoice ID:</strong> {fullInvoice.invoice_id}</p>
-                          <p><strong>Order ID:</strong> {fullInvoice.order_id}</p>
-                          <p><strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000} sats</p>
-                          <p><strong>Description:</strong> {fullInvoice.description}</p>
-                          <p><strong>Status:</strong> {fullInvoice.status}</p>
-                          <p><strong>Created At:</strong> {new Date(fullInvoice.created_at).toLocaleString()}</p>
-                          <p><strong>Expires At:</strong> {new Date(fullInvoice.expires_at).toLocaleString()}</p>
-                          <p><strong>Payment Hash:</strong> {fullInvoice.payment_hash}</p>
-                        </div>
-                        <button
-                          onClick={() => checkFullInvoice()}
-                          className='mt-4 w-full rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700'
-                        >
-                          Check Invoice Status
-                        </button>
-                      </>
-                    ) : (
-                      <p>Loading full invoice...</p>
                     )}
                   </div>
                 )}
@@ -1109,9 +1082,9 @@ const Dashboard: React.FC<{
                 </div>
               )}
           {currentTakeOrderStep === 4 && selectedOrder && (
-            <FiatReceived 
-              orderId={selectedOrder.order_id}
-              onComplete={handleNextTakeOrderStep}
+            <SubmitPayout 
+              orderId={selectedOrder.order_id.toString()}
+              onPayoutSubmitted={handleNextTakeOrderStep}
             />
           )}
               {currentTakeOrderStep === takeOrderSteps.length - 1 && selectedOrder && (
