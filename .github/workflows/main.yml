@@ -33,29 +33,27 @@ jobs:
           
           cd /root/civkit-frontend
           
-          # Clear build caches but preserve node_modules
-          rm -rf .next
-          rm -rf out
-          rm -rf .cache
-          rm -rf dist
-          
-          # Clear TypeScript compilation cache
-          rm -rf tsconfig.tsbuildinfo
-          
-          # Stash any changes and checkout main first
+          # Save current changes
           git stash
+          
+          # Force clean state
+          git reset --hard HEAD
+          git clean -fd
+          
+          # Checkout and update main first
           git checkout main
+          git pull origin main
           
           # If deploying feature branch
           if [ "${{ github.ref_name }}" != "main" ]; then
             echo "Deploying feature branch: ${{ github.ref_name }}"
-            git checkout ${{ github.ref_name }}
+            git checkout ${{ github.ref_name }} || git checkout -b ${{ github.ref_name }} origin/${{ github.ref_name }}
+            # Force update to match remote
+            git reset --hard origin/${{ github.ref_name }}
           fi
           
-          git pull origin ${{ github.ref_name }}
-          
-          # Force clear Next.js cache
-          npm run clean || echo "Clean had issues but continuing..."
+          # Clear caches but preserve node_modules
+          rm -rf .next out .cache dist tsconfig.tsbuildinfo
           
           npm run build || echo "Build had issues but continuing..."
           
