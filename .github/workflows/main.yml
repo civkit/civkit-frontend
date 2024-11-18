@@ -33,6 +33,15 @@ jobs:
           
           cd /root/civkit-frontend
           
+          # Clear build caches but preserve node_modules
+          rm -rf .next
+          rm -rf out
+          rm -rf .cache
+          rm -rf dist
+          
+          # Clear TypeScript compilation cache
+          rm -rf tsconfig.tsbuildinfo
+          
           # Stash any changes and checkout main first
           git stash
           git checkout main
@@ -44,6 +53,9 @@ jobs:
           fi
           
           git pull origin ${{ github.ref_name }}
+          
+          # Force clear Next.js cache
+          npm run clean || echo "Clean had issues but continuing..."
           
           npm run build || echo "Build had issues but continuing..."
           
