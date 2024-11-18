@@ -997,24 +997,24 @@ const Dashboard: React.FC<{
                 )}
                 {currentStep === 4 && order && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
-                    <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
-                    <button
-                      onClick={() => handleOpenChat(order.order_id)}
-                      className="flex w-36 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600"
-                    >
-                      Open Chat
-                    </button>
-                    <p className='mt-4 text-gray-700'>
-                      <strong>Make Offer URL:</strong>{' '}
-                      <a 
-                        href={`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`} 
-                        target='_blank' 
-                        rel='noopener noreferrer' 
-                        className='text-blue-500 underline'
+                    <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Make Offer</h2>
+                    <div className='flex flex-col gap-4'>
+                      <button
+                        onClick={() => {
+                          const makeOfferUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/make-offer-url/${order.order_id}`;
+                          window.open(makeOfferUrl, '_blank');
+                        }}
+                        className='w-full rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600'
                       >
-                        {`${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`}
-                      </a>
-                    </p>
+                        Make Chatroom Offer
+                      </button>
+                      <button
+                        onClick={handleNextStep}
+                        className='w-full rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600'
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
                 )}
                 {currentStep === 5 && order && (
