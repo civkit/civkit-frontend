@@ -215,22 +215,17 @@ const Dashboard: React.FC<{
   // Update the Orders button click handler
   const handleOrdersClick = async () => {
     try {
+      setShowOrders(true);        // Show the orders table
+      setShowMyOrders(false);     // Reset to Orders view
+      setShowProfileSettings(false);
+      setIsModalOpen(false);
       setCurrentOrdersPage(1);
       
-      // Get the auth token
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        console.error('No auth token found');
-        // Redirect to login or handle missing token
-        return;
-      }
-
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders`,
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            Authorization: `Bearer ${localStorage.getItem('token')}`
           }
         }
       );
@@ -744,6 +739,13 @@ const Dashboard: React.FC<{
 
   const [showRatings, setShowRatings] = useState<boolean>(false);
 
+  const determineUserRole = (order: Order): 'maker' | 'taker' | null => {
+    const userId = localStorage.getItem('userId');
+    if (order.customer_id === userId) return 'maker';
+    if (order.taker_customer_id === userId) return 'taker';
+    return null;
+  };
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
@@ -1245,14 +1247,14 @@ const Dashboard: React.FC<{
                                     </tr>
                                   </tbody>
                                 </table>
-                                <button
-                                  className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-                                  onClick={() =>
-                                    handleTakeOrder(order)
-                                  }
-                                >
-                                  Take Order
-                                </button>
+                                {!showMyOrders && order.customer_id !== localStorage.getItem('userId') && (
+                                  <button
+                                    className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                                    onClick={() => handleTakeOrder(order)}
+                                  >
+                                    Take Order
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
