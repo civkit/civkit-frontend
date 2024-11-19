@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNostr } from './useNostr';
+import { toast } from 'react-toastify';
 
 // Enhanced interface for rating details
 interface RatingData {
@@ -19,6 +20,16 @@ interface RatingEvent {
   tags: any[];
   pubkey: string;
 }
+
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard!');
+  } catch (err) {
+    toast.error('Failed to copy');
+    console.error('Failed to copy:', err);
+  }
+};
 
 const FilteredRatings = () => {
   const [ratings, setRatings] = useState<RatingData[]>([]);
@@ -133,14 +144,26 @@ const FilteredRatings = () => {
                         {rating.review || 'No review provided'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {typeof rating.maker_pubkey === 'string' && rating.maker_pubkey.length > 8 
-                          ? `${rating.maker_pubkey.slice(0, 8)}...` 
-                          : rating.maker_pubkey || 'Unknown'}
+                        <button 
+                          onClick={() => copyToClipboard(rating.maker_pubkey)}
+                          className="hover:text-blue-600 cursor-pointer"
+                          title="Click to copy full pubkey"
+                        >
+                          {typeof rating.maker_pubkey === 'string' && rating.maker_pubkey.length > 8 
+                            ? `${rating.maker_pubkey.slice(0, 8)}...` 
+                            : rating.maker_pubkey || 'Unknown'}
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {typeof rating.taker_pubkey === 'string' && rating.taker_pubkey.length > 8 
-                          ? `${rating.taker_pubkey.slice(0, 8)}...` 
-                          : rating.taker_pubkey || 'Unknown'}
+                        <button 
+                          onClick={() => copyToClipboard(rating.taker_pubkey)}
+                          className="hover:text-blue-600 cursor-pointer"
+                          title="Click to copy full pubkey"
+                        >
+                          {typeof rating.taker_pubkey === 'string' && rating.taker_pubkey.length > 8 
+                            ? `${rating.taker_pubkey.slice(0, 8)}...` 
+                            : rating.taker_pubkey || 'Unknown'}
+                        </button>
                       </td>
                     </tr>
                   ))
