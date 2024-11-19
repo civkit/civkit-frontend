@@ -5,10 +5,10 @@ import { useNostr } from './useNostr';
 interface RatingData {
   order_id: number;
   rating: number;
-  review?: string;
-  maker_pubkey?: string;
-  taker_pubkey?: string;
-  created_at?: number;
+  review: string;
+  reviewer_npub: string;
+  order_type: number;
+  rated_user_npub: string;
 }
 
 interface RatingEvent {
@@ -39,41 +39,58 @@ const FilteredRatings = () => {
     return "★".repeat(rating) + "☆".repeat(5 - rating);
   };
 
+  const handleEventReceived = (event: RatingEvent) => {
+    if (!event?.content) return;
+
+    try {
+      const parsedContent: RatingData = JSON.parse(event.content);
+      console.log('Received rating event:', parsedContent); // Debug log
+
+      setRatings(prevRatings => {
+        // Check for duplicates using both order_id and reviewer
+        if (prevRatings.some(rating => 
+          rating.order_id === parsedContent.order_id && 
+          rating.reviewer_npub === parsedContent.reviewer_npub
+        )) {
+          return prevRatings;
+        }
+
+        // Add event metadata to rating
+        const enrichedRating = {
+          ...parsedContent,
+          created_at: event.created_at,
+          maker_pubkey: parsedContent.rated_user_npub,
+          taker_pubkey: parsedContent.reviewer_npub,
+          review: parsedContent.review
+        };
+
+        // Sort by newest first
+        return [...prevRatings, enrichedRating]
+          .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+      });
+    } catch (error) {
+      console.error('Error parsing rating event:', error, 'Event:', event);
+    }
+  };
+
   useEffect(() => {
     // Initialize connection with dummy event
     const dummyEvent = { kind: 1, content: 'Initializing connection' };
     signAndSendEvent(dummyEvent)
-      .then(() => setIsSigned(true))
+      .then(() => {
+        setIsSigned(true);
+        console.log('Connected to Nostr'); // Debug log
+      })
       .catch(error => console.error('Error signing event:', error));
 
-    // Handle incoming events
-    const handleEventReceived = (event: RatingEvent) => {
-      if (!event?.content) return;
-
-      try {
-        const parsedContent: RatingData = JSON.parse(event.content);
-        setRatings(prevRatings => {
-          // Check for duplicates
-          if (prevRatings.some(rating => rating.order_id === parsedContent.order_id)) {
-            return prevRatings;
-          }
-          // Add event metadata to rating
-          const enrichedRating = {
-            ...parsedContent,
-            created_at: event.created_at,
-            maker_pubkey: event.pubkey
-          };
-          // Sort by newest first
-          return [...prevRatings, enrichedRating]
-            .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-        });
-      } catch (error) {
-        console.error('Error parsing event content:', error);
-      }
-    };
-
+    // Subscribe to rating events
     const unsubscribe = subscribeToEvents(handleEventReceived, [1508]);
-    return () => unsubscribe();
+    console.log('Subscribed to rating events'); // Debug log
+
+    return () => {
+      console.log('Unsubscribing from rating events'); // Debug log
+      unsubscribe();
+    };
   }, [signAndSendEvent, subscribeToEvents]);
 
   return (
