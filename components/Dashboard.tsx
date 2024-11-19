@@ -41,6 +41,8 @@ import FiatReceived from '../pages/fiat-received';
 import TradeComplete from '../pages/trade-complete';
 import TakerFullInvoice from '../pages/taker-full-invoice';
 import Ratings from '../pages/Ratings';
+import { io, Socket } from 'socket.io-client';
+import { toast } from 'react-toastify';
 
 // Dynamically import the OrderDetails component
 const OrderDetails = dynamic(() => import('../pages/orders/[orderId]'), {
@@ -746,6 +748,56 @@ const Dashboard: React.FC<{
     return null;
   };
 
+  const [socket, setSocket] = useState<Socket | null>(null);
+  
+  // Add socket connection
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
+    
+    if (token && userId) {
+      const newSocket = io(process.env.NEXT_PUBLIC_API_BASE_URL!, {
+        auth: { token }
+      });
+
+      newSocket.on('connect', () => {
+        console.log('Socket connected');
+        newSocket.emit('register', parseInt(userId));
+      });
+
+      // Listen for chat notifications
+      newSocket.on('chatReady', (data) => {
+        toast.info(data.message, {
+          position: "top-right",
+          onClick: () => {
+            // If this is the current order, open chat
+            if (selectedOrder?.order_id === data.orderId) {
+              handleOpenChat();
+            }
+          }
+        });
+
+        // Update orders list to reflect chat availability
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.order_id === data.orderId 
+              ? { ...order, status: 'chat_open' }
+              : order
+          )
+        );
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.disconnect();
+      };
+    }
+  }, []);
+
+  // Add notification bell with count
+  const [notificationCount, setNotificationCount] = useState(0);
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
@@ -864,8 +916,18 @@ const Dashboard: React.FC<{
             )}
           </div>
           <div className='mr-12 flex items-center space-x-6'>
+            <div className="relative">
+              <FaBell 
+                className='cursor-pointer text-gray-600 dark:text-gray-300' 
+                onClick={() => setNotificationCount(0)} 
+              />
+              {notificationCount > 0 && (
+                <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
+                  {notificationCount}
+                </span>
+              )}
+            </div>
             <FaQuestionCircle className='cursor-pointer text-gray-600 dark:text-gray-300' />
-            <FaBell className='cursor-pointer text-gray-600 dark:text-gray-300' />
             <button onClick={toggleDarkMode}>
               {darkMode ? (
                 <FaSun className='text-yellow-500' />
