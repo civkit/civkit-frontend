@@ -41,10 +41,18 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
     const fetchCurrencies = async () => {
       try {
         const response = await fetch('/currencies.json');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
-        setCurrencies(Object.entries(data).map(([id, code]) => ({ id, code: code as string })));
+        setCurrencies(Object.entries(data).map(([id, code]) => ({ 
+          id, 
+          code: code as string 
+        })));
       } catch (error) {
         console.error('Error fetching currencies:', error);
+        // Fallback to empty array if fetch fails
+        setCurrencies([]);
       }
     };
     fetchCurrencies();
