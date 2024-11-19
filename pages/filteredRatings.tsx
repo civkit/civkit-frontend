@@ -72,20 +72,15 @@ const FilteredRatings = () => {
       }
     };
 
-    const unsubscribe = subscribeToEvents(handleEventReceived, [1506]);
+    const unsubscribe = subscribeToEvents(handleEventReceived, [1508]);
     return () => unsubscribe();
   }, [signAndSendEvent, subscribeToEvents]);
-
-  const handleTakeOrder = (orderId: number) => {
-    // Redirect to login page
-    window.location.href = '/login';
-  };
 
   return (
     <div className='min-h-screen bg-gray-100 p-8'>
       <div className='mx-auto max-w-7xl'>
         <h2 className='mb-6 text-center text-3xl font-bold text-gray-800'>
-          Active Orders
+          Recent Ratings
         </h2>
         {isSigned ? (
           <div className="overflow-x-auto">
@@ -94,64 +89,42 @@ const FilteredRatings = () => {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Maker</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taker</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {orders.length > 0 ? (
-                  orders.map((order) => (
-                    <tr key={order.order_id} className="hover:bg-gray-50">
+                {ratings.length > 0 ? (
+                  ratings.map((rating) => (
+                    <tr key={`${rating.order_id}-${rating.created_at}`} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{order.order_id}
+                        #{rating.order_id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order.created_at && timeAgo(order.created_at)}
+                        {rating.created_at && timeAgo(rating.created_at)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order.type === 0 ? 
-                          <span className="text-green-600">Buy</span> : 
-                          <span className="text-blue-600">Sell</span>
-                        }
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatMsatToBTC(order.amount_msat)} BTC
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order.currency}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order.payment_method}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                          ${order.status === 'pending' 
-                            ? 'bg-green-100 text-green-800'   // Pending is now green
-                            : order.status === 'paid'
-                            ? 'bg-orange-100 text-orange-800' // Paid is now orange
-                            : 'bg-gray-100 text-gray-800'    // Default for other statuses
-                          }`}>
-                          {order.status}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className="text-yellow-500">
+                          {renderStars(rating.rating)}
                         </span>
                       </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {rating.review || 'No review provided'}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <button
-                          onClick={() => handleTakeOrder(order.order_id)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Take Order
-                        </button>
+                        {rating.maker_pubkey?.slice(0, 8)}...
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {rating.taker_pubkey?.slice(0, 8)}...
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                      No active orders found.
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                      No ratings found.
                     </td>
                   </tr>
                 )}
@@ -168,4 +141,4 @@ const FilteredRatings = () => {
   );
 };
 
-export default FilteredOrders;
+export default FilteredRatings;
