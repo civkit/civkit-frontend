@@ -25,7 +25,7 @@ const EventDisplay = () => {
       console.log('New event received:', event);
     };
 
-    const unsubscribe = subscribeToEvents(handleEventReceived);
+    const unsubscribe = subscribeToEvents(handleEventReceived, [1506, 1508]);
     return () => unsubscribe();
   }, [subscribeToEvents]);
 
