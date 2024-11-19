@@ -23,7 +23,6 @@ const createAndFetchTakerFullInvoice = async (orderId: string) => {
 };
 
 const TakerFullInvoice = ({ orderId, initialFullInvoice }) => {
-  const router = useRouter();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fullInvoice, setFullInvoice] = useState(initialFullInvoice);
