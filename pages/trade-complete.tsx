@@ -77,19 +77,26 @@ const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId: propOrderId, ord
       // Then handle the Nostr part
       if (window.nostr) {
         const pubkey = await window.nostr.getPublicKey();
-        const npub = nip19.npubEncode(pubkey);
+        const reviewerNpub = nip19.npubEncode(pubkey);
         
-        // Create Nostr-specific event data
+        // Fetch maker's npub using the new endpoint
+        const makerResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user-npub/${order?.order?.customer_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+        const makerNpub = makerResponse.data.npub;
+
         const nostrReviewData = {
           order_id: orderId,
           review,
           rating,
-          reviewer_npub: npub,
+          reviewer_npub: reviewerNpub,
           order_type: orderType,
-          // Use order data directly to determine who to rate
-          rated_user_npub: order?.order?.taker_customer_id 
-            ? order.order.taker_customer_id 
-            : order.order.customer_id
+          rated_user_npub: makerNpub  // Use the fetched maker npub
         };
 
         const event = {
@@ -97,12 +104,12 @@ const TradeComplete: React.FC<TradeCompleteProps> = ({ orderId: propOrderId, ord
           created_at: Math.floor(Date.now() / 1000),
           tags: [
             ['e', 'review'],
-            ['p', order?.order?.taker_customer_id?.toString() || ''],
-            ['maker', order?.order?.customer_id?.toString() || ''],
+            ['p', makerNpub],          // Use npub instead of customer_id
+            ['maker', makerNpub],      // Use npub instead of customer_id
             ['order', orderId.toString()]
           ],
           content: JSON.stringify(nostrReviewData),
-          pubkey: npub,
+          pubkey: reviewerNpub,
         };
 
         console.log('Event before signing:', event);
