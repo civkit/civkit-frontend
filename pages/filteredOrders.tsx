@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNostr } from './useNostr';
 
+// Enhanced interface with more order details
 interface OrderData {
   order_id: number;
   status: string;
@@ -9,6 +10,12 @@ interface OrderData {
   payment_method: string;
   type: number;
   frontend_url: string;
+  created_at?: number;
+  maker_pubkey?: string;
+  premium?: number;
+  exchange_rate?: number;
+  order_description?: string;
+  payment_windows?: number;
 }
 
 interface OrderEvent {
@@ -25,106 +32,154 @@ const FilteredOrders = () => {
   const [isSigned, setIsSigned] = useState(false);
   const { signAndSendEvent, subscribeToEvents } = useNostr();
 
+  // Helper function to format msats to BTC
+  const formatMsatToBTC = (msat: number) => {
+    return (msat / 100000000000).toFixed(8);
+  };
+
+  // Helper function for time ago
+  const timeAgo = (timestamp: number) => {
+    const seconds = Math.floor(Date.now() / 1000 - timestamp);
+    if (seconds < 60) return `${seconds} seconds ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+    return `${Math.floor(seconds / 86400)} days ago`;
+  };
+
   useEffect(() => {
-    console.log('useEffect triggered');
-
+    // Initialize connection with dummy event
     const dummyEvent = { kind: 1, content: 'Initializing connection' };
-    console.log('Signing event to initialize connection:');
     signAndSendEvent(dummyEvent)
-      .then(() => {
-        console.log('Event signed successfully');
-        setIsSigned(true);
-      })
-      .catch((error) => {
-        console.error('Error signing event:', error);
-      });
+      .then(() => setIsSigned(true))
+      .catch(error => console.error('Error signing event:', error));
 
+    // Handle incoming events
     const handleEventReceived = (event: OrderEvent) => {
-      console.log('Event received:', event);
-      if (!event || !event.content) {
-        console.log('No valid event received');
-        return;
-      }
+      if (!event?.content) return;
 
       try {
         const parsedContent: OrderData = JSON.parse(event.content);
-        console.log('Parsed content:', parsedContent);
-
-        setOrders((prevOrders) => {
-          const orderExists = prevOrders.some(
-            (prevOrder) => prevOrder.order_id === parsedContent.order_id
-          );
-          if (orderExists) {
-            console.log(
-              `Order with ID ${parsedContent.order_id} already exists. Skipping.`
-            );
+        setOrders(prevOrders => {
+          // Check for duplicates
+          if (prevOrders.some(order => order.order_id === parsedContent.order_id)) {
             return prevOrders;
           }
-          return [...prevOrders, parsedContent];
+          // Add event metadata to order
+          const enrichedOrder = {
+            ...parsedContent,
+            created_at: event.created_at,
+            maker_pubkey: event.pubkey
+          };
+          // Sort by newest first
+          return [...prevOrders, enrichedOrder]
+            .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
         });
       } catch (error) {
         console.error('Error parsing event content:', error);
       }
     };
 
-    console.log('Subscribing to orders');
     const unsubscribe = subscribeToEvents(handleEventReceived, [1506]);
-    console.log('Subscribed to orders');
-
-    return () => {
-      console.log('Unsubscribing from orders');
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [signAndSendEvent, subscribeToEvents]);
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-100'>
-      <div className='mt-6 w-full max-w-5xl rounded-lg bg-white p-8 shadow-lg'>
-        <h2 className='mb-6 text-center text-2xl font-bold text-blue-600'>
-          Filtered Orders
+    <div className='min-h-screen bg-gray-100 p-8'>
+      <div className='mx-auto max-w-7xl'>
+        <h2 className='mb-6 text-center text-3xl font-bold text-gray-800'>
+          Active Orders
         </h2>
         {isSigned ? (
-          <div className='grid grid-cols-1 gap-8 md:grid-cols-3'>
+          <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
             {orders.length > 0 ? (
               orders.map((order) => (
                 <div
                   key={order.order_id}
-                  className='rounded-lg bg-white p-6 shadow-lg'
+                  className='overflow-hidden rounded-lg bg-white shadow-lg transition-all hover:shadow-xl'
                 >
-                  <h3 className='mb-2 text-lg font-bold text-gray-700'>
-                    Order ID: {order.order_id}
-                  </h3>
-                  <p className='text-gray-700'>Status: {order.status}</p>
-                  <p className='text-gray-700'>
-                    Amount (msat): {order.amount_msat}
-                  </p>
-                  <p className='text-gray-700'>Currency: {order.currency}</p>
-                  <p className='text-gray-700'>
-                    Payment Method: {order.payment_method}
-                  </p>
-                  <p className='text-gray-700'>
-                    Type: {order.type === 0 ? 'Buy' : 'Sell'}
-                  </p>
-                  <p className='text-gray-700'>
+                  <div className='border-b border-gray-200 bg-gray-50 p-4'>
+                    <div className='flex items-center justify-between'>
+                      <h3 className='text-lg font-bold text-gray-800'>
+                        Order #{order.order_id}
+                      </h3>
+                      <span className={`rounded-full px-3 py-1 text-sm ${
+                        order.status === 'active' ? 'bg-green-100 text-green-800' : 
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </div>
+                    {order.created_at && (
+                      <p className='mt-1 text-sm text-gray-600'>
+                        Created {timeAgo(order.created_at)}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className='space-y-3 p-4'>
+                    <div className='flex justify-between'>
+                      <span className='text-gray-600'>Amount:</span>
+                      <span className='font-medium'>
+                        {formatMsatToBTC(order.amount_msat)} BTC
+                      </span>
+                    </div>
+                    
+                    <div className='flex justify-between'>
+                      <span className='text-gray-600'>Currency:</span>
+                      <span className='font-medium'>{order.currency}</span>
+                    </div>
+
+                    <div className='flex justify-between'>
+                      <span className='text-gray-600'>Payment Method:</span>
+                      <span className='font-medium'>{order.payment_method}</span>
+                    </div>
+
+                    <div className='flex justify-between'>
+                      <span className='text-gray-600'>Type:</span>
+                      <span className='font-medium'>
+                        {order.type === 0 ? 'Buy' : 'Sell'}
+                      </span>
+                    </div>
+
+                    {order.premium && (
+                      <div className='flex justify-between'>
+                        <span className='text-gray-600'>Premium:</span>
+                        <span className='font-medium'>{order.premium}%</span>
+                      </div>
+                    )}
+
+                    {order.exchange_rate && (
+                      <div className='flex justify-between'>
+                        <span className='text-gray-600'>Rate:</span>
+                        <span className='font-medium'>
+                          {order.exchange_rate} {order.currency}/BTC
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className='border-t border-gray-200 bg-gray-50 p-4'>
                     <a
                       href={`${order.frontend_url}/take-order?orderId=${order.order_id}`}
                       target='_blank'
                       rel='noopener noreferrer'
-                      className='text-blue-500 hover:text-blue-700'
+                      className='block w-full rounded-lg bg-blue-500 px-4 py-2 text-center font-medium text-white transition-colors hover:bg-blue-600'
                     >
                       Take Order
                     </a>
-                  </p>
+                  </div>
                 </div>
               ))
             ) : (
-              <p className='text-center text-gray-700'>No orders found.</p>
+              <div className='col-span-full text-center text-gray-500'>
+                No active orders found.
+              </div>
             )}
           </div>
         ) : (
-          <p className='text-center text-gray-700'>
-            Signing event, please wait...
-          </p>
+          <div className='text-center text-gray-500'>
+            Connecting to Nostr network...
+          </div>
         )}
       </div>
     </div>
