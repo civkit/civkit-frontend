@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from 'next/router';
 import { AxiosError } from 'axios';
+import { useNostr } from '../pages/useNostr';
 
 interface Currency {
   id: string;
@@ -34,6 +35,7 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const router = useRouter();
+  const { signAndSendEvent } = useNostr();
 
   useEffect(() => {
     const fetchCurrencies = async () => {
@@ -77,11 +79,19 @@ const CreateOrderForm: React.FC<CreateOrderFormProps> = ({ onOrderCreated }) => 
 
       console.log('Order creation response:', orderResponse.data);
 
+      const nostrOrderData = {
+        ...orderData,
+        order_id: orderResponse.data.order.order_id,
+        frontend_url: process.env.NEXT_PUBLIC_FRONTEND_URL || 'Not specified',
+      };
+
+      await signAndSendEvent(nostrOrderData, 1506);
+      console.log('Order broadcasted to Nostr network');
+
       if (!orderResponse.data.order || !orderResponse.data.holdInvoice) {
         throw new Error('Failed to create order or generate invoice');
       }
 
-      // Call onOrderCreated with the order, hold invoice, and full invoice (if it exists)
       onOrderCreated(orderResponse.data.order, orderResponse.data.holdInvoice);
 
     } catch (error) {
