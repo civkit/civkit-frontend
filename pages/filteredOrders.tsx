@@ -83,6 +83,11 @@ const FilteredOrders = () => {
     return () => unsubscribe();
   }, [signAndSendEvent, subscribeToEvents]);
 
+  const handleTakeOrder = (orderId: number) => {
+    // Redirect to login page
+    window.location.href = '/login';
+  };
+
   return (
     <div className='min-h-screen bg-gray-100 p-8'>
       <div className='mx-auto max-w-7xl'>
@@ -90,91 +95,70 @@ const FilteredOrders = () => {
           Active Orders
         </h2>
         {isSigned ? (
-          <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
-            {orders.length > 0 ? (
-              orders.map((order) => (
-                <div
-                  key={order.order_id}
-                  className='overflow-hidden rounded-lg bg-white shadow-lg transition-all hover:shadow-xl'
-                >
-                  <div className='border-b border-gray-200 bg-gray-50 p-4'>
-                    <div className='flex items-center justify-between'>
-                      <h3 className='text-lg font-bold text-gray-800'>
-                        Order #{order.order_id}
-                      </h3>
-                      <span className={`rounded-full px-3 py-1 text-sm ${
-                        order.status === 'active' ? 'bg-green-100 text-green-800' : 
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {order.status}
-                      </span>
-                    </div>
-                    {order.created_at && (
-                      <p className='mt-1 text-sm text-gray-600'>
-                        Created {timeAgo(order.created_at)}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className='space-y-3 p-4'>
-                    <div className='flex justify-between'>
-                      <span className='text-gray-600'>Amount:</span>
-                      <span className='font-medium'>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white shadow-lg rounded-lg">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {orders.length > 0 ? (
+                  orders.map((order) => (
+                    <tr key={order.order_id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        #{order.order_id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.created_at && timeAgo(order.created_at)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.type === 0 ? 
+                          <span className="text-green-600">Buy</span> : 
+                          <span className="text-red-600">Sell</span>
+                        }
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatMsatToBTC(order.amount_msat)} BTC
-                      </span>
-                    </div>
-                    
-                    <div className='flex justify-between'>
-                      <span className='text-gray-600'>Currency:</span>
-                      <span className='font-medium'>{order.currency}</span>
-                    </div>
-
-                    <div className='flex justify-between'>
-                      <span className='text-gray-600'>Payment Method:</span>
-                      <span className='font-medium'>{order.payment_method}</span>
-                    </div>
-
-                    <div className='flex justify-between'>
-                      <span className='text-gray-600'>Type:</span>
-                      <span className='font-medium'>
-                        {order.type === 0 ? 'Buy' : 'Sell'}
-                      </span>
-                    </div>
-
-                    {order.premium && (
-                      <div className='flex justify-between'>
-                        <span className='text-gray-600'>Premium:</span>
-                        <span className='font-medium'>{order.premium}%</span>
-                      </div>
-                    )}
-
-                    {order.exchange_rate && (
-                      <div className='flex justify-between'>
-                        <span className='text-gray-600'>Rate:</span>
-                        <span className='font-medium'>
-                          {order.exchange_rate} {order.currency}/BTC
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.currency}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.payment_method}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                          ${order.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {order.status}
                         </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className='border-t border-gray-200 bg-gray-50 p-4'>
-                    <a
-                      href={`${order.frontend_url}/take-order?orderId=${order.order_id}`}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='block w-full rounded-lg bg-blue-500 px-4 py-2 text-center font-medium text-white transition-colors hover:bg-blue-600'
-                    >
-                      Take Order
-                    </a>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className='col-span-full text-center text-gray-500'>
-                No active orders found.
-              </div>
-            )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button
+                          onClick={() => handleTakeOrder(order.order_id)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Take Order
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
+                      No active orders found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className='text-center text-gray-500'>
