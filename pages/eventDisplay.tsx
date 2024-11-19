@@ -15,12 +15,31 @@ const EventDisplay = () => {
   const [rankingEvents, setRankingEvents] = useState<NostrEvent[]>([]);
   const { subscribeToEvents } = useNostr();
 
+  // Function to check if event is recent (within last 24 hours)
+  const isRecent = (timestamp: number) => {
+    const oneDayAgo = (Date.now() / 1000) - (24 * 60 * 60);
+    return timestamp > oneDayAgo;
+  };
+
   useEffect(() => {
     const handleEventReceived = (event: NostrEvent) => {
+      // Only process recent events
+      if (!isRecent(event.created_at)) return;
+
       if (event.kind === 1506) {
-        setCreateOrderEvents(prev => [...prev, event].slice(-10)); // Keep last 10 events
+        setCreateOrderEvents(prev => {
+          const newEvents = [...prev, event]
+            .sort((a, b) => b.created_at - a.created_at) // Sort by newest first
+            .slice(0, 10); // Keep only 10 most recent
+          return newEvents;
+        });
       } else if (event.kind === 1508) {
-        setRankingEvents(prev => [...prev, event].slice(-10)); // Keep last 10 events
+        setRankingEvents(prev => {
+          const newEvents = [...prev, event]
+            .sort((a, b) => b.created_at - a.created_at)
+            .slice(0, 10);
+          return newEvents;
+        });
       }
       console.log('New event received:', event);
     };
@@ -28,6 +47,15 @@ const EventDisplay = () => {
     const unsubscribe = subscribeToEvents(handleEventReceived, [1506, 1508]);
     return () => unsubscribe();
   }, [subscribeToEvents]);
+
+  // Add time ago display helper
+  const timeAgo = (timestamp: number) => {
+    const seconds = Math.floor(Date.now() / 1000 - timestamp);
+    if (seconds < 60) return `${seconds} seconds ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+    return `${Math.floor(seconds / 86400)} days ago`;
+  };
 
   const EventBox = ({ title, events, borderColor }: { 
     title: string; 
@@ -44,13 +72,7 @@ const EventDisplay = () => {
               className="bg-gray-50 rounded-lg p-4 border border-gray-200"
             >
               <p className="text-sm text-gray-600">
-                Created: {new Date(event.created_at * 1000).toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-600">
-                ID: <span className="break-all">{event.id}</span>
-              </p>
-              <p className="text-sm text-gray-600">
-                Pubkey: <span className="break-all">{event.pubkey}</span>
+                {timeAgo(event.created_at)}
               </p>
               <p className="mt-2 font-medium">
                 Content: 
@@ -61,7 +83,7 @@ const EventDisplay = () => {
             </div>
           ))
         ) : (
-          <p className="text-gray-500">No events found</p>
+          <p className="text-gray-500">No recent events found</p>
         )}
       </div>
     </div>
@@ -70,17 +92,17 @@ const EventDisplay = () => {
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-10">CivKit Events</h1>
+        <h1 className="text-3xl font-bold text-center mb-10">Recent CivKit Events</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <EventBox 
-            title="Create Order Events" 
+            title="Recent Create Order Events" 
             events={createOrderEvents}
             borderColor="border-l-4 border-l-blue-500"
           />
           
           <EventBox 
-            title="Ranking Events" 
+            title="Recent Ranking Events" 
             events={rankingEvents}
             borderColor="border-l-4 border-l-orange-500"
           />
