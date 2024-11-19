@@ -1,17 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useNostr } from './useNostr';
 
-// Enhanced interface for rating details
-interface RatingData {
+// Enhanced interface with more order details
+interface OrderData {
   order_id: number;
-  rating: number;
-  review?: string;
-  maker_pubkey?: string;
-  taker_pubkey?: string;
+  status: string;
+  amount_msat: number;
+  currency: string;
+  payment_method: string;
+  type: number;
+  frontend_url: string;
   created_at?: number;
+  maker_pubkey?: string;
+  premium?: number;
+  exchange_rate?: number;
+  order_description?: string;
+  payment_windows?: number;
 }
 
-interface RatingEvent {
+interface OrderEvent {
   id: string;
   content: string;
   kind: number;
@@ -20,10 +27,15 @@ interface RatingEvent {
   pubkey: string;
 }
 
-const FilteredRatings = () => {
-  const [ratings, setRatings] = useState<RatingData[]>([]);
+const FilteredOrders = () => {
+  const [orders, setOrders] = useState<OrderData[]>([]);
   const [isSigned, setIsSigned] = useState(false);
   const { signAndSendEvent, subscribeToEvents } = useNostr();
+
+  // Helper function to format msats to BTC
+  const formatMsatToBTC = (msat: number) => {
+    return (msat / 100000000000).toFixed(8);
+  };
 
   // Helper function for time ago
   const timeAgo = (timestamp: number) => {
@@ -34,11 +46,6 @@ const FilteredRatings = () => {
     return `${Math.floor(seconds / 86400)} days ago`;
   };
 
-  // Helper function to render stars
-  const renderStars = (rating: number) => {
-    return "★".repeat(rating) + "☆".repeat(5 - rating);
-  };
-
   useEffect(() => {
     // Initialize connection with dummy event
     const dummyEvent = { kind: 1, content: 'Initializing connection' };
@@ -47,24 +54,24 @@ const FilteredRatings = () => {
       .catch(error => console.error('Error signing event:', error));
 
     // Handle incoming events
-    const handleEventReceived = (event: RatingEvent) => {
+    const handleEventReceived = (event: OrderEvent) => {
       if (!event?.content) return;
 
       try {
-        const parsedContent: RatingData = JSON.parse(event.content);
-        setRatings(prevRatings => {
+        const parsedContent: OrderData = JSON.parse(event.content);
+        setOrders(prevOrders => {
           // Check for duplicates
-          if (prevRatings.some(rating => rating.order_id === parsedContent.order_id)) {
-            return prevRatings;
+          if (prevOrders.some(order => order.order_id === parsedContent.order_id)) {
+            return prevOrders;
           }
-          // Add event metadata to rating
-          const enrichedRating = {
+          // Add event metadata to order
+          const enrichedOrder = {
             ...parsedContent,
             created_at: event.created_at,
             maker_pubkey: event.pubkey
           };
           // Sort by newest first
-          return [...prevRatings, enrichedRating]
+          return [...prevOrders, enrichedOrder]
             .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
         });
       } catch (error) {
@@ -72,15 +79,20 @@ const FilteredRatings = () => {
       }
     };
 
-    const unsubscribe = subscribeToEvents(handleEventReceived, [1508]);
+    const unsubscribe = subscribeToEvents(handleEventReceived, [1506]);
     return () => unsubscribe();
   }, [signAndSendEvent, subscribeToEvents]);
+
+  const handleTakeOrder = (orderId: number) => {
+    // Redirect to login page
+    window.location.href = '/login';
+  };
 
   return (
     <div className='min-h-screen bg-gray-100 p-8'>
       <div className='mx-auto max-w-7xl'>
         <h2 className='mb-6 text-center text-3xl font-bold text-gray-800'>
-          Recent Ratings
+          Active Orders
         </h2>
         {isSigned ? (
           <div className="overflow-x-auto">
@@ -89,42 +101,64 @@ const FilteredRatings = () => {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Maker</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taker</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {ratings.length > 0 ? (
-                  ratings.map((rating) => (
-                    <tr key={`${rating.order_id}-${rating.created_at}`} className="hover:bg-gray-50">
+                {orders.length > 0 ? (
+                  orders.map((order) => (
+                    <tr key={order.order_id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{rating.order_id}
+                        #{order.order_id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {rating.created_at && timeAgo(rating.created_at)}
+                        {order.created_at && timeAgo(order.created_at)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className="text-yellow-500">
-                          {renderStars(rating.rating)}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.type === 0 ? 
+                          <span className="text-green-600">Buy</span> : 
+                          <span className="text-blue-600">Sell</span>
+                        }
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatMsatToBTC(order.amount_msat)} BTC
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.currency}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.payment_method}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                          ${order.status === 'pending' 
+                            ? 'bg-green-100 text-green-800'   // Pending is now green
+                            : order.status === 'paid'
+                            ? 'bg-orange-100 text-orange-800' // Paid is now orange
+                            : 'bg-gray-100 text-gray-800'    // Default for other statuses
+                          }`}>
+                          {order.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {rating.review || 'No review provided'}
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {rating.maker_pubkey?.slice(0, 8)}...
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {rating.taker_pubkey?.slice(0, 8)}...
+                        <button
+                          onClick={() => handleTakeOrder(order.order_id)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Take Order
+                        </button>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                      No ratings found.
+                    <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
+                      No active orders found.
                     </td>
                   </tr>
                 )}
@@ -141,4 +175,4 @@ const FilteredRatings = () => {
   );
 };
 
-export default FilteredRatings;
+export default FilteredOrders;
