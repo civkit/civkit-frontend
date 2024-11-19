@@ -44,10 +44,10 @@ const FilteredRatings = () => {
 
     try {
       const parsedContent: RatingData = JSON.parse(event.content);
-      console.log('Received rating event:', parsedContent); // Debug log
+      console.log('Received rating event:', parsedContent);
 
       setRatings(prevRatings => {
-        // Check for duplicates using both order_id and reviewer
+        // Check for duplicates
         if (prevRatings.some(rating => 
           rating.order_id === parsedContent.order_id && 
           rating.reviewer_npub === parsedContent.reviewer_npub
@@ -55,16 +55,18 @@ const FilteredRatings = () => {
           return prevRatings;
         }
 
-        // Add event metadata to rating
+        // Ensure pubkeys are strings before enriching
         const enrichedRating = {
           ...parsedContent,
           created_at: event.created_at,
-          maker_pubkey: parsedContent.rated_user_npub,
-          taker_pubkey: parsedContent.reviewer_npub,
-          review: parsedContent.review
+          maker_pubkey: String(parsedContent.rated_user_npub || ''),  // Convert to string
+          taker_pubkey: String(parsedContent.reviewer_npub || ''),    // Convert to string
+          review: parsedContent.review || ''
         };
 
-        // Sort by newest first
+        // Debug log
+        console.log('Enriched rating:', enrichedRating);
+
         return [...prevRatings, enrichedRating]
           .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
       });
@@ -131,10 +133,14 @@ const FilteredRatings = () => {
                         {rating.review || 'No review provided'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {rating.maker_pubkey?.slice(0, 8)}...
+                        {typeof rating.maker_pubkey === 'string' && rating.maker_pubkey.length > 8 
+                          ? `${rating.maker_pubkey.slice(0, 8)}...` 
+                          : rating.maker_pubkey || 'Unknown'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {rating.taker_pubkey?.slice(0, 8)}...
+                        {typeof rating.taker_pubkey === 'string' && rating.taker_pubkey.length > 8 
+                          ? `${rating.taker_pubkey.slice(0, 8)}...` 
+                          : rating.taker_pubkey || 'Unknown'}
                       </td>
                     </tr>
                   ))
