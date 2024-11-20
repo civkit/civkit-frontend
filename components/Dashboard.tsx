@@ -1285,17 +1285,19 @@ const Dashboard: React.FC<{
                               {showMyOrders && order.status !== 'completed' && (
                                 <button
                                   onClick={async () => {
-                                    const userRole = determineUserRole(order);
-                                    
+                                    // First, determine if user is maker or taker
+                                    const isMaker = currentCustomerId === order.customer_id;
+                                    const isTaker = currentCustomerId === order.taker_customer_id;
+
                                     console.log('Resume Order Debug:', {
                                       currentCustomerId,
                                       orderCustomerId: order.customer_id,
                                       takerCustomerId: order.taker_customer_id,
-                                      userRole,
-                                      isMatch: currentCustomerId === order.customer_id
+                                      isMaker,
+                                      isTaker
                                     });
 
-                                    if (userRole === 'maker') {
+                                    if (isMaker) {
                                       // Maker flow (existing logic)
                                       setOrder(order);
                                       setCurrentStep(2);
@@ -1324,12 +1326,12 @@ const Dashboard: React.FC<{
                                       } catch (error) {
                                         console.error('Failed to fetch invoice data');
                                       }
-                                    } else if (userRole === 'taker') {
+                                    } else if (isTaker) {
                                       // Taker flow
                                       console.log('Initiating taker flow for order:', order);
-                                      handleTakeOrder(order); // This will set up the taker stepper flow
+                                      handleTakeOrder(order);
                                     } else {
-                                      console.error('Error: Unable to determine user role for this order');
+                                      console.error('Error: User is neither maker nor taker for this order');
                                     }
                                   }}
                                   className='inline-flex items-center justify-center px-3 py-1 text-sm font-medium text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
