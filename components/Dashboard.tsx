@@ -78,6 +78,15 @@ interface Invoice {
   status: string;
 }
 
+interface StepperState {
+  currentStep: number;
+  order: Order | null;
+  makerHoldInvoice: Invoice | null;
+  fullInvoice: any;
+  invoiceStatus: string | null;
+  orderStatus: string | null;
+}
+
 const Dashboard: React.FC<{
   darkMode: boolean;
   toggleDarkMode: () => void;
@@ -753,6 +762,30 @@ const Dashboard: React.FC<{
     return null;
   };
 
+  const saveStepperState = (orderId: number, state: StepperState) => {
+    localStorage.setItem(`maker_order_${orderId}`, JSON.stringify(state));
+  };
+
+  const loadStepperState = (orderId: number): StepperState | null => {
+    const saved = localStorage.getItem(`maker_order_${orderId}`);
+    return saved ? JSON.parse(saved) : null;
+  };
+
+  // Add this useEffect to save state changes
+  useEffect(() => {
+    if (order && order.customer_id === parseInt(localStorage.getItem('userId'))) {
+      const state: StepperState = {
+        currentStep,
+        order,
+        makerHoldInvoice,
+        fullInvoice,
+        invoiceStatus,
+        orderStatus
+      };
+      saveStepperState(order.order_id, state);
+    }
+  }, [currentStep, order, makerHoldInvoice, fullInvoice, invoiceStatus, orderStatus]);
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
@@ -1215,29 +1248,47 @@ const Dashboard: React.FC<{
                               </button>
                               {showMyOrders && order.status !== 'completed' && (
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
                                     const userId = localStorage.getItem('userId');
-                                    console.log('Current userId:', userId);
-                                    console.log('Order customer_id:', order.customer_id);
+                                    console.log('Resume clicked:', {
+                                      userId,
+                                      orderCustomerId: order.customer_id,
+                                    });
                                     
-                                    // Ensure both values are strings and compare
-                                    const isMaker = order.customer_id?.toString() === userId?.toString();
-                                    console.log('Is maker?', isMaker);
-                                    
-                                    if (isMaker) {
-                                      // Maker flow
-                                      setOrder(order);
-                                      setCurrentStep(1);
+                                    // Ensure we're the maker
+                                    if (order.customer_id === parseInt(userId)) {
+                                      console.log('Resuming as maker');
+                                      
+                                      // Try to load saved state first
+                                      const savedState = loadStepperState(order.order_id);
+                                      
+                                      if (savedState) {
+                                        console.log('Found saved state:', savedState);
+                                        // Restore the entire state
+                                        setOrder(savedState.order);
+                                        setCurrentStep(savedState.currentStep);
+                                        setMakerHoldInvoice(savedState.makerHoldInvoice);
+                                        setFullInvoice(savedState.fullInvoice);
+                                        setInvoiceStatus(savedState.invoiceStatus);
+                                        setOrderStatus(savedState.orderStatus);
+                                      } else {
+                                        console.log('No saved state, starting fresh');
+                                        setOrder(order);
+                                        setCurrentStep(2); // Start at hold invoice
+                                      }
+                                      
+                                      // Always set these regardless of saved state
                                       setIsModalOpen(true);
                                       setIsTakeOrderModalOpen(false);
+                                      setShowOrders(false);
                                     } else {
-                                      // Taker flow
+                                      console.log('Not the maker, redirecting to taker flow');
                                       setSelectedOrder(order);
                                       setCurrentTakeOrderStep(1);
                                       setIsModalOpen(false);
                                       setIsTakeOrderModalOpen(true);
+                                      setShowOrders(false);
                                     }
-                                    setShowOrders(false);
                                   }}
                                   className='focus:shadow-outline mt-2 rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
                                 >
