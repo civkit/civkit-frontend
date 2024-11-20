@@ -10,7 +10,7 @@ export const useNostr = () => {
     if (window.nostr) {
       const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
       if (!frontendUrl) {
-        console.warn('NEXT_PUBLIC_FRONTEND_URL is not defined');
+        // Silenced warning
       }
 
       const event = {
@@ -26,8 +26,6 @@ export const useNostr = () => {
 
       try {
         const signedEvent = await window.nostr.signEvent(event);
-        console.log('Signed Event:', signedEvent);
-
         const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
         if (!relayURL) {
           throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
@@ -37,27 +35,26 @@ export const useNostr = () => {
         relayWebSocket.onopen = () => {
           const message = JSON.stringify(['EVENT', signedEvent]);
           relayWebSocket.send(message);
-          console.log('Signed event sent to relay:', message);
         };
 
-        relayWebSocket.onerror = (err) => {
-          console.error('WebSocket error:', err);
+        relayWebSocket.onerror = () => {
+          // Error silenced
         };
 
         relayWebSocket.onclose = () => {
-          console.log('WebSocket connection closed');
+          // Close event silenced
         };
       } catch (signError) {
-        console.error('Error signing event:', signError);
+        // Error silenced
       }
     } else {
-      console.error('nos2x extension is not available.');
+      // Extension error silenced
     }
   };
 
   const subscribeToEvents = (
     onEventReceived: (event: any) => void,
-    kinds: number[] = [1506]
+    kinds: number[] = [1506, 1508]
   ) => {
     const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
     if (!relayURL) {
@@ -67,35 +64,26 @@ export const useNostr = () => {
     let relayWebSocket: WebSocket;
 
     const connectWebSocket = () => {
-      console.log(`Attempting to connect to WebSocket at ${relayURL}`);
       relayWebSocket = new WebSocket(relayURL);
 
       relayWebSocket.onopen = () => {
         const message = JSON.stringify(['REQ', 'sub-1', { kinds }]);
         relayWebSocket.send(message);
-        console.log(`Subscribed to events of kinds: ${kinds.join(', ')}`);
       };
 
       relayWebSocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log('Received message:', data);
         if (data[0] === 'EVENT' && kinds.includes(data[2].kind)) {
           onEventReceived(data[2]);
         }
       };
 
-      relayWebSocket.onerror = (err) => {
-        console.error('WebSocket error:', err);
+      relayWebSocket.onerror = () => {
+        // Error silenced
       };
 
-      relayWebSocket.onclose = (event) => {
-        if (event.wasClean) {
-          console.log(
-            `WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`
-          );
-        } else {
-          console.error('WebSocket connection closed unexpectedly');
-        }
+      relayWebSocket.onclose = () => {
+        // Close event silenced
       };
     };
 

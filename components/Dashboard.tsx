@@ -1250,45 +1250,68 @@ const Dashboard: React.FC<{
                                 <button
                                   onClick={async () => {
                                     const userId = localStorage.getItem('userId');
-                                    console.log('Resume clicked:', {
-                                      userId,
-                                      orderCustomerId: order.customer_id,
+                                    
+                                    // Convert both values to strings for comparison
+                                    const userIdStr = userId?.toString();
+                                    const customerIdStr = order.customer_id?.toString();
+                                    
+                                    // Debug log the actual values
+                                    console.log('Comparison:', {
+                                      userIdStr,
+                                      customerIdStr,
+                                      isEqual: userIdStr === customerIdStr
                                     });
                                     
-                                    // Ensure we're the maker
-                                    if (order.customer_id === parseInt(userId)) {
-                                      console.log('Resuming as maker');
-                                      
-                                      // Try to load saved state first
+                                    // Check if user is the maker (use string comparison)
+                                    if (userIdStr === customerIdStr) {
+                                      // Maker flow
                                       const savedState = loadStepperState(order.order_id);
                                       
                                       if (savedState) {
-                                        console.log('Found saved state:', savedState);
-                                        // Restore the entire state
                                         setOrder(savedState.order);
-                                        setCurrentStep(savedState.currentStep);
+                                        setCurrentStep(savedState.currentStep || 2);
                                         setMakerHoldInvoice(savedState.makerHoldInvoice);
                                         setFullInvoice(savedState.fullInvoice);
                                         setInvoiceStatus(savedState.invoiceStatus);
                                         setOrderStatus(savedState.orderStatus);
                                       } else {
-                                        console.log('No saved state, starting fresh');
+                                        // Start fresh maker flow
                                         setOrder(order);
-                                        setCurrentStep(2); // Start at hold invoice
+                                        setCurrentStep(2); // Start at hold invoice step
+                                        
+                                        // Fetch fresh invoice data
+                                        try {
+                                          const response = await axios.get(
+                                            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${order.order_id}`,
+                                            {
+                                              headers: {
+                                                Authorization: `Bearer ${localStorage.getItem('token')}`,
+                                              },
+                                            }
+                                          );
+                                          
+                                          const invoices = Array.isArray(response.data) ? response.data : [response.data];
+                                          const makerHoldInvoice = invoices.find(
+                                            (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
+                                          );
+                                          
+                                          if (makerHoldInvoice) {
+                                            setMakerHoldInvoice(makerHoldInvoice);
+                                          }
+                                        } catch (error) {
+                                          console.error('Failed to fetch invoice data');
+                                        }
                                       }
                                       
-                                      // Always set these regardless of saved state
+                                      // Show maker modal
                                       setIsModalOpen(true);
                                       setIsTakeOrderModalOpen(false);
-                                      setShowOrders(false);
                                     } else {
-                                      console.log('Not the maker, redirecting to taker flow');
-                                      setSelectedOrder(order);
-                                      setCurrentTakeOrderStep(1);
-                                      setIsModalOpen(false);
-                                      setIsTakeOrderModalOpen(true);
-                                      setShowOrders(false);
+                                      // Not the maker, don't redirect to taker flow in My Orders
+                                      console.error('Error: Attempting to resume an order you did not create');
                                     }
+                                    
+                                    setShowOrders(false);
                                   }}
                                   className='focus:shadow-outline mt-2 rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
                                 >
