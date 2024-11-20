@@ -395,8 +395,17 @@ const Dashboard: React.FC<{
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [currentStep, setCurrentStep] = useState<number>(1);
-  const [order, setOrder] = useState<Order | null>(null);
+  const [currentStep, setCurrentStep] = useState<number>(() => {
+    const savedStep = localStorage.getItem('currentStep');
+    const savedOrderId = localStorage.getItem('currentOrderId');
+    return savedStep && savedOrderId ? parseInt(savedStep) : 1;
+  });
+
+  const [order, setOrder] = useState<Order | null>(() => {
+    const savedOrder = localStorage.getItem('currentOrder');
+    return savedOrder ? JSON.parse(savedOrder) : null;
+  });
+
   const [makerHoldInvoice, setMakerHoldInvoice] = useState<Invoice | null>(null);
   const [fullInvoice, setFullInvoice] = useState<any>(null);
   const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
@@ -531,17 +540,44 @@ const Dashboard: React.FC<{
   };
 
   useEffect(() => {
+    // Check for saved order first
+    const savedOrderId = localStorage.getItem('currentOrderId');
+    if (savedOrderId) {
+      fetchOrderDetails(savedOrderId);
+    }
+    
+    // Then check URL params
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = urlParams.get('orderId');
-    if (orderId) {
+    if (orderId && orderId !== savedOrderId) {
       fetchOrderDetails(orderId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (order) {
+      localStorage.setItem('currentOrder', JSON.stringify(order));
+      localStorage.setItem('currentOrderId', order.order_id.toString());
+    }
+  }, [order]);
+
+  useEffect(() => {
+    if (currentStep > 1) {
+      localStorage.setItem('currentStep', currentStep.toString());
     }
   }, [currentStep]);
 
-  const [isTakeOrderModalOpen, setIsTakeOrderModalOpen] = useState(false);
+  const [isTakeOrderModalOpen, setIsTakeOrderModalOpen] = useState(() => {
+    return localStorage.getItem('isTakeOrderModalOpen') === 'true';
+  });
   const [takeOrderSteps, setTakeOrderSteps] = useState<string[]>([]);
-  const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(() => {
+    return parseInt(localStorage.getItem('currentTakeOrderStep') || '1');
+  });
+  const [selectedOrder, setSelectedOrder] = useState<any>(() => {
+    const saved = localStorage.getItem('selectedOrder');
+    return saved ? JSON.parse(saved) : null;
+  });
   const handleTakeOrder = (order: any) => {
     const sellOrderSteps = [
       'Hold Invoice', 
@@ -554,7 +590,7 @@ const Dashboard: React.FC<{
       'Hold Invoice', 
       'Full Invoice', 
       'Chat',
-      'Fiat Received',  // Add this step for buy orders
+      'Fiat Received',
       'Trade Complete', 
       'Order Completed 🚀'
     ];
@@ -563,12 +599,23 @@ const Dashboard: React.FC<{
     setCurrentTakeOrderStep(1);
     setSelectedOrder(order);
     setIsTakeOrderModalOpen(true);
+    
+    // Save to localStorage
+    localStorage.setItem('selectedOrder', JSON.stringify(order));
+    localStorage.setItem('isTakeOrderModalOpen', 'true');
+    localStorage.setItem('currentTakeOrderStep', '1');
   };
   const handleNextTakeOrderStep = () => {
     if (currentTakeOrderStep < takeOrderSteps.length) {
-      setCurrentTakeOrderStep(currentTakeOrderStep + 1);
+      const nextStep = currentTakeOrderStep + 1;
+      setCurrentTakeOrderStep(nextStep);
+      localStorage.setItem('currentTakeOrderStep', nextStep.toString());
     } else {
       setIsTakeOrderModalOpen(false);
+      // Clear storage on completion
+      localStorage.removeItem('selectedOrder');
+      localStorage.removeItem('isTakeOrderModalOpen');
+      localStorage.removeItem('currentTakeOrderStep');
     }
   };
 
@@ -751,6 +798,71 @@ const Dashboard: React.FC<{
     if (order.customer_id === userId) return 'maker';
     if (order.taker_customer_id === userId) return 'taker';
     return null;
+  };
+
+  const handleComplete = () => {
+    localStorage.removeItem('currentStep');
+    localStorage.removeItem('currentOrder');
+    localStorage.removeItem('currentOrderId');
+    // ... rest of completion logic
+  };
+
+  useEffect(() => {
+    console.log('Current orders:', orders); // Add this debug log
+    
+    const pollOrders = setInterval(async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/my-orders`,
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }
+        );
+        
+        const newOrders = response.data;
+        console.log('New orders data:', newOrders); // Add this debug log
+        
+        orders.forEach(existingOrder => {
+          const newOrder = newOrders.find(
+            (o: Order) => o.order_id === existingOrder.order_id
+          );
+          
+          if (newOrder && 
+              newOrder.status === 'taker_found' && 
+              existingOrder.status !== 'taker_found' &&
+              newOrder.customer_id === parseInt(localStorage.getItem('userId'))) {
+            console.log('Notification condition met:', { // Add this debug log
+              orderId: newOrder.order_id,
+              oldStatus: existingOrder.status,
+              newStatus: newOrder.status,
+              isMaker: newOrder.customer_id === parseInt(localStorage.getItem('userId'))
+            });
+            
+            setNotifications(prev => [...prev, {
+              id: Math.random().toString(36).substr(2, 9),
+              message: `Your order #${newOrder.order_id} has been taken!`,
+              type: 'success'
+            }]);
+          }
+        });
+        
+        setOrders(newOrders);
+      } catch (error) {
+        console.error('Error polling orders:', error);
+      }
+    }, 5000);
+
+    return () => clearInterval(pollOrders);
+  }, [orders]);
+
+  // Add helper function to determine if order is in progress
+  const isOrderInProgress = (order: Order) => {
+    const savedOrderId = localStorage.getItem('currentOrderId');
+    const savedTakeOrderId = localStorage.getItem('selectedOrder') 
+      ? JSON.parse(localStorage.getItem('selectedOrder')!).order_id 
+      : null;
+    
+    return order.order_id === parseInt(savedOrderId!) || order.order_id === savedTakeOrderId;
   };
 
   return (
@@ -1176,7 +1288,7 @@ const Dashboard: React.FC<{
                     </tr>
                   </thead>
                   <tbody className='text-gray-700 dark:text-gray-200'>
-                    {currentOrdersPageData.map((order) => (
+                    {currentOrdersPageData.map((order: Order) => (
                       <React.Fragment key={order.order_id}>
                         <tr className='h-13 odd:bg-gray-100 even:bg-white dark:odd:bg-gray-700 dark:even:bg-gray-800'>
                           <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
@@ -1201,17 +1313,28 @@ const Dashboard: React.FC<{
                             {order.type === 0 ? 'Buy' : 'Sell'}
                           </td>
                           <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
-                            <button
-                              onClick={() =>
-                                toggleRowExpansion(order.order_id)
-                              }
-                            >
-                              {expandedRow === order.order_id ? (
-                                <BsChevronUp className='text-xl' />
-                              ) : (
-                                <BsChevronDown className='text-xl' />
-                              )}
-                            </button>
+                            {isOrderInProgress(order) && (
+                              <button
+                                onClick={() => {
+                                  // Check if maker or taker
+                                  const isMaker = order.customer_id === parseInt(localStorage.getItem('userId')!);
+                                  if (isMaker) {
+                                    // Resume maker flow
+                                    setOrder(order);
+                                    setCurrentStep(parseInt(localStorage.getItem('currentStep') || '1'));
+                                    setIsModalOpen(true);
+                                  } else {
+                                    // Resume taker flow
+                                    setSelectedOrder(order);
+                                    setIsTakeOrderModalOpen(true);
+                                    setCurrentTakeOrderStep(parseInt(localStorage.getItem('currentTakeOrderStep') || '1'));
+                                  }
+                                }}
+                                className='rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600'
+                              >
+                                Resume Order
+                              </button>
+                            )}
                           </td>
                         </tr>
                         {expandedRow === order.order_id && (
@@ -1388,6 +1511,18 @@ const Dashboard: React.FC<{
             </div>
           </div>
         )}
+
+        <div className="fixed top-4 right-4 z-50 space-y-2">
+          {notifications.map(({ id, message, type }) => (
+            <div
+              key={id}
+              className={`p-4 rounded-lg shadow-lg bg-green-500 text-white cursor-pointer`}
+              onClick={() => setNotifications(prev => prev.filter(n => n.id !== id))}
+            >
+              {message}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
