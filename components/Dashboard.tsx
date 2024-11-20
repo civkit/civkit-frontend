@@ -958,10 +958,539 @@ const Dashboard: React.FC<{
               </div>
             </nav>
           </div>
+          <div className='mb-4 flex flex-col items-center'>
+            <ul className='mt-8 flex flex-col items-center justify-center gap-4'>
+              <div className='mb-4 rounded-lg bg-gray-700 p-4 shadow-lg'>
+                <li className='flex items-center justify-center gap-2'>
+                  <span className='flex w-6 justify-center'>
+                    <CgProfile className='text-xl text-white' />
+                  </span>
+                  <a
+                    href='#'
+                    className={`${darkMode ? 'text-white' : 'text-black'}`}
+                    onClick={toggleProfileSettings}
+                  >
+                    {truncateNpub(npub)}
+                  </a>
+                  <FaChevronRight
+                    className='cursor-pointer text-white'
+                    onClick={toggleProfileSettings}
+                  />
+                </li>
+              </div>
+            </ul>
+            <button
+              onClick={handleLogout}
+              className='w-36 rounded bg-red-500 p-2 text-white'
+            >
+              Logout
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Rest of your component remains the same */}
+      <button
+        onClick={toggleDrawer}
+        className={`fixed top-12 z-10 bg-gray-500 p-1 ${isDrawerOpen ? 'left-56' : 'left-0'}`}
+      >
+        <LuPanelLeftOpen
+          className={`transform transition-transform ${isDrawerOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      <div 
+        className="fixed relative h-screen flex-1 bg-gray-100 p-8 dark:bg-gray-900"
+        style={{ marginLeft: isDrawerOpen ? '15rem' : '0' }}
+      >
+        <div className='mb-6 mt-4 flex items-center justify-between'>
+          <div className='relative ml-12 w-1/2'>
+            <input
+              type='text'
+              placeholder='Find Order...'
+              className='w-full rounded-lg border border-gray-300 p-2 pl-5'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery ? (
+              <FaTimes
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer'
+                onClick={() => setSearchQuery('')}
+              />
+            ) : (
+              <FaSearch className='absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-400' />
+            )}
+          </div>
+          <div className='mr-12 flex items-center space-x-6'>
+            <FaQuestionCircle className='cursor-pointer text-gray-600 dark:text-gray-300' />
+            <FaBell className='cursor-pointer text-gray-600 dark:text-gray-300' />
+            <button onClick={toggleDarkMode}>
+              {darkMode ? (
+                <FaSun className='text-yellow-500' />
+              ) : (
+                <FaMoon className='text-gray-600' />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className='mb-6 ml-12 flex items-center justify-between'>
+          <h2
+            className={`text-xl font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}
+          >
+            Welcome 👋
+          </h2>
+          <div className='mr-12 flex space-x-6'>
+            <button
+              className='flex w-36 items-center justify-center gap-2 rounded-lg bg-orange-500 p-2 text-white hover:bg-orange-600'
+              disabled
+            >
+              <FaFilter />
+              Filter
+            </button>
+            <button
+              onClick={handleCreateOrderClick}
+              className='flex w-36 items-center justify-center gap-2 rounded-lg bg-orange-500 p-2 text-white hover:bg-orange-600'
+            >
+              <FaPlus />
+              Create Order
+            </button>
+          </div>
+        </div>
+
+        <hr className='mb-6' />
+
+        {isModalOpen && (
+          <div className='w-full rounded-lg bg-white p-4 shadow dark:bg-gray-800 flex flex-row justify-center mt-6'>
+            <div className='flex flex-col justify-center items-center mb-2 mr-2 text-gray-700 dark:text-gray-200'>
+              <div className='flex items-center justify-center mb-6'>
+                {getSteps().map((step, index) => (
+                  <React.Fragment key={index}>
+                    <span
+                      className={`cursor-pointer ${currentStep === index + 1 ? 'font-bold text-orange-500' : 'text-gray-500'}`}
+                      onClick={() => setCurrentStep(index + 1)}
+                    >
+                      {step}
+                    </span>
+                    {index < getSteps().length - 1 && (
+                      <FaChevronRight className='mx-2 text-gray-500' />
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
+                {currentStep === 1 && <CreateOrderForm onOrderCreated={handleOrderCreated} />}
+                {currentStep === 2 && order && makerHoldInvoice && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Hold Invoice</h2>
+                    <p className='mb-4 break-words'>
+                      <span className='font-bold text-gray-700'>Invoice:</span> {makerHoldInvoice.bolt11}
+                    </p>
+                    <div className='mb-4 flex justify-center'>
+                      <QRCode value={makerHoldInvoice.bolt11} size={200} />
+                    </div>
+                    <p className='mb-4'>
+                      <span className='font-bold text-gray-700'>Order ID:</span> {order.order_id}
+                    </p>
+                    <p className='mb-4'>
+                      <span className='font-bold text-gray-700'>Amount:</span> {order.amount_msat / 1000} sats
+                    </p>
+                    <p className='mb-4'>
+                      <span className='font-bold text-gray-700'>Order Status:</span> {order.status}
+                    </p>
+                    <button
+                      onClick={() => checkInvoiceStatus(makerHoldInvoice.payment_hash)}
+                      className='focus:shadow-outline rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                    >
+                      Check Invoice Status
+                    </button>
+                    {order.status === 'paid' && (
+                      <button
+                        onClick={() => setCurrentStep(3)}
+                        className='focus:shadow-outline mt-4 w-full rounded-lg bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600 focus:outline-none'
+                      >
+                        Next Step
+                      </button>
+                    )}
+                  </div>
+                )}
+                {currentStep === 3 && order && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    {order?.type === 1 ? (
+                      <div>
+                        <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Full Invoice Details</h2>
+                        {fullInvoice ? (
+                          <>
+                            <div className='mb-4'>
+                              <label className='mb-2 block font-bold text-gray-700'>Invoice (Full):</label>
+                              <div className='break-words rounded bg-gray-100 p-2'>
+                                <p className='text-xs'>{fullInvoice.bolt11}</p>
+                              </div>
+                            </div>
+                            <div className='my-4 flex justify-center'>
+                              <QRCode value={fullInvoice.bolt11} />
+                            </div>
+                            <div className='mt-4'>
+                              <p><strong>Invoice ID:</strong> {fullInvoice.invoice_id}</p>
+                              <p><strong>Order ID:</strong> {fullInvoice.order_id}</p>
+                              <p><strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000} sats</p>
+                              <p><strong>Description:</strong> {fullInvoice.description}</p>
+                              <p><strong>Status:</strong> {fullInvoice.status}</p>
+                              <p><strong>Created At:</strong> {new Date(fullInvoice.created_at).toLocaleString()}</p>
+                              <p><strong>Expires At:</strong> {new Date(fullInvoice.expires_at).toLocaleString()}</p>
+                              <p><strong>Payment Hash:</strong> {fullInvoice.payment_hash}</p>
+                            </div>
+                            <button
+                              onClick={checkFullInvoice}
+                              className='mt-4 w-full rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700'
+                            >
+                              Check Invoice Status
+                            </button>
+                          </>
+                        ) : (
+                          <p>Loading full invoice...</p>
+                        )}
+                      </div>
+                    ) : (
+                      <SubmitPayout 
+                        orderId={order.order_id.toString()}
+                        onPayoutSubmitted={() => setCurrentStep(4)}
+                      />
+                    )}
+                  </div>
+                )}
+                {currentStep === 4 && order && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Make Offer</h2>
+                    <div className='flex flex-col gap-4'>
+                      <button
+                        onClick={() => {
+                          const makeOfferUrl = `${process.env.NEXT_PUBLIC_CHAT_URL}/ui/chat/make-offer?orderId=${order.order_id}`;
+                          window.open(makeOfferUrl, '_blank');
+                        }}
+                        className='w-full rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600'
+                      >
+                        Make Chatroom Offer
+                      </button>
+                      <button
+                        onClick={handleNextStep}
+                        className='w-full rounded bg-green-500 px-4 py-2 font-bold text-white hover:bg-green-600'
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {currentStep === 5 && order && (
+                  <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
+                    {order.type === 1 ? (
+                      <FiatReceived 
+                        orderId={order.order_id.toString()}
+                        onComplete={() => setCurrentStep(6)}
+                      />
+                    ) : (
+                      <TradeComplete 
+                        orderId={order.order_id}
+                        orderType={order.type}
+                        onComplete={() => setCurrentStep(6)}
+                      />
+                    )}
+                  </div>
+                )}
+                {currentStep === 6 && order && (
+                  <TradeComplete 
+                    orderId={order.order_id}
+                    orderType={order.type}
+                    onComplete={() => setCurrentStep(7)}
+                  />
+                )}
+                {currentStep === 7 && (
+                  <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
+                    <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+  {isTakeOrderModalOpen && (
+        <div className='w-full rounded-lg bg-white p-4 shadow dark:bg-gray-800 flex flex-row justify-center mt-6'>
+          <div className='flex flex-col justify-center items-center mb-2 mr-2 text-gray-700 dark:text-gray-200'>
+            <div className='flex items-center justify-center mb-6'>
+              {takeOrderSteps.map((step, index) => (
+                <React.Fragment key={index}>
+                  <span
+                    className={`cursor-pointer ${currentTakeOrderStep === index + 1 ? 'font-bold text-orange-500' : 'text-gray-500'}`}
+                    onClick={() => setCurrentTakeOrderStep(index + 1)}
+                  >
+                    {step}
+                  </span>
+                  {index < takeOrderSteps.length - 1 && (
+                    <FaChevronRight className='mx-2 text-gray-500' />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
+              {currentTakeOrderStep === 1 && <TakeOrder orderId={selectedOrder.order_id} />}
+              {currentTakeOrderStep === 2 && selectedOrder && (
+            <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
+              {selectedOrder.type === 0 ? (  // Buy order
+                <TakerFullInvoice 
+                  orderId={selectedOrder.order_id.toString()}
+                  onComplete={handleNextTakeOrderStep}
+                />
+              ) : (  // Sell order
+                <SubmitPayout 
+                  orderId={selectedOrder.order_id.toString()}
+                  onPayoutSubmitted={handleNextTakeOrderStep}
+                />
+              )}
+            </div>
+          )}
+              {currentTakeOrderStep === 3 && (
+                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex flex-col items-center justify-center'>
+                  <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
+                  <button
+                    onClick={handleOpenChat}
+                    className='flex w-36 items-center justify-center gap-2 rounded-lg bg-green-500 p-2 text-white hover:bg-green-600'
+                  >
+                    Open Chat
+                  </button>
+                </div>
+              )}
+              {currentTakeOrderStep === 4 && selectedOrder && selectedOrder.type === 0 && (
+                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
+                  <FiatReceived 
+                    orderId={selectedOrder.order_id.toString()}
+                    onComplete={handleNextTakeOrderStep}
+                  />
+                </div>
+              )}
+              {currentTakeOrderStep === takeOrderSteps.length - 1 && selectedOrder && (
+                <TradeComplete 
+                  orderId={selectedOrder.order_id}
+                  orderType={selectedOrder.type}
+                  onComplete={handleNextTakeOrderStep}
+                />
+              )}
+              {currentTakeOrderStep === takeOrderSteps.length && (
+                <div className='w-full h-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex items-center justify-center'>
+                  <h1 className='text-2xl font-bold text-green-600'>Order Completed 🚀</h1>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+        {!isTakeOrderModalOpen && showOrders && (
+          <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
+            <h3 className='mb-4 ml-12 text-lg font-semibold text-gray-700 dark:text-gray-200'>
+              {showMyOrders ? 'My Orders' : 'Available Orders (Pending)'}
+            </h3>
+            {currentOrdersPageData.length > 0 ? (
+              <div
+                className={`overflow-y-auto ${isTableScrollable ? 'max-h-96' : ''}`}
+              >
+                <table
+                  className='ml-12 bg-white dark:bg-gray-800'
+                  style={{ width: '156vh' }}
+                >
+                  <thead>
+                    <tr className='border-b dark:border-gray-700'>
+                      <th className='px-4 py-2'>Order ID</th>
+                      <th className='px-4 py-2'>Amount</th>
+                      <th className='px-4 py-2'>Currency</th>
+                      <th className='px-4 py-2'>Payment Method</th>
+                      <th className='px-4 py-2'>Status</th>
+                      <th className='px-4 py-2'>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentOrdersPageData.map((order: Order) => (
+                      <tr key={order.order_id} className='border-b dark:border-gray-700'>
+                        <td className='px-4 py-2'>{order.order_id}</td>
+                        <td className='px-4 py-2'>{order.amount_msat}</td>
+                        <td className='px-4 py-2'>{order.currency}</td>
+                        <td className='px-4 py-2'>{order.payment_method}</td>
+                        <td className='px-4 py-2'>
+                          {getOrderStatus(order, localStorage.getItem('userId'))}
+                        </td>
+                        <td className='px-4 py-2'>
+                          <button
+                            onClick={() => setExpandedRow(expandedRow === order.order_id ? null : order.order_id)}
+                            className='text-gray-600 hover:text-gray-800'
+                          >
+                            {expandedRow === order.order_id ? <FaChevronUp /> : <FaChevronDown />}
+                          </button>
+                        </td>
+                      </tr>
+                      {expandedRow === order.order_id && (
+                        <tr>
+                          <td colSpan={6}>
+                            <div className='px-4 py-2'>
+                              <button
+                                onClick={() => {
+                                  const isMaker = order.customer_id.toString() === localStorage.getItem('userId');
+                                  if (isMaker) {
+                                    setOrder(order);
+                                    setCurrentStep(parseInt(localStorage.getItem(`makerStep_${order.order_id}`) || '1'));
+                                    setIsModalOpen(true);
+                                  } else {
+                                    setSelectedOrder(order);
+                                    setCurrentTakeOrderStep(parseInt(localStorage.getItem(`takerStep_${order.order_id}`) || '1'));
+                                    setIsTakeOrderModalOpen(true);
+                                  }
+                                  setShowOrders(false);
+                                }}
+                                className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                              >
+                                Resume Order
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className='text-center text-gray-700'>No orders found.</p>
+            )}
+            <div className='mt-4 flex items-center justify-center'>
+              {currentOrdersPage > 1 && (
+                <button
+                  onClick={handlePreviousPageClick}
+                  className='mx-1 rounded bg-orange-500 px-3 py-1 text-white'
+                >
+                  <FaChevronLeft className='text-white' />
+                </button>
+              )}
+              <span className='mx-2 text-gray-700 dark:text-gray-200'>
+                Page {currentOrdersPage} of {totalOrdersPages}
+              </span>
+              <button
+                onClick={handleNextPageClick}
+                className={`mx-1 rounded px-3 py-1 ${
+                  currentOrdersPage === totalOrdersPages
+                    ? 'cursor-not-allowed bg-orange-300'
+                    : 'bg-orange-500 text-white'
+                }`}
+                disabled={currentOrdersPage === totalOrdersPages}
+              >
+                <FaChevronRight className='rounded-lg text-white' />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!isTakeOrderModalOpen && !isModalOpen && showRatings && (
+          <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
+            <h3 className='mb-4 ml-12 text-lg font-semibold text-gray-700 dark:text-gray-200'>
+              Ratings
+            </h3>
+            <div className='ml-12'>
+              <Ratings />
+            </div>
+          </div>
+        )}
+
+        {!isTakeOrderModalOpen && showProfileSettings && (
+          <div className='rounded-lg bg-white p-4 shadow dark:bg-gray-800'>
+            <h3 className='mb-4 ml-12 text-lg font-semibold text-white'>
+              Profile Settings
+            </h3>
+            <div className='ml-12 space-y-4'>
+              <div>
+                <label htmlFor='npub' className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+                  Username
+                </label>
+                <input
+                  type='text'
+                  id='npub'
+                  value={npub || ''}
+                  readOnly
+                  className='w-full rounded-lg border border-gray-300 p-2 pl-5 text-gray-700'
+                />
+              </div>
+              <div>
+                <label htmlFor='relay' className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+                  Relay URL
+                </label>
+                <div className='flex items-center gap-2'>
+                  <input
+                    type='text'
+                  id='relay'
+                  value={relayInput}
+                  onChange={(e) => setRelayInput(e.target.value)}
+                    className='w-full rounded-lg border border-gray-300 p-2 pl-5 text-gray-700'
+                  />
+                <button
+                  onClick={handleSaveRelay}
+                  className='focus:shadow-outline w-16 rounded-lg bg-green-600 px-2 py-2 font-bold text-white hover:bg-green-700 focus:outline-none'
+                >
+                  Save
+                </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {chatUrls && (
+          <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50'>
+            <div className='rounded-lg bg-white p-8 shadow'>
+              <h2 className='mb-4 text-center text-2xl font-bold text-blue-600'>
+                Chatroom URLs
+              </h2>
+              <p className='text-gray-700'>
+                <strong>Make Offer URL:</strong>
+                <a
+                  href={chatUrls.makeOfferUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-blue-500 underline'
+                >
+                  {chatUrls.makeOfferUrl}
+                </a>
+              </p>
+              {chatUrls.acceptOfferUrl && (
+                <p className='text-gray-700'>
+                  <strong>Accept Offer URL:</strong>
+                  <a
+                    href={chatUrls.acceptOfferUrl}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-blue-500 underline'
+                  >
+                    {chatUrls.acceptOfferUrl}
+                  </a>
+                </p>
+              )}
+              <button
+                className='focus:shadow-outline mt-4 rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                onClick={closeModal}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="fixed top-4 right-4 z-50 space-y-2">
+          {notifications.map(({ id, message, type }) => (
+            <div
+              key={id}
+              className={`p-4 rounded-lg shadow-lg bg-green-500 text-white cursor-pointer`}
+              onClick={() => setNotifications(prev => prev.filter(n => n.id !== id))}
+            >
+              {message}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
