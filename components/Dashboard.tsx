@@ -395,16 +395,37 @@ const Dashboard: React.FC<{
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [currentStep, setCurrentStep] = useState<number>(() => {
-    const savedStep = localStorage.getItem('currentStep');
-    const savedOrderId = localStorage.getItem('currentOrderId');
-    return savedStep && savedOrderId ? parseInt(savedStep) : 1;
-  });
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [isTakeOrderModalOpen, setIsTakeOrderModalOpen] = useState(false);
+  const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
-  const [order, setOrder] = useState<Order | null>(() => {
-    const savedOrder = localStorage.getItem('currentOrder');
-    return savedOrder ? JSON.parse(savedOrder) : null;
-  });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setNpub(localStorage.getItem('npub'));
+      
+      const savedStep = localStorage.getItem('currentStep');
+      const savedOrderId = localStorage.getItem('currentOrderId');
+      const savedOrder = localStorage.getItem('currentOrder');
+      const savedTakeOrderStep = localStorage.getItem('currentTakeOrderStep');
+      const savedSelectedOrder = localStorage.getItem('selectedOrder');
+      
+      if (savedStep && savedOrderId) {
+        setCurrentStep(parseInt(savedStep));
+      }
+      if (savedOrder) {
+        setOrder(JSON.parse(savedOrder));
+      }
+      if (savedTakeOrderStep) {
+        setCurrentTakeOrderStep(parseInt(savedTakeOrderStep));
+      }
+      if (savedSelectedOrder) {
+        setSelectedOrder(JSON.parse(savedSelectedOrder));
+        setIsTakeOrderModalOpen(true);
+      }
+    }
+  }, []);
 
   const [makerHoldInvoice, setMakerHoldInvoice] = useState<Invoice | null>(null);
   const [fullInvoice, setFullInvoice] = useState<any>(null);
@@ -567,17 +588,8 @@ const Dashboard: React.FC<{
     }
   }, [currentStep]);
 
-  const [isTakeOrderModalOpen, setIsTakeOrderModalOpen] = useState(() => {
-    return localStorage.getItem('isTakeOrderModalOpen') === 'true';
-  });
   const [takeOrderSteps, setTakeOrderSteps] = useState<string[]>([]);
-  const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(() => {
-    return parseInt(localStorage.getItem('currentTakeOrderStep') || '1');
-  });
-  const [selectedOrder, setSelectedOrder] = useState<any>(() => {
-    const saved = localStorage.getItem('selectedOrder');
-    return saved ? JSON.parse(saved) : null;
-  });
+
   const handleTakeOrder = (order: any) => {
     const sellOrderSteps = [
       'Hold Invoice', 
