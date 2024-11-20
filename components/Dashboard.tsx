@@ -786,6 +786,42 @@ const Dashboard: React.FC<{
     }
   }, [currentStep, order, makerHoldInvoice, fullInvoice, invoiceStatus, orderStatus]);
 
+  // Add this to your existing state declarations
+  const [currentCustomerId, setCurrentCustomerId] = useState<number | null>(null);
+
+  // Add this useEffect to fetch customer ID when component mounts
+  useEffect(() => {
+    const fetchCustomerId = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        // Get first order from my-orders to determine customer_id
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/my-orders`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data && response.data.length > 0) {
+          // Get customer_id from the first order where we're the maker
+          const makerOrder = response.data.find(order => order.customer_id);
+          if (makerOrder) {
+            setCurrentCustomerId(makerOrder.customer_id);
+            localStorage.setItem('customer_id', makerOrder.customer_id.toString());
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch orders');
+      }
+    };
+
+    fetchCustomerId();
+  }, []); // Run once on mount
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
@@ -1249,17 +1285,13 @@ const Dashboard: React.FC<{
                               {showMyOrders && order.status !== 'completed' && (
                                 <button
                                   onClick={async () => {
-                                    // Get customer_id instead of userId
-                                    const currentCustomerId = localStorage.getItem('customer_id');
-                                    
                                     console.log('Resume Order Debug:', {
                                       currentCustomerId,
                                       orderCustomerId: order.customer_id,
-                                      isMatch: parseInt(currentCustomerId) === order.customer_id
+                                      isMatch: currentCustomerId === order.customer_id
                                     });
 
-                                    // Compare customer_ids
-                                    if (parseInt(currentCustomerId) === order.customer_id) {
+                                    if (currentCustomerId === order.customer_id) {
                                       // Maker flow
                                       setOrder(order);
                                       setCurrentStep(2);
@@ -1286,13 +1318,8 @@ const Dashboard: React.FC<{
                                           setMakerHoldInvoice(makerHoldInvoice);
                                         }
                                       } catch (error) {
-                                        console.error('Failed to fetch invoice data:', error);
+                                        console.error('Failed to fetch invoice data');
                                       }
-                                    } else {
-                                      console.error('Debug - Customer IDs do not match:', {
-                                        currentCustomerId,
-                                        orderCustomerId: order.customer_id
-                                      });
                                     }
                                   }}
                                   className='focus:shadow-outline mt-2 rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
