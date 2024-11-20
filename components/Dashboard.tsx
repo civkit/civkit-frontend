@@ -877,6 +877,13 @@ const Dashboard: React.FC<{
     return order.order_id === parseInt(savedOrderId!) || order.order_id === savedTakeOrderId;
   };
 
+  // Add with other state declarations
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>>([]);
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
