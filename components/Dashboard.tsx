@@ -552,7 +552,11 @@ const Dashboard: React.FC<{
 
   const handleNextStep = () => {
     if (currentStep < getSteps().length) {
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      if (order) {
+        localStorage.setItem(`makerStep_${order.order_id}`, nextStep.toString());
+      }
     }
   };
 
@@ -623,13 +627,14 @@ const Dashboard: React.FC<{
     if (currentTakeOrderStep < takeOrderSteps.length) {
       const nextStep = currentTakeOrderStep + 1;
       setCurrentTakeOrderStep(nextStep);
-      localStorage.setItem('currentTakeOrderStep', nextStep.toString());
+      if (selectedOrder) {
+        localStorage.setItem(`takerStep_${selectedOrder.order_id}`, nextStep.toString());
+      }
     } else {
       setIsTakeOrderModalOpen(false);
-      // Clear storage on completion
-      localStorage.removeItem('selectedOrder');
-      localStorage.removeItem('isTakeOrderModalOpen');
-      localStorage.removeItem('currentTakeOrderStep');
+      if (selectedOrder) {
+        localStorage.removeItem(`takerStep_${selectedOrder.order_id}`);
+      }
     }
   };
 
@@ -885,6 +890,19 @@ const Dashboard: React.FC<{
     message: string;
     type: 'success' | 'error' | 'info';
   }>>([]);
+
+  // Add this helper function near your other utility functions
+  const getOrderStatus = (order: Order, userId: string | null) => {
+    const isMaker = order.customer_id.toString() === userId;
+    const orderStep = isMaker ? 
+      localStorage.getItem(`makerStep_${order.order_id}`) : 
+      localStorage.getItem(`takerStep_${order.order_id}`);
+    
+    if (orderStep) {
+      return `In Progress (Step ${orderStep})`;
+    }
+    return order.status;
+  };
 
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
@@ -1281,108 +1299,60 @@ const Dashboard: React.FC<{
                   style={{ width: '156vh' }}
                 >
                   <thead>
-                    <tr className='text-gray-700 dark:text-gray-200'>
-                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                        Order ID
-                      </th>
-                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                        Order Details
-                      </th>
-                      <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
-                        Amount (sats)
-                      </th>
-                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                        Currency
-                      </th>
-                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                        Payment Method
-                      </th>
-                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                        Status
-                      </th>
-                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                        Order Type
-                      </th>
-                      <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
-                        Actions
-                      </th>
+                    <tr className='border-b dark:border-gray-700'>
+                      <th className='px-4 py-2'>Order ID</th>
+                      <th className='px-4 py-2'>Amount</th>
+                      <th className='px-4 py-2'>Currency</th>
+                      <th className='px-4 py-2'>Payment Method</th>
+                      <th className='px-4 py-2'>Status</th>
+                      <th className='px-4 py-2'>Actions</th>
                     </tr>
                   </thead>
-                  <tbody className='text-gray-700 dark:text-gray-200'>
+                  <tbody>
                     {currentOrdersPageData.map((order: Order) => (
-                      <>
-                        <tr key={order.order_id}>
-                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            {order.order_id}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            {order.order_details}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
-                            {(order.amount_msat / 1000).toFixed(3)}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            {order.currency}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            {order.payment_method}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            {order.status}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                            {order.type === 0 ? 'Buy' : 'Sell'}
-                          </td>
-                          <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
-                            {isOrderInProgress(order) && (
+                      <tr key={order.order_id} className='border-b dark:border-gray-700'>
+                        <td className='px-4 py-2'>{order.order_id}</td>
+                        <td className='px-4 py-2'>{order.amount_msat}</td>
+                        <td className='px-4 py-2'>{order.currency}</td>
+                        <td className='px-4 py-2'>{order.payment_method}</td>
+                        <td className='px-4 py-2'>
+                          {getOrderStatus(order, localStorage.getItem('userId'))}
+                        </td>
+                        <td className='px-4 py-2'>
+                          <button
+                            onClick={() => setExpandedRow(expandedRow === order.order_id ? null : order.order_id)}
+                            className='text-gray-600 hover:text-gray-800'
+                          >
+                            {expandedRow === order.order_id ? <FaChevronUp /> : <FaChevronDown />}
+                          </button>
+                        </td>
+                      </tr>
+                      {expandedRow === order.order_id && (
+                        <tr>
+                          <td colSpan={6}>
+                            <div className='px-4 py-2'>
                               <button
                                 onClick={() => {
-                                  // Check if maker or taker
-                                  const isMaker = order.customer_id === parseInt(localStorage.getItem('userId')!);
+                                  const isMaker = order.customer_id.toString() === localStorage.getItem('userId');
                                   if (isMaker) {
-                                    // Resume maker flow
                                     setOrder(order);
-                                    setCurrentStep(parseInt(localStorage.getItem('currentStep') || '1'));
+                                    setCurrentStep(parseInt(localStorage.getItem(`makerStep_${order.order_id}`) || '1'));
                                     setIsModalOpen(true);
                                   } else {
-                                    // Resume taker flow
                                     setSelectedOrder(order);
+                                    setCurrentTakeOrderStep(parseInt(localStorage.getItem(`takerStep_${order.order_id}`) || '1'));
                                     setIsTakeOrderModalOpen(true);
-                                    setCurrentTakeOrderStep(parseInt(localStorage.getItem('currentTakeOrderStep') || '1'));
                                   }
+                                  setShowOrders(false);
                                 }}
-                                className='rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600'
+                                className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
                               >
                                 Resume Order
                               </button>
-                            )}
-                          </td>
-                          <td className="px-4 py-2">
-                            <button
-                              onClick={() => setExpandedRow(expandedRow === order.order_id ? null : order.order_id)}
-                              className="text-gray-600 hover:text-gray-800"
-                            >
-                              {expandedRow === order.order_id ? <FaChevronUp /> : <FaChevronDown />}
-                            </button>
+                            </div>
                           </td>
                         </tr>
-                        {expandedRow === order.order_id && (
-                          <tr>
-                            <td colSpan={7}>
-                              <div className="px-4 py-2">
-                                {!showMyOrders && order.customer_id !== localStorage.getItem('userId') && (
-                                  <button
-                                    className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-                                    onClick={() => handleTakeOrder(order)}
-                                  >
-                                    Take Order
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </>
+                      )}
                     ))}
                   </tbody>
                 </table>
