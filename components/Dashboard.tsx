@@ -820,109 +820,101 @@ const Dashboard: React.FC<{
   }, []); // Run once on mount
 
   const handleResumeOrder = async (order) => {
-    try {
-      // First ensure we have a valid customer_id in localStorage
-      const storedCustomerId = localStorage.getItem('customer_id');
-      if (!storedCustomerId) {
-        // If no customer_id in localStorage, try to fetch it from my-orders
-        try {
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/my-orders`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            }
-          );
+    // 1. Log initial state
+    console.log('Starting handleResumeOrder with:', {
+      order,
+      storedCustomerId: localStorage.getItem('customer_id'),
+      storedToken: !!localStorage.getItem('token')
+    });
 
-          if (response.data && response.data.length > 0) {
-            // Get customer_id from the first order where we're the maker
-            const makerOrder = response.data.find(order => order.customer_id);
-            if (makerOrder) {
-              localStorage.setItem('customer_id', makerOrder.customer_id.toString());
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch customer_id from my-orders:', error);
-        }
-      }
+    // 2. Parse IDs and log each step
+    const currentCustomerId = parseInt(localStorage.getItem('customer_id'));
+    console.log('Parsed currentCustomerId:', {
+      raw: localStorage.getItem('customer_id'),
+      parsed: currentCustomerId,
+      type: typeof currentCustomerId
+    });
 
-      // Get the latest customer_id
-      const currentCustomerId = parseInt(localStorage.getItem('customer_id'));
-      const orderCustomerId = parseInt(order.customer_id);
-      const takerCustomerId = order.taker_customer_id ? parseInt(order.taker_customer_id) : null;
+    const orderCustomerId = parseInt(order.customer_id);
+    console.log('Parsed orderCustomerId:', {
+      raw: order.customer_id,
+      parsed: orderCustomerId,
+      type: typeof orderCustomerId
+    });
 
-      // Compare as numbers
-      const isMaker = currentCustomerId === orderCustomerId;
-      const isTaker = takerCustomerId === currentCustomerId;
+    const takerCustomerId = order.taker_customer_id ? parseInt(order.taker_customer_id) : null;
+    console.log('Parsed takerCustomerId:', {
+      raw: order.taker_customer_id,
+      parsed: takerCustomerId,
+      type: typeof takerCustomerId
+    });
 
-      console.log('Resume Order Debug:', {
+    // 3. Log the comparison values
+    const isMaker = currentCustomerId === orderCustomerId;
+    const isTaker = takerCustomerId === currentCustomerId;
+    
+    console.log('Role determination:', {
+      isMaker,
+      isTaker,
+      comparison: {
         currentCustomerId,
         orderCustomerId,
         takerCustomerId,
-        isMaker,
-        isTaker,
-        rawOrderCustomerId: order.customer_id,
-        rawTakerCustomerId: order.taker_customer_id,
-        typeof_currentCustomerId: typeof currentCustomerId,
-        typeof_orderCustomerId: typeof orderCustomerId,
-        storedToken: !!localStorage.getItem('token'),
-        storedCustomerId: localStorage.getItem('customer_id'),
-        fullOrder: order
-      });
-
-      if (isMaker) {
-        // Maker flow
-        setOrder(order);
-        setCurrentStep(2);
-        setIsModalOpen(true);
-        setIsTakeOrderModalOpen(false);
-        setShowOrders(false);
-        
-        try {
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${order.order_id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            }
-          );
-          
-          const invoices = Array.isArray(response.data) ? response.data : [response.data];
-          const makerHoldInvoice = invoices.find(
-            (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
-          );
-          
-          if (makerHoldInvoice) {
-            setMakerHoldInvoice(makerHoldInvoice);
-          } else {
-            console.warn('No maker hold invoice found for order:', order.order_id);
-          }
-        } catch (error) {
-          console.error('Failed to fetch invoice data:', error);
-        }
-      } else if (isTaker) {
-        // Taker flow
-        console.log('Initiating taker flow for order:', order);
-        handleTakeOrder(order);
-      } else {
-        console.error('Error: User is neither maker nor taker for this order', {
-          currentCustomerId,
-          orderCustomerId,
-          takerCustomerId
-        });
-        
-        // Try to refresh customer_id from localStorage and retry once
-        const refreshedCustomerId = localStorage.getItem('customer_id');
-        if (refreshedCustomerId && parseInt(refreshedCustomerId) !== currentCustomerId) {
-          console.log('Retrying with refreshed customer_id:', refreshedCustomerId);
-          handleResumeOrder(order);
-          return;
-        }
+        makerComparison: `${currentCustomerId} === ${orderCustomerId}`,
+        takerComparison: `${currentCustomerId} === ${takerCustomerId}`
       }
-    } catch (error) {
-      console.error('Error in handleResumeOrder:', error);
+    });
+
+    // 4. Add explicit role check logging
+    if (isMaker) {
+      console.log('Entering maker flow');
+      // Set order in state
+      setOrder(order);
+      // Move to step 2 in the stepper
+      setCurrentStep(2);
+      // Show the maker modal
+      setIsModalOpen(true);
+      // Hide the taker modal
+      setIsTakeOrderModalOpen(false);
+      // Hide the orders list
+      setShowOrders(false);
+      
+      try {
+        console.log('Fetching invoice for order:', order.order_id);
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${order.order_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+        
+        console.log('Invoice response:', response.data);
+        const invoices = Array.isArray(response.data) ? response.data : [response.data];
+        const makerHoldInvoice = invoices.find(
+          (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
+        );
+        
+        console.log('Found makerHoldInvoice:', makerHoldInvoice);
+        if (makerHoldInvoice) {
+          setMakerHoldInvoice(makerHoldInvoice);
+        } else {
+          console.warn('No maker hold invoice found');
+        }
+      } catch (error) {
+        console.error('Failed to fetch invoice data:', error);
+      }
+    } else if (isTaker) {
+      console.log('Entering taker flow');
+      handleTakeOrder(order);
+    } else {
+      console.error('Neither maker nor taker - this should not happen for resume order', {
+        currentCustomerId,
+        orderCustomerId,
+        takerCustomerId,
+        order
+      });
     }
   };
 
