@@ -215,10 +215,11 @@ const Dashboard: React.FC<{
   // Update the Orders button click handler
   const handleOrdersClick = async () => {
     try {
-      setShowOrders(true);        // Show the orders table
-      setShowMyOrders(false);     // Reset to Orders view
+      setShowOrders(true);        
+      setShowMyOrders(false);     
       setShowProfileSettings(false);
       setIsModalOpen(false);
+      setIsTakeOrderModalOpen(false);
       setCurrentOrdersPage(1);
       
       const response = await axios.get(
@@ -250,6 +251,7 @@ const Dashboard: React.FC<{
       setShowMyOrders(true);
       setShowProfileSettings(false);
       setIsModalOpen(false);
+      setIsTakeOrderModalOpen(false);
       setCurrentOrdersPage(1);
       
       const response = await axios.get(
