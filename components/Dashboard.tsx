@@ -1285,14 +1285,18 @@ const Dashboard: React.FC<{
                               {showMyOrders && order.status !== 'completed' && (
                                 <button
                                   onClick={async () => {
+                                    const userRole = determineUserRole(order);
+                                    
                                     console.log('Resume Order Debug:', {
                                       currentCustomerId,
                                       orderCustomerId: order.customer_id,
+                                      takerCustomerId: order.taker_customer_id,
+                                      userRole,
                                       isMatch: currentCustomerId === order.customer_id
                                     });
 
-                                    if (currentCustomerId === order.customer_id) {
-                                      // Maker flow
+                                    if (userRole === 'maker') {
+                                      // Maker flow (existing logic)
                                       setOrder(order);
                                       setCurrentStep(2);
                                       setIsModalOpen(true);
@@ -1320,9 +1324,12 @@ const Dashboard: React.FC<{
                                       } catch (error) {
                                         console.error('Failed to fetch invoice data');
                                       }
-                                    } else {
+                                    } else if (userRole === 'taker') {
                                       // Taker flow
-                                      handleTakeOrder(order);
+                                      console.log('Initiating taker flow for order:', order);
+                                      handleTakeOrder(order); // This will set up the taker stepper flow
+                                    } else {
+                                      console.error('Error: Unable to determine user role for this order');
                                     }
                                   }}
                                   className='inline-flex items-center justify-center px-3 py-1 text-sm font-medium text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
