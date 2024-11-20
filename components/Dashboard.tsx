@@ -1249,28 +1249,17 @@ const Dashboard: React.FC<{
                               {showMyOrders && order.status !== 'completed' && (
                                 <button
                                   onClick={async () => {
-                                    const userId = localStorage.getItem('userId');
+                                    // Get customer_id instead of userId
+                                    const currentCustomerId = localStorage.getItem('customer_id');
                                     
-                                    // Debug logging
                                     console.log('Resume Order Debug:', {
-                                      userId: userId,
-                                      userIdType: typeof userId,
-                                      customerId: order.customer_id,
-                                      customerIdType: typeof order.customer_id,
-                                      order: order,
-                                      rawComparison: userId === order.customer_id,
-                                      stringComparison: userId?.toString() === order.customer_id?.toString(),
-                                      numberComparison: parseInt(userId) === order.customer_id
+                                      currentCustomerId,
+                                      orderCustomerId: order.customer_id,
+                                      isMatch: parseInt(currentCustomerId) === order.customer_id
                                     });
-                                    
-                                    // Try different comparison methods
-                                    const isMatch = (
-                                      userId === order.customer_id ||                    // Direct comparison
-                                      userId?.toString() === order.customer_id?.toString() ||  // String comparison
-                                      parseInt(userId) === order.customer_id             // Number comparison
-                                    );
 
-                                    if (isMatch) {
+                                    // Compare customer_ids
+                                    if (parseInt(currentCustomerId) === order.customer_id) {
                                       // Maker flow
                                       setOrder(order);
                                       setCurrentStep(2);
@@ -1300,9 +1289,9 @@ const Dashboard: React.FC<{
                                         console.error('Failed to fetch invoice data:', error);
                                       }
                                     } else {
-                                      console.error('Debug - IDs do not match:', {
-                                        userId,
-                                        customerId: order.customer_id
+                                      console.error('Debug - Customer IDs do not match:', {
+                                        currentCustomerId,
+                                        orderCustomerId: order.customer_id
                                       });
                                     }
                                   }}

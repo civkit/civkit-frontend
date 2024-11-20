@@ -9,10 +9,6 @@ export const useNostr = () => {
   const signAndSendEvent = async (orderData: any, eventKind = 1506) => {
     if (window.nostr) {
       const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
-      if (!frontendUrl) {
-        // Silenced warning
-      }
-
       const event = {
         kind: eventKind,
         created_at: Math.floor(Date.now() / 1000),
@@ -27,28 +23,13 @@ export const useNostr = () => {
       try {
         const signedEvent = await window.nostr.signEvent(event);
         const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
-        if (!relayURL) {
-          throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
-        }
+        if (!relayURL) return;
+        
         const relayWebSocket = new WebSocket(relayURL);
-
         relayWebSocket.onopen = () => {
-          const message = JSON.stringify(['EVENT', signedEvent]);
-          relayWebSocket.send(message);
+          relayWebSocket.send(JSON.stringify(['EVENT', signedEvent]));
         };
-
-        relayWebSocket.onerror = () => {
-          // Error silenced
-        };
-
-        relayWebSocket.onclose = () => {
-          // Close event silenced
-        };
-      } catch (signError) {
-        // Error silenced
-      }
-    } else {
-      // Extension error silenced
+      } catch (_) {}
     }
   };
 
@@ -57,41 +38,27 @@ export const useNostr = () => {
     kinds: number[] = [1506, 1508]
   ) => {
     const relayURL = process.env.NEXT_PUBLIC_NOSTR_RELAY;
-    if (!relayURL) {
-      throw new Error('NEXT_PUBLIC_NOSTR_RELAY is not defined');
-    }
+    if (!relayURL) return () => {};
 
     let relayWebSocket: WebSocket;
 
     const connectWebSocket = () => {
       relayWebSocket = new WebSocket(relayURL);
-
       relayWebSocket.onopen = () => {
-        const message = JSON.stringify(['REQ', 'sub-1', { kinds }]);
-        relayWebSocket.send(message);
+        relayWebSocket.send(JSON.stringify(['REQ', 'sub-1', { kinds }]));
       };
-
       relayWebSocket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data[0] === 'EVENT' && kinds.includes(data[2].kind)) {
-          onEventReceived(data[2]);
-        }
-      };
-
-      relayWebSocket.onerror = () => {
-        // Error silenced
-      };
-
-      relayWebSocket.onclose = () => {
-        // Close event silenced
+        try {
+          const data = JSON.parse(event.data);
+          if (data[0] === 'EVENT' && kinds.includes(data[2].kind)) {
+            onEventReceived(data[2]);
+          }
+        } catch (_) {}
       };
     };
 
     connectWebSocket();
-
-    return () => {
-      relayWebSocket.close();
-    };
+    return () => relayWebSocket?.close();
   };
 
   return { signAndSendEvent, subscribeToEvents };
