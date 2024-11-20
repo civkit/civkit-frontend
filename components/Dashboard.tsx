@@ -822,6 +822,66 @@ const Dashboard: React.FC<{
     fetchCustomerId();
   }, []); // Run once on mount
 
+  const handleResumeOrder = async (order) => {
+    // Parse IDs consistently
+    const currentCustomerId = parseInt(localStorage.getItem('customer_id'));
+    const orderCustomerId = parseInt(order.customer_id);
+    const takerCustomerId = order.taker_customer_id ? parseInt(order.taker_customer_id) : null;
+
+    // Compare as numbers
+    const isMaker = currentCustomerId === orderCustomerId;
+    const isTaker = takerCustomerId === currentCustomerId;
+
+    console.log('Resume Order Debug:', {
+      currentCustomerId,
+      orderCustomerId,
+      takerCustomerId,
+      isMaker,
+      isTaker,
+      rawOrderCustomerId: order.customer_id,
+      rawTakerCustomerId: order.taker_customer_id,
+      typeof_currentCustomerId: typeof currentCustomerId,
+      typeof_orderCustomerId: typeof orderCustomerId
+    });
+
+    if (isMaker) {
+      // Maker flow
+      setOrder(order);
+      setCurrentStep(2);
+      setIsModalOpen(true);
+      setIsTakeOrderModalOpen(false);
+      setShowOrders(false);
+      
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${order.order_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+        
+        const invoices = Array.isArray(response.data) ? response.data : [response.data];
+        const makerHoldInvoice = invoices.find(
+          (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
+        );
+        
+        if (makerHoldInvoice) {
+          setMakerHoldInvoice(makerHoldInvoice);
+        }
+      } catch (error) {
+        console.error('Failed to fetch invoice data');
+      }
+    } else if (isTaker) {
+      // Taker flow
+      console.log('Initiating taker flow for order:', order);
+      handleTakeOrder(order);
+    } else {
+      console.error('Error: User is neither maker nor taker for this order');
+    }
+  };
+
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
