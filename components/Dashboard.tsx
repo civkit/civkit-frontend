@@ -557,6 +557,11 @@ const Dashboard: React.FC<{
       if (order) {
         localStorage.setItem(`makerStep_${order.order_id}`, nextStep.toString());
       }
+    } else {
+      // Clear progress when complete
+      if (order) {
+        localStorage.removeItem(`makerStep_${order.order_id}`);
+      }
     }
   };
 
@@ -876,12 +881,17 @@ const Dashboard: React.FC<{
 
   // Add helper function to determine if order is in progress
   const isOrderInProgress = (order: Order) => {
-    const savedOrderId = localStorage.getItem('currentOrderId');
-    const savedTakeOrderId = localStorage.getItem('selectedOrder') 
-      ? JSON.parse(localStorage.getItem('selectedOrder')!).order_id 
-      : null;
+    if (!order) return false;
     
-    return order.order_id === parseInt(savedOrderId!) || order.order_id === savedTakeOrderId;
+    const userId = localStorage.getItem('userId');
+    const isMaker = order.customer_id.toString() === userId;
+    
+    // Check for saved progress
+    const savedStep = isMaker ? 
+      localStorage.getItem(`makerStep_${order.order_id}`) : 
+      localStorage.getItem(`takerStep_${order.order_id}`);
+    
+    return savedStep !== null && order.status !== 'completed';
   };
 
   // Add with other state declarations
@@ -1330,24 +1340,26 @@ const Dashboard: React.FC<{
                         <tr>
                           <td colSpan={6}>
                             <div className='px-4 py-2'>
-                              <button
-                                onClick={() => {
-                                  const isMaker = order.customer_id.toString() === localStorage.getItem('userId');
-                                  if (isMaker) {
-                                    setOrder(order);
-                                    setCurrentStep(parseInt(localStorage.getItem(`makerStep_${order.order_id}`) || '1'));
-                                    setIsModalOpen(true);
-                                  } else {
-                                    setSelectedOrder(order);
-                                    setCurrentTakeOrderStep(parseInt(localStorage.getItem(`takerStep_${order.order_id}`) || '1'));
-                                    setIsTakeOrderModalOpen(true);
-                                  }
-                                  setShowOrders(false);
-                                }}
-                                className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-                              >
-                                Resume Order
-                              </button>
+                              {isOrderInProgress(order) && (
+                                <button
+                                  onClick={() => {
+                                    const isMaker = order.customer_id.toString() === localStorage.getItem('userId');
+                                    if (isMaker) {
+                                      setOrder(order);
+                                      setCurrentStep(parseInt(localStorage.getItem(`makerStep_${order.order_id}`) || '1'));
+                                      setIsModalOpen(true);
+                                    } else {
+                                      setSelectedOrder(order);
+                                      setCurrentTakeOrderStep(parseInt(localStorage.getItem(`takerStep_${order.order_id}`) || '1'));
+                                      setIsTakeOrderModalOpen(true);
+                                    }
+                                    setShowOrders(false);
+                                  }}
+                                  className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                                >
+                                  Resume Order
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
