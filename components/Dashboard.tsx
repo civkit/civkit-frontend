@@ -1308,8 +1308,8 @@ const Dashboard: React.FC<{
                   </thead>
                   <tbody className='text-gray-700 dark:text-gray-200'>
                     {currentOrdersPageData.map((order: Order) => (
-                      <React.Fragment key={order.order_id}>
-                        <tr className='h-13 odd:bg-gray-100 even:bg-white dark:odd:bg-gray-700 dark:even:bg-gray-800'>
+                      <>
+                        <tr key={order.order_id}>
                           <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
                             {order.order_id}
                           </td>
@@ -1355,42 +1355,19 @@ const Dashboard: React.FC<{
                               </button>
                             )}
                           </td>
+                          <td className="px-4 py-2">
+                            <button
+                              onClick={() => setExpandedRow(expandedRow === order.order_id ? null : order.order_id)}
+                              className="text-gray-600 hover:text-gray-800"
+                            >
+                              {expandedRow === order.order_id ? <FaChevronUp /> : <FaChevronDown />}
+                            </button>
+                          </td>
                         </tr>
                         {expandedRow === order.order_id && (
                           <tr>
-                            <td
-                              colSpan={8}
-                              className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'
-                            >
-                              <div className='rounded bg-gray-100 p-4 dark:bg-gray-700'>
-                                <table className='min-w-full bg-white dark:bg-gray-800'>
-                                  <tbody>
-                                    <tr>
-                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                        Customer ID
-                                      </td>
-                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                        {order.customer_id}
-                                      </td>
-                                    </tr>
-                                    <tr>
-                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                        Escrow Status
-                                      </td>
-                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                        {order.escrow_status}
-                                      </td>
-                                    </tr>
-                                    <tr>
-                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                        Taker Customer ID
-                                      </td>
-                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
-                                        {order.taker_customer_id}
-                                      </td>
-                                    </tr>
-                                  </tbody>
-                                </table>
+                            <td colSpan={7}>
+                              <div className="px-4 py-2">
                                 {!showMyOrders && order.customer_id !== localStorage.getItem('userId') && (
                                   <button
                                     className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
@@ -1403,7 +1380,7 @@ const Dashboard: React.FC<{
                             </td>
                           </tr>
                         )}
-                      </React.Fragment>
+                      </>
                     ))}
                   </tbody>
                 </table>
