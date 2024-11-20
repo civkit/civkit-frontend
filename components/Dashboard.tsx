@@ -753,22 +753,6 @@ const Dashboard: React.FC<{
     return null;
   };
 
-  const [resumedOrder, setResumedOrder] = useState<Order | null>(null);
-  const [resumedOrderStep, setResumedOrderStep] = useState<number>(1);
-
-  useEffect(() => {
-    if (resumedOrder) {
-      const isMaker = resumedOrder.customer_id.toString() === localStorage.getItem('userId');
-      if (isMaker) {
-        setOrder(resumedOrder);
-        setCurrentStep(resumedOrderStep);
-      } else {
-        setSelectedOrder(resumedOrder);
-        setCurrentTakeOrderStep(resumedOrderStep);
-      }
-    }
-  }, [resumedOrder, resumedOrderStep]);
-
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
       {isDrawerOpen && (
@@ -1097,22 +1081,24 @@ const Dashboard: React.FC<{
               ))}
             </div>
             <div className='flex flex-col h-100 rounded-lg justify-center items-center gap-2'>
-              {currentTakeOrderStep === 1 && <TakeOrder orderId={selectedOrder.order_id} />}
-              {currentTakeOrderStep === 2 && selectedOrder && (
-            <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
-              {selectedOrder.type === 0 ? (  // Buy order
-                <TakerFullInvoice 
-                  orderId={selectedOrder.order_id.toString()}
-                  onComplete={handleNextTakeOrderStep}
-                />
-              ) : (  // Sell order
-                <SubmitPayout 
-                  orderId={selectedOrder.order_id.toString()}
-                  onPayoutSubmitted={handleNextTakeOrderStep}
-                />
+              {currentTakeOrderStep === 1 && selectedOrder && (
+                <TakeOrder orderId={selectedOrder.order_id} />
               )}
-            </div>
-          )}
+              {currentTakeOrderStep === 2 && selectedOrder && (
+                <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
+                  {selectedOrder.type === 0 ? (  // Buy order
+                    <TakerFullInvoice 
+                      orderId={selectedOrder.order_id.toString()}
+                      onComplete={handleNextTakeOrderStep}
+                    />
+                  ) : (  // Sell order
+                    <SubmitPayout 
+                      orderId={selectedOrder.order_id.toString()}
+                      onPayoutSubmitted={handleNextTakeOrderStep}
+                    />
+                  )}
+                </div>
+              )}
               {currentTakeOrderStep === 3 && (
                 <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4 flex flex-col items-center justify-center'>
                   <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Chat</h2>
@@ -1217,35 +1203,37 @@ const Dashboard: React.FC<{
                             {order.type === 0 ? 'Buy' : 'Sell'}
                           </td>
                           <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
-                            <button
-                              onClick={() =>
-                                toggleRowExpansion(order.order_id)
-                              }
-                            >
-                              {expandedRow === order.order_id ? (
-                                <BsChevronUp className='text-xl' />
-                              ) : (
-                                <BsChevronDown className='text-xl' />
-                              )}
-                            </button>
-                            {showMyOrders && order.status !== 'completed' && (
+                            <div className="flex items-center justify-center gap-2">
                               <button
-                                onClick={() => {
-                                  const isMaker = order.customer_id.toString() === localStorage.getItem('userId');
-                                  setResumedOrder(order);
-                                  setResumedOrderStep(1);
-                                  if (isMaker) {
-                                    setIsModalOpen(true);
-                                  } else {
-                                    setIsTakeOrderModalOpen(true);
-                                  }
-                                  setShowOrders(false);
-                                }}
-                                className='focus:shadow-outline ml-2 rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+                                onClick={() => toggleRowExpansion(order.order_id)}
                               >
-                                Resume Order
+                                {expandedRow === order.order_id ? (
+                                  <BsChevronUp className='text-xl' />
+                                ) : (
+                                  <BsChevronDown className='text-xl' />
+                                )}
                               </button>
-                            )}
+                              {showMyOrders && order.status !== 'completed' && (
+                                <button
+                                  onClick={() => {
+                                    const isMaker = order.customer_id.toString() === localStorage.getItem('userId');
+                                    if (isMaker) {
+                                      setOrder(order);
+                                      setCurrentStep(1);
+                                      setIsModalOpen(true);
+                                    } else {
+                                      setSelectedOrder(order);
+                                      setCurrentTakeOrderStep(1);
+                                      setIsTakeOrderModalOpen(true);
+                                    }
+                                    setShowOrders(false);
+                                  }}
+                                  className='ml-2 rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600'
+                                >
+                                  Resume
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                         {expandedRow === order.order_id && (
