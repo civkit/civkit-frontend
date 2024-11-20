@@ -1251,67 +1251,60 @@ const Dashboard: React.FC<{
                                   onClick={async () => {
                                     const userId = localStorage.getItem('userId');
                                     
-                                    // Convert both values to strings for comparison
-                                    const userIdStr = userId?.toString();
-                                    const customerIdStr = order.customer_id?.toString();
-                                    
-                                    // Debug log the actual values
-                                    console.log('Comparison:', {
-                                      userIdStr,
-                                      customerIdStr,
-                                      isEqual: userIdStr === customerIdStr
+                                    // Debug logging
+                                    console.log('Resume Order Debug:', {
+                                      userId: userId,
+                                      userIdType: typeof userId,
+                                      customerId: order.customer_id,
+                                      customerIdType: typeof order.customer_id,
+                                      order: order,
+                                      rawComparison: userId === order.customer_id,
+                                      stringComparison: userId?.toString() === order.customer_id?.toString(),
+                                      numberComparison: parseInt(userId) === order.customer_id
                                     });
                                     
-                                    // Check if user is the maker (use string comparison)
-                                    if (userIdStr === customerIdStr) {
+                                    // Try different comparison methods
+                                    const isMatch = (
+                                      userId === order.customer_id ||                    // Direct comparison
+                                      userId?.toString() === order.customer_id?.toString() ||  // String comparison
+                                      parseInt(userId) === order.customer_id             // Number comparison
+                                    );
+
+                                    if (isMatch) {
                                       // Maker flow
-                                      const savedState = loadStepperState(order.order_id);
-                                      
-                                      if (savedState) {
-                                        setOrder(savedState.order);
-                                        setCurrentStep(savedState.currentStep || 2);
-                                        setMakerHoldInvoice(savedState.makerHoldInvoice);
-                                        setFullInvoice(savedState.fullInvoice);
-                                        setInvoiceStatus(savedState.invoiceStatus);
-                                        setOrderStatus(savedState.orderStatus);
-                                      } else {
-                                        // Start fresh maker flow
-                                        setOrder(order);
-                                        setCurrentStep(2); // Start at hold invoice step
-                                        
-                                        // Fetch fresh invoice data
-                                        try {
-                                          const response = await axios.get(
-                                            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${order.order_id}`,
-                                            {
-                                              headers: {
-                                                Authorization: `Bearer ${localStorage.getItem('token')}`,
-                                              },
-                                            }
-                                          );
-                                          
-                                          const invoices = Array.isArray(response.data) ? response.data : [response.data];
-                                          const makerHoldInvoice = invoices.find(
-                                            (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
-                                          );
-                                          
-                                          if (makerHoldInvoice) {
-                                            setMakerHoldInvoice(makerHoldInvoice);
-                                          }
-                                        } catch (error) {
-                                          console.error('Failed to fetch invoice data');
-                                        }
-                                      }
-                                      
-                                      // Show maker modal
+                                      setOrder(order);
+                                      setCurrentStep(2);
                                       setIsModalOpen(true);
                                       setIsTakeOrderModalOpen(false);
+                                      setShowOrders(false);
+                                      
+                                      try {
+                                        const response = await axios.get(
+                                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${order.order_id}`,
+                                          {
+                                            headers: {
+                                              Authorization: `Bearer ${localStorage.getItem('token')}`,
+                                            },
+                                          }
+                                        );
+                                        
+                                        const invoices = Array.isArray(response.data) ? response.data : [response.data];
+                                        const makerHoldInvoice = invoices.find(
+                                          (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
+                                        );
+                                        
+                                        if (makerHoldInvoice) {
+                                          setMakerHoldInvoice(makerHoldInvoice);
+                                        }
+                                      } catch (error) {
+                                        console.error('Failed to fetch invoice data:', error);
+                                      }
                                     } else {
-                                      // Not the maker, don't redirect to taker flow in My Orders
-                                      console.error('Error: Attempting to resume an order you did not create');
+                                      console.error('Debug - IDs do not match:', {
+                                        userId,
+                                        customerId: order.customer_id
+                                      });
                                     }
-                                    
-                                    setShowOrders(false);
                                   }}
                                   className='focus:shadow-outline mt-2 rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
                                 >
