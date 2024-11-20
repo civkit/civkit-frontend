@@ -1216,21 +1216,27 @@ const Dashboard: React.FC<{
                               {showMyOrders && order.status !== 'completed' && (
                                 <button
                                   onClick={() => {
-                                    const isMaker = order.customer_id.toString() === localStorage.getItem('userId');
+                                    const userId = localStorage.getItem('userId');
+                                    const isMaker = order.customer_id.toString() === userId;
+                                    
                                     if (isMaker) {
+                                      // Maker flow
                                       setOrder(order);
                                       setCurrentStep(1);
                                       setIsModalOpen(true);
+                                      setIsTakeOrderModalOpen(false);
                                     } else {
+                                      // Taker flow
                                       setSelectedOrder(order);
                                       setCurrentTakeOrderStep(1);
+                                      setIsModalOpen(false);
                                       setIsTakeOrderModalOpen(true);
                                     }
                                     setShowOrders(false);
                                   }}
-                                  className='ml-2 rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600'
+                                  className='focus:shadow-outline mt-2 rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
                                 >
-                                  Resume
+                                  Resume Order
                                 </button>
                               )}
                             </div>
