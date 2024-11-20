@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNostr } from './useNostr';
 
+// Enhanced interface with more order details
 interface OrderData {
   order_id: number;
   status: string;
@@ -9,6 +10,12 @@ interface OrderData {
   payment_method: string;
   type: number;
   frontend_url: string;
+  created_at?: number;
+  maker_pubkey?: string;
+  premium?: number;
+  exchange_rate?: number;
+  order_description?: string;
+  payment_windows?: number;
 }
 
 interface OrderEvent {
@@ -25,106 +32,143 @@ const FilteredOrders = () => {
   const [isSigned, setIsSigned] = useState(false);
   const { signAndSendEvent, subscribeToEvents } = useNostr();
 
+  // Helper function to format msats to BTC
+  const formatMsatToBTC = (msat: number) => {
+    return (msat / 100000000000).toFixed(8);
+  };
+
+  // Helper function for time ago
+  const timeAgo = (timestamp: number) => {
+    const seconds = Math.floor(Date.now() / 1000 - timestamp);
+    if (seconds < 60) return `${seconds} seconds ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+    return `${Math.floor(seconds / 86400)} days ago`;
+  };
+
   useEffect(() => {
-    console.log('useEffect triggered');
-
+    // Initialize connection with dummy event
     const dummyEvent = { kind: 1, content: 'Initializing connection' };
-    console.log('Signing event to initialize connection:');
     signAndSendEvent(dummyEvent)
-      .then(() => {
-        console.log('Event signed successfully');
-        setIsSigned(true);
-      })
-      .catch((error) => {
-        console.error('Error signing event:', error);
-      });
+      .then(() => setIsSigned(true))
+      .catch(error => console.error('Error signing event:', error));
 
+    // Handle incoming events
     const handleEventReceived = (event: OrderEvent) => {
-      console.log('Event received:', event);
-      if (!event || !event.content) {
-        console.log('No valid event received');
-        return;
-      }
+      if (!event?.content) return;
 
       try {
         const parsedContent: OrderData = JSON.parse(event.content);
-        console.log('Parsed content:', parsedContent);
-
-        setOrders((prevOrders) => {
-          const orderExists = prevOrders.some(
-            (prevOrder) => prevOrder.order_id === parsedContent.order_id
-          );
-          if (orderExists) {
-            console.log(
-              `Order with ID ${parsedContent.order_id} already exists. Skipping.`
-            );
+        setOrders(prevOrders => {
+          // Check for duplicates
+          if (prevOrders.some(order => order.order_id === parsedContent.order_id)) {
             return prevOrders;
           }
-          return [...prevOrders, parsedContent];
+          // Add event metadata to order
+          const enrichedOrder = {
+            ...parsedContent,
+            created_at: event.created_at,
+            maker_pubkey: event.pubkey
+          };
+          // Sort by newest first
+          return [...prevOrders, enrichedOrder]
+            .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
         });
       } catch (error) {
         console.error('Error parsing event content:', error);
       }
     };
 
-    console.log('Subscribing to orders');
     const unsubscribe = subscribeToEvents(handleEventReceived, [1506]);
-    console.log('Subscribed to orders');
-
-    return () => {
-      console.log('Unsubscribing from orders');
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [signAndSendEvent, subscribeToEvents]);
 
+  const handleTakeOrder = (orderId: number) => {
+    // Redirect to login page
+    window.location.href = '/login';
+  };
+
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gray-100'>
-      <div className='mt-6 w-full max-w-5xl rounded-lg bg-white p-8 shadow-lg'>
-        <h2 className='mb-6 text-center text-2xl font-bold text-blue-600'>
-          Filtered Orders
+    <div className='min-h-screen bg-gray-100 p-8'>
+      <div className='mx-auto max-w-7xl'>
+        <h2 className='mb-6 text-center text-3xl font-bold text-gray-800'>
+          Active Orders
         </h2>
         {isSigned ? (
-          <div className='grid grid-cols-1 gap-8 md:grid-cols-3'>
-            {orders.length > 0 ? (
-              orders.map((order) => (
-                <div
-                  key={order.order_id}
-                  className='rounded-lg bg-white p-6 shadow-lg'
-                >
-                  <h3 className='mb-2 text-lg font-bold text-gray-700'>
-                    Order ID: {order.order_id}
-                  </h3>
-                  <p className='text-gray-700'>Status: {order.status}</p>
-                  <p className='text-gray-700'>
-                    Amount (msat): {order.amount_msat}
-                  </p>
-                  <p className='text-gray-700'>Currency: {order.currency}</p>
-                  <p className='text-gray-700'>
-                    Payment Method: {order.payment_method}
-                  </p>
-                  <p className='text-gray-700'>
-                    Type: {order.type === 0 ? 'Buy' : 'Sell'}
-                  </p>
-                  <p className='text-gray-700'>
-                    <a
-                      href={`${order.frontend_url}/take-order?orderId=${order.order_id}`}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='text-blue-500 hover:text-blue-700'
-                    >
-                      Take Order
-                    </a>
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className='text-center text-gray-700'>No orders found.</p>
-            )}
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white shadow-lg rounded-lg">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {orders.length > 0 ? (
+                  orders.map((order) => (
+                    <tr key={order.order_id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        #{order.order_id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.created_at && timeAgo(order.created_at)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.type === 0 ? 
+                          <span className="text-green-600">Buy</span> : 
+                          <span className="text-blue-600">Sell</span>
+                        }
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatMsatToBTC(order.amount_msat)} BTC
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.currency}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.payment_method}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                          ${order.status === 'pending' 
+                            ? 'bg-green-100 text-green-800'   // Pending is now green
+                            : order.status === 'paid'
+                            ? 'bg-orange-100 text-orange-800' // Paid is now orange
+                            : 'bg-gray-100 text-gray-800'    // Default for other statuses
+                          }`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button
+                          onClick={() => handleTakeOrder(order.order_id)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Take Order
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
+                      No active orders found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         ) : (
-          <p className='text-center text-gray-700'>
-            Signing event, please wait...
-          </p>
+          <div className='text-center text-gray-500'>
+            Connecting to Nostr network...
+          </div>
         )}
       </div>
     </div>
