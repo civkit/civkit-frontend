@@ -1217,7 +1217,12 @@ const Dashboard: React.FC<{
                                 <button
                                   onClick={() => {
                                     const userId = localStorage.getItem('userId');
-                                    const isMaker = order.customer_id.toString() === userId;
+                                    console.log('Current userId:', userId);
+                                    console.log('Order customer_id:', order.customer_id);
+                                    
+                                    // Ensure both values are strings and compare
+                                    const isMaker = order.customer_id?.toString() === userId?.toString();
+                                    console.log('Is maker?', isMaker);
                                     
                                     if (isMaker) {
                                       // Maker flow
