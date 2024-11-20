@@ -822,7 +822,7 @@ const Dashboard: React.FC<{
   const handleResumeOrder = async (order) => {
     try {
       // Get role from backend instead of local comparison
-      const response = await axios.get(
+      const roleResponse = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}/user-role`,
         {
           headers: {
@@ -831,24 +831,25 @@ const Dashboard: React.FC<{
         }
       );
 
-      const { isMaker, isTaker } = response.data;
+      const { isMaker, isTaker } = roleResponse.data;
+
+      console.log('Resume Order Debug:', {
+        roleResponse: roleResponse.data,
+        order,
+        isMaker,
+        isTaker
+      });
 
       if (isMaker) {
-        console.log('Entering maker flow');
-        // Set order in state
+        // Maker flow
         setOrder(order);
-        // Move to step 2 in the stepper
         setCurrentStep(2);
-        // Show the maker modal
         setIsModalOpen(true);
-        // Hide the taker modal
         setIsTakeOrderModalOpen(false);
-        // Hide the orders list
         setShowOrders(false);
         
         try {
-          console.log('Fetching invoice for order:', order.order_id);
-          const invoiceResponse = await axios.get(
+          const response = await axios.get(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${order.order_id}`,
             {
               headers: {
@@ -857,29 +858,21 @@ const Dashboard: React.FC<{
             }
           );
           
-          console.log('Invoice response:', invoiceResponse.data);
-          const invoices = Array.isArray(invoiceResponse.data) ? invoiceResponse.data : [invoiceResponse.data];
+          const invoices = Array.isArray(response.data) ? response.data : [response.data];
           const makerHoldInvoice = invoices.find(
             (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
           );
           
-          console.log('Found makerHoldInvoice:', makerHoldInvoice);
           if (makerHoldInvoice) {
             setMakerHoldInvoice(makerHoldInvoice);
-          } else {
-            console.warn('No maker hold invoice found');
           }
         } catch (error) {
           console.error('Failed to fetch invoice data:', error);
         }
       } else if (isTaker) {
-        console.log('Entering taker flow');
         handleTakeOrder(order);
       } else {
-        console.error('Neither maker nor taker - this should not happen for resume order', {
-          order,
-          roleResponse: response.data
-        });
+        console.error('User is neither maker nor taker of this order');
       }
     } catch (error) {
       console.error('Failed to determine user role:', error);
@@ -1349,53 +1342,62 @@ const Dashboard: React.FC<{
                               {showMyOrders && order.status !== 'completed' && (
                                 <button
                                   onClick={async () => {
-                                    // First, determine if user is maker or taker
-                                    const isMaker = currentCustomerId === order.customer_id;
-                                    const isTaker = currentCustomerId === order.taker_customer_id;
-
-                                    console.log('Resume Order Debug:', {
-                                      currentCustomerId,
-                                      orderCustomerId: order.customer_id,
-                                      takerCustomerId: order.taker_customer_id,
-                                      isMaker,
-                                      isTaker
-                                    });
-
-                                    if (isMaker) {
-                                      // Maker flow (existing logic)
-                                      setOrder(order);
-                                      setCurrentStep(2);
-                                      setIsModalOpen(true);
-                                      setIsTakeOrderModalOpen(false);
-                                      setShowOrders(false);
-                                      
-                                      try {
-                                        const response = await axios.get(
-                                          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${order.order_id}`,
-                                          {
-                                            headers: {
-                                              Authorization: `Bearer ${localStorage.getItem('token')}`,
-                                            },
-                                          }
-                                        );
-                                        
-                                        const invoices = Array.isArray(response.data) ? response.data : [response.data];
-                                        const makerHoldInvoice = invoices.find(
-                                          (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
-                                        );
-                                        
-                                        if (makerHoldInvoice) {
-                                          setMakerHoldInvoice(makerHoldInvoice);
+                                    try {
+                                      // Get role from backend instead of local comparison
+                                      const roleResponse = await axios.get(
+                                        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/orders/${order.order_id}/user-role`,
+                                        {
+                                          headers: {
+                                            Authorization: `Bearer ${localStorage.getItem('token')}`,
+                                          },
                                         }
-                                      } catch (error) {
-                                        console.error('Failed to fetch invoice data');
+                                      );
+
+                                      const { isMaker, isTaker } = roleResponse.data;
+
+                                      console.log('Resume Order Debug:', {
+                                        roleResponse: roleResponse.data,
+                                        order,
+                                        isMaker,
+                                        isTaker
+                                      });
+
+                                      if (isMaker) {
+                                        // Maker flow
+                                        setOrder(order);
+                                        setCurrentStep(2);
+                                        setIsModalOpen(true);
+                                        setIsTakeOrderModalOpen(false);
+                                        setShowOrders(false);
+                                        
+                                        try {
+                                          const response = await axios.get(
+                                            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/invoice/${order.order_id}`,
+                                            {
+                                              headers: {
+                                                Authorization: `Bearer ${localStorage.getItem('token')}`,
+                                              },
+                                            }
+                                          );
+                                          
+                                          const invoices = Array.isArray(response.data) ? response.data : [response.data];
+                                          const makerHoldInvoice = invoices.find(
+                                            (invoice) => invoice.invoice_type === 'hold' && invoice.user_type === 'maker'
+                                          );
+                                          
+                                          if (makerHoldInvoice) {
+                                            setMakerHoldInvoice(makerHoldInvoice);
+                                          }
+                                        } catch (error) {
+                                          console.error('Failed to fetch invoice data:', error);
+                                        }
+                                      } else if (isTaker) {
+                                        handleTakeOrder(order);
+                                      } else {
+                                        console.error('User is neither maker nor taker of this order');
                                       }
-                                    } else if (isTaker) {
-                                      // Taker flow
-                                      console.log('Initiating taker flow for order:', order);
-                                      handleTakeOrder(order);
-                                    } else {
-                                      console.error('Error: User is neither maker nor taker for this order');
+                                    } catch (error) {
+                                      console.error('Failed to determine user role:', error);
                                     }
                                   }}
                                   className='inline-flex items-center justify-center px-3 py-1 text-sm font-medium text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
