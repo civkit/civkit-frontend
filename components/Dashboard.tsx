@@ -215,11 +215,10 @@ const Dashboard: React.FC<{
   // Update the Orders button click handler
   const handleOrdersClick = async () => {
     try {
-      setShowOrders(true);        
-      setShowMyOrders(false);     
+      setShowOrders(true);        // Show the orders table
+      setShowMyOrders(false);     // Reset to Orders view
       setShowProfileSettings(false);
       setIsModalOpen(false);
-      setIsTakeOrderModalOpen(false);
       setCurrentOrdersPage(1);
       
       const response = await axios.get(
@@ -251,7 +250,6 @@ const Dashboard: React.FC<{
       setShowMyOrders(true);
       setShowProfileSettings(false);
       setIsModalOpen(false);
-      setIsTakeOrderModalOpen(false);
       setCurrentOrdersPage(1);
       
       const response = await axios.get(
@@ -399,36 +397,6 @@ const Dashboard: React.FC<{
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [order, setOrder] = useState<Order | null>(null);
-  const [isTakeOrderModalOpen, setIsTakeOrderModalOpen] = useState(false);
-  const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setNpub(localStorage.getItem('npub'));
-      
-      const savedStep = localStorage.getItem('currentStep');
-      const savedOrderId = localStorage.getItem('currentOrderId');
-      const savedOrder = localStorage.getItem('currentOrder');
-      const savedTakeOrderStep = localStorage.getItem('currentTakeOrderStep');
-      const savedSelectedOrder = localStorage.getItem('selectedOrder');
-      
-      if (savedStep && savedOrderId) {
-        setCurrentStep(parseInt(savedStep));
-      }
-      if (savedOrder) {
-        setOrder(JSON.parse(savedOrder));
-      }
-      if (savedTakeOrderStep) {
-        setCurrentTakeOrderStep(parseInt(savedTakeOrderStep));
-      }
-      if (savedSelectedOrder) {
-        setSelectedOrder(JSON.parse(savedSelectedOrder));
-        setIsTakeOrderModalOpen(true);
-      }
-    }
-  }, []);
-
   const [makerHoldInvoice, setMakerHoldInvoice] = useState<Invoice | null>(null);
   const [fullInvoice, setFullInvoice] = useState<any>(null);
   const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
@@ -552,16 +520,7 @@ const Dashboard: React.FC<{
 
   const handleNextStep = () => {
     if (currentStep < getSteps().length) {
-      const nextStep = currentStep + 1;
-      setCurrentStep(nextStep);
-      if (order) {
-        localStorage.setItem(`makerStep_${order.order_id}`, nextStep.toString());
-      }
-    } else {
-      // Clear progress when complete
-      if (order) {
-        localStorage.removeItem(`makerStep_${order.order_id}`);
-      }
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -572,35 +531,17 @@ const Dashboard: React.FC<{
   };
 
   useEffect(() => {
-    // Check for saved order first
-    const savedOrderId = localStorage.getItem('currentOrderId');
-    if (savedOrderId) {
-      fetchOrderDetails(savedOrderId);
-    }
-    
-    // Then check URL params
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = urlParams.get('orderId');
-    if (orderId && orderId !== savedOrderId) {
+    if (orderId) {
       fetchOrderDetails(orderId);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (order) {
-      localStorage.setItem('currentOrder', JSON.stringify(order));
-      localStorage.setItem('currentOrderId', order.order_id.toString());
-    }
-  }, [order]);
-
-  useEffect(() => {
-    if (currentStep > 1) {
-      localStorage.setItem('currentStep', currentStep.toString());
     }
   }, [currentStep]);
 
+  const [isTakeOrderModalOpen, setIsTakeOrderModalOpen] = useState(false);
   const [takeOrderSteps, setTakeOrderSteps] = useState<string[]>([]);
-
+  const [currentTakeOrderStep, setCurrentTakeOrderStep] = useState<number>(1);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const handleTakeOrder = (order: any) => {
     const sellOrderSteps = [
       'Hold Invoice', 
@@ -613,7 +554,7 @@ const Dashboard: React.FC<{
       'Hold Invoice', 
       'Full Invoice', 
       'Chat',
-      'Fiat Received',
+      'Fiat Received',  // Add this step for buy orders
       'Trade Complete', 
       'Order Completed 🚀'
     ];
@@ -622,24 +563,12 @@ const Dashboard: React.FC<{
     setCurrentTakeOrderStep(1);
     setSelectedOrder(order);
     setIsTakeOrderModalOpen(true);
-    
-    // Save to localStorage
-    localStorage.setItem('selectedOrder', JSON.stringify(order));
-    localStorage.setItem('isTakeOrderModalOpen', 'true');
-    localStorage.setItem('currentTakeOrderStep', '1');
   };
   const handleNextTakeOrderStep = () => {
     if (currentTakeOrderStep < takeOrderSteps.length) {
-      const nextStep = currentTakeOrderStep + 1;
-      setCurrentTakeOrderStep(nextStep);
-      if (selectedOrder) {
-        localStorage.setItem(`takerStep_${selectedOrder.order_id}`, nextStep.toString());
-      }
+      setCurrentTakeOrderStep(currentTakeOrderStep + 1);
     } else {
       setIsTakeOrderModalOpen(false);
-      if (selectedOrder) {
-        localStorage.removeItem(`takerStep_${selectedOrder.order_id}`);
-      }
     }
   };
 
@@ -824,95 +753,21 @@ const Dashboard: React.FC<{
     return null;
   };
 
-  const handleComplete = () => {
-    localStorage.removeItem('currentStep');
-    localStorage.removeItem('currentOrder');
-    localStorage.removeItem('currentOrderId');
-    // ... rest of completion logic
-  };
+  const [resumedOrder, setResumedOrder] = useState<Order | null>(null);
+  const [resumedOrderStep, setResumedOrderStep] = useState<number>(1);
 
   useEffect(() => {
-    console.log('Current orders:', orders); // Add this debug log
-    
-    const pollOrders = setInterval(async () => {
-      try {
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/my-orders`,
-          {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          }
-        );
-        
-        const newOrders = response.data;
-        console.log('New orders data:', newOrders); // Add this debug log
-        
-        orders.forEach(existingOrder => {
-          const newOrder = newOrders.find(
-            (o: Order) => o.order_id === existingOrder.order_id
-          );
-          
-          if (newOrder && 
-              newOrder.status === 'taker_found' && 
-              existingOrder.status !== 'taker_found' &&
-              newOrder.customer_id === parseInt(localStorage.getItem('userId'))) {
-            console.log('Notification condition met:', { // Add this debug log
-              orderId: newOrder.order_id,
-              oldStatus: existingOrder.status,
-              newStatus: newOrder.status,
-              isMaker: newOrder.customer_id === parseInt(localStorage.getItem('userId'))
-            });
-            
-            setNotifications(prev => [...prev, {
-              id: Math.random().toString(36).substr(2, 9),
-              message: `Your order #${newOrder.order_id} has been taken!`,
-              type: 'success'
-            }]);
-          }
-        });
-        
-        setOrders(newOrders);
-      } catch (error) {
-        console.error('Error polling orders:', error);
+    if (resumedOrder) {
+      const isMaker = resumedOrder.customer_id.toString() === localStorage.getItem('userId');
+      if (isMaker) {
+        setOrder(resumedOrder);
+        setCurrentStep(resumedOrderStep);
+      } else {
+        setSelectedOrder(resumedOrder);
+        setCurrentTakeOrderStep(resumedOrderStep);
       }
-    }, 5000);
-
-    return () => clearInterval(pollOrders);
-  }, [orders]);
-
-  // Add helper function to determine if order is in progress
-  const isOrderInProgress = (order: Order) => {
-    if (!order) return false;
-    
-    const userId = localStorage.getItem('userId');
-    const isMaker = order.customer_id.toString() === userId;
-    
-    // Check for saved progress
-    const savedStep = isMaker ? 
-      localStorage.getItem(`makerStep_${order.order_id}`) : 
-      localStorage.getItem(`takerStep_${order.order_id}`);
-    
-    return savedStep !== null && order.status !== 'completed';
-  };
-
-  // Add with other state declarations
-  const [notifications, setNotifications] = useState<Array<{
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'info';
-  }>>([]);
-
-  // Add this helper function near your other utility functions
-  const getOrderStatus = (order: Order, userId: string | null) => {
-    const isMaker = order.customer_id.toString() === userId;
-    const orderStep = isMaker ? 
-      localStorage.getItem(`makerStep_${order.order_id}`) : 
-      localStorage.getItem(`takerStep_${order.order_id}`);
-    
-    if (orderStep) {
-      return `In Progress (Step ${orderStep})`;
     }
-    return order.status;
-  };
+  }, [resumedOrder, resumedOrderStep]);
 
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
@@ -926,11 +781,12 @@ const Dashboard: React.FC<{
                 width={40}
                 height={40}
               />
-              <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-black'}`}>
+              <h1
+                className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-black'}`}
+              >
                 CivKit
               </h1>
             </div>
-            
             <nav>
               <hr className='my-8' />
               <div className='flex flex-col items-center justify-center gap-8'>
@@ -1308,62 +1164,138 @@ const Dashboard: React.FC<{
                   style={{ width: '156vh' }}
                 >
                   <thead>
-                    <tr className='border-b dark:border-gray-700'>
-                      <th className='px-4 py-2'>Order ID</th>
-                      <th className='px-4 py-2'>Amount</th>
-                      <th className='px-4 py-2'>Currency</th>
-                      <th className='px-4 py-2'>Payment Method</th>
-                      <th className='px-4 py-2'>Status</th>
-                      <th className='px-4 py-2'>Actions</th>
+                    <tr className='text-gray-700 dark:text-gray-200'>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Order ID
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Order Details
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                        Amount (sats)
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Currency
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Payment Method
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Status
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                        Order Type
+                      </th>
+                      <th className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                        Actions
+                      </th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {currentOrdersPageData.map((order: Order) => (
-                      <tr key={order.order_id} className='border-b dark:border-gray-700'>
-                        <td className='px-4 py-2'>{order.order_id}</td>
-                        <td className='px-4 py-2'>{order.amount_msat}</td>
-                        <td className='px-4 py-2'>{order.currency}</td>
-                        <td className='px-4 py-2'>{order.payment_method}</td>
-                        <td className='px-4 py-2'>
-                          {getOrderStatus(order, localStorage.getItem('userId'))}
-                        </td>
-                        <td className='px-4 py-2'>
-                          <button
-                            onClick={() => setExpandedRow(expandedRow === order.order_id ? null : order.order_id)}
-                            className='text-gray-600 hover:text-gray-800'
-                          >
-                            {expandedRow === order.order_id ? <FaChevronUp /> : <FaChevronDown />}
-                          </button>
-                        </td>
-                      </tr>
-                      {expandedRow === order.order_id && (
-                        <tr>
-                          <td colSpan={6}>
-                            <div className='px-4 py-2'>
-                              {isOrderInProgress(order) && (
-                                <button
-                                  onClick={() => {
-                                    const isMaker = order.customer_id.toString() === localStorage.getItem('userId');
-                                    if (isMaker) {
-                                      setOrder(order);
-                                      setCurrentStep(parseInt(localStorage.getItem(`makerStep_${order.order_id}`) || '1'));
-                                      setIsModalOpen(true);
-                                    } else {
-                                      setSelectedOrder(order);
-                                      setCurrentTakeOrderStep(parseInt(localStorage.getItem(`takerStep_${order.order_id}`) || '1'));
-                                      setIsTakeOrderModalOpen(true);
-                                    }
-                                    setShowOrders(false);
-                                  }}
-                                  className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
-                                >
-                                  Resume Order
-                                </button>
+                  <tbody className='text-gray-700 dark:text-gray-200'>
+                    {currentOrdersPageData.map((order) => (
+                      <React.Fragment key={order.order_id}>
+                        <tr className='h-13 odd:bg-gray-100 even:bg-white dark:odd:bg-gray-700 dark:even:bg-gray-800'>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.order_id}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.order_details}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                            {(order.amount_msat / 1000).toFixed(3)}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.currency}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.payment_method}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.status}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                            {order.type === 0 ? 'Buy' : 'Sell'}
+                          </td>
+                          <td className='border-b border-gray-200 px-4 py-2 text-center dark:border-gray-700'>
+                            <button
+                              onClick={() =>
+                                toggleRowExpansion(order.order_id)
+                              }
+                            >
+                              {expandedRow === order.order_id ? (
+                                <BsChevronUp className='text-xl' />
+                              ) : (
+                                <BsChevronDown className='text-xl' />
                               )}
-                            </div>
+                            </button>
+                            {showMyOrders && order.status !== 'completed' && (
+                              <button
+                                onClick={() => {
+                                  const isMaker = order.customer_id.toString() === localStorage.getItem('userId');
+                                  setResumedOrder(order);
+                                  setResumedOrderStep(1);
+                                  if (isMaker) {
+                                    setIsModalOpen(true);
+                                  } else {
+                                    setIsTakeOrderModalOpen(true);
+                                  }
+                                  setShowOrders(false);
+                                }}
+                                className='focus:shadow-outline ml-2 rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-600 focus:outline-none'
+                              >
+                                Resume Order
+                              </button>
+                            )}
                           </td>
                         </tr>
-                      )}
+                        {expandedRow === order.order_id && (
+                          <tr>
+                            <td
+                              colSpan={8}
+                              className='border-b border-gray-200 px-4 py-2 dark:border-gray-700'
+                            >
+                              <div className='rounded bg-gray-100 p-4 dark:bg-gray-700'>
+                                <table className='min-w-full bg-white dark:bg-gray-800'>
+                                  <tbody>
+                                    <tr>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        Customer ID
+                                      </td>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        {order.customer_id}
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        Escrow Status
+                                      </td>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        {order.escrow_status}
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        Taker Customer ID
+                                      </td>
+                                      <td className='border-b border-gray-200 px-4 py-2 text-left dark:border-gray-700'>
+                                        {order.taker_customer_id}
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                {!showMyOrders && order.customer_id !== localStorage.getItem('userId') && (
+                                  <button
+                                    className='focus:shadow-outline mt-2 rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none'
+                                    onClick={() => handleTakeOrder(order)}
+                                  >
+                                    Take Order
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -1490,18 +1422,6 @@ const Dashboard: React.FC<{
             </div>
           </div>
         )}
-
-        <div className="fixed top-4 right-4 z-50 space-y-2">
-          {notifications.map(({ id, message, type }) => (
-            <div
-              key={id}
-              className={`p-4 rounded-lg shadow-lg bg-green-500 text-white cursor-pointer`}
-              onClick={() => setNotifications(prev => prev.filter(n => n.id !== id))}
-            >
-              {message}
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
