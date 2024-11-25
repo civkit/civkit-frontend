@@ -1095,7 +1095,11 @@ const Dashboard: React.FC<{
                     {order?.type === 1 ? (
                       <FullInvoice 
                         invoice={fullInvoice}
-                        onCheckStatus={checkFullInvoice}
+                        onCheckStatus={() => {
+                          checkFullInvoice();
+                          // Optional: Add feedback that status check is in progress
+                          console.log('Checking invoice status...');
+                        }}
                         loading={!fullInvoice}
                       />
                     ) : (
