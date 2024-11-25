@@ -730,24 +730,27 @@ const Dashboard: React.FC<{
       
       console.log('Status check response:', response.data);
       
-      // Update the fullInvoice state with the new status
+      // Update the fullInvoice state with ALL the invoice data, not just status
       setFullInvoice(prevInvoice => ({
         ...prevInvoice,
-        status: response.data.status
+        ...response.data.invoice  // Use the entire invoice object from response
       }));
 
       // Log the update
       console.log('Updated fullInvoice state:', {
         previousStatus: fullInvoice?.status,
-        newStatus: response.data.status
+        newStatus: response.data.invoice.status  // Changed from response.data.status
       });
 
       // If paid, update order status too
-      if (response.data.status === 'paid') {
+      if (response.data.invoice.status === 'paid') {  // Changed from response.data.status
         setOrder(prevOrder => ({
           ...prevOrder!,
           status: 'paid'
         }));
+        
+        // Optionally move to next step
+        setCurrentStep(4);
       }
     } catch (error) {
       console.error('Error checking full invoice:', error);
@@ -896,6 +899,21 @@ const Dashboard: React.FC<{
       console.error('Failed to determine user role:', error);
     }
   };
+
+  // Add this useEffect for polling full invoice status
+  useEffect(() => {
+    if (currentStep === 3 && order && fullInvoice && fullInvoice.status !== 'paid') {
+      console.log('Starting full invoice polling');
+      const interval = setInterval(() => {
+        checkFullInvoice();
+      }, 5000); // Check every 5 seconds
+      
+      return () => {
+        console.log('Clearing full invoice polling');
+        clearInterval(interval);
+      };
+    }
+  }, [currentStep, order, fullInvoice]);
 
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
