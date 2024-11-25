@@ -64,6 +64,7 @@ const LoginForm = ({
       console.log(response);
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('npub', username);
+      localStorage.setItem('customer_id', response.data.userId.toString());
       setIsLoading(false);
       toast.success('Login successful!', {
         position: 'bottom-center',
