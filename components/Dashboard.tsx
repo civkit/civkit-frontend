@@ -715,10 +715,11 @@ const Dashboard: React.FC<{
   }, [currentStep, order]);
 
   const checkFullInvoice = async () => {
-    if (!selectedOrder) return;
+    if (!order) return;
     try {
+      console.log('Checking full invoice status for order:', order.order_id);
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${selectedOrder.order_id}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${order.order_id}`,
         {},
         {
           headers: {
@@ -726,15 +727,31 @@ const Dashboard: React.FC<{
           },
         }
       );
-      console.log('Check full invoice response:', response.data);
-      if (response.data && response.data.status) {
-        setFullInvoice((prevInvoice) => ({
-          ...prevInvoice,
-          status: response.data.status,
+      
+      console.log('Status check response:', response.data);
+      
+      // Update the fullInvoice state with the new status
+      setFullInvoice(prevInvoice => ({
+        ...prevInvoice,
+        status: response.data.status
+      }));
+
+      // Log the update
+      console.log('Updated fullInvoice state:', {
+        previousStatus: fullInvoice?.status,
+        newStatus: response.data.status
+      });
+
+      // If paid, update order status too
+      if (response.data.status === 'paid') {
+        setOrder(prevOrder => ({
+          ...prevOrder!,
+          status: 'paid'
         }));
       }
     } catch (error) {
       console.error('Error checking full invoice:', error);
+      console.error('Error details:', error.response?.data);
     }
   };
 

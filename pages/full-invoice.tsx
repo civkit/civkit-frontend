@@ -25,6 +25,11 @@ const FullInvoice: React.FC<FullInvoiceProps> = ({
   onCheckStatus,
   loading 
 }) => {
+  // Add status change debugging
+  useEffect(() => {
+    console.log('Invoice status changed:', invoice?.status);
+  }, [invoice?.status]);
+
   if (loading) {
     return (
       <div className='flex items-center justify-center'>
@@ -57,9 +62,14 @@ const FullInvoice: React.FC<FullInvoiceProps> = ({
         <p><strong>Order ID:</strong> {invoice.order_id}</p>
         <p><strong>Amount:</strong> {parseInt(invoice.amount_msat) / 1000} sats</p>
         <p><strong>Description:</strong> {invoice.description}</p>
-        <p><strong>Status:</strong> <span className={`font-bold ${
-          invoice.status === 'paid' ? 'text-green-600' : 'text-orange-500'
-        }`}>{invoice.status}</span></p>
+        <p>
+          <strong>Status:</strong>{' '}
+          <span className={`font-bold ${
+            invoice.status === 'paid' ? 'text-green-600' : 'text-orange-500'
+          }`}>
+            {invoice.status}
+          </span>
+        </p>
         <p><strong>Created At:</strong> {new Date(invoice.created_at).toLocaleString()}</p>
         <p><strong>Expires At:</strong> {new Date(invoice.expires_at).toLocaleString()}</p>
         <p><strong>Payment Hash:</strong> {invoice.payment_hash}</p>
@@ -67,8 +77,11 @@ const FullInvoice: React.FC<FullInvoiceProps> = ({
 
       {/* Check Status Button */}
       <button
-        onClick={onCheckStatus}
-        className='mt-6 w-full rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500'
+        onClick={() => {
+          console.log('Checking status...');
+          onCheckStatus();
+        }}
+        className='mt-6 w-full rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600'
       >
         Check Invoice Status
       </button>
