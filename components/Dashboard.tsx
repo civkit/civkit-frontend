@@ -714,49 +714,39 @@ const Dashboard: React.FC<{
     }
   }, [currentStep, order]);
 
-  const checkFullInvoice = async () => {
-    if (!order) return;
-    try {
-      console.log('Checking full invoice status for order:', order.order_id);
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${order.order_id}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      
-      console.log('Status check response:', response.data);
-      
-      // Update the fullInvoice state with ALL the invoice data, not just status
-      setFullInvoice(prevInvoice => ({
-        ...prevInvoice,
-        ...response.data.invoice  // Use the entire invoice object from response
-      }));
-
-      // Log the update
-      console.log('Updated fullInvoice state:', {
-        previousStatus: fullInvoice?.status,
-        newStatus: response.data.invoice.status  // Changed from response.data.status
-      });
-
-      // If paid, update order status too
-      if (response.data.invoice.status === 'paid') {  // Changed from response.data.status
-        setOrder(prevOrder => ({
-          ...prevOrder!,
-          status: 'paid'
-        }));
-        
-        // Optionally move to next step
-        setCurrentStep(4);
+const checkFullInvoice = async () => {
+  if (!order) return;
+  try {
+    console.log('Checking full invoice status for order:', order.order_id);
+    const response = await axios.post(
+      // Change this line - use order.order_id instead of invoice.order_id
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${order.order_id}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       }
-    } catch (error) {
-      console.error('Error checking full invoice:', error);
-      console.error('Error details:', error.response?.data);
+    );
+    
+    console.log('Status check response:', response.data);
+    
+    setFullInvoice(prevInvoice => ({
+      ...prevInvoice,
+      ...response.data.invoice
+    }));
+
+    if (response.data.invoice.status === 'paid') {
+      setOrder(prevOrder => ({
+        ...prevOrder!,
+        status: 'paid'
+      }));
+      setCurrentStep(4);
     }
-  };
+  } catch (error) {
+    console.error('Error checking full invoice:', error);
+  }
+};
 
   const fetchOrderDetails = async (orderId: string) => {
     try {

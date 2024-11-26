@@ -30,6 +30,11 @@ const FullInvoice: React.FC<FullInvoiceProps> = ({
     console.log('Invoice status changed:', invoice?.status);
   }, [invoice?.status]);
 
+  // Add automatic status checking
+  useInvoiceStatusCheck(invoice, (updatedInvoice) => {
+    onCheckStatus(updatedInvoice);
+  });
+
   if (loading) {
     return (
       <div className='flex items-center justify-center'>
@@ -75,16 +80,17 @@ const FullInvoice: React.FC<FullInvoiceProps> = ({
         <p><strong>Payment Hash:</strong> {invoice.payment_hash}</p>
       </div>
 
-      {/* Check Status Button */}
-      <button
-        onClick={() => {
-          console.log('Checking status...');
-          onCheckStatus();
-        }}
-        className='mt-6 w-full rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600'
-      >
-        Check Invoice Status
-      </button>
+      {/* Only show button if not paid */}
+      {invoice.status !== 'paid' && (
+        <button
+          onClick={() => {
+            onCheckStatus();
+          }}
+          className='mt-6 w-full rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600'
+        >
+          Check Invoice Status
+        </button>
+      )}
 
       {/* Show paid message if applicable */}
       {invoice.status === 'paid' && (
@@ -94,6 +100,35 @@ const FullInvoice: React.FC<FullInvoiceProps> = ({
       )}
     </div>
   );
+};
+const useInvoiceStatusCheck = (invoice, onStatusChange) => {
+  useEffect(() => {
+    // Stop checking if invoice is paid
+    if (!invoice?.payment_hash || invoice.status === 'paid') return;
+
+    const checkStatus = async () => {
+      try {
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${invoice.order_id}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        if (response.data.invoice.status !== invoice.status) {
+          onStatusChange(response.data.invoice);
+        }
+      } catch (error) {
+        console.error('Error checking invoice status:', error);
+      }
+    };
+
+    const interval = setInterval(checkStatus, 5000);
+    return () => clearInterval(interval);
+  }, [invoice?.payment_hash, invoice?.status]);
 };
 
 export default FullInvoice;
