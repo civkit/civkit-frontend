@@ -4,170 +4,131 @@ import axios from 'axios';
 import QRCode from 'qrcode.react';
 import { Spinner } from '../components';
 
-const FullInvoice = () => {
-  const router = useRouter();
-  const { orderid: rawOrderId, orderId: rawOrderIdCamel } = router.query;
-  const orderId =
-    typeof rawOrderId === 'string'
-      ? rawOrderId.toLowerCase()
-      : typeof rawOrderIdCamel === 'string'
-        ? rawOrderIdCamel.toLowerCase()
-        : undefined;
-  const [fullInvoice, setFullInvoice] = useState(null);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchFullInvoice = async () => {
-    if (!orderId) {
-      console.log('No orderId available, skipping fetch');
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      setError(null);
-      console.log(`Fetching full invoice for order ID: ${orderId}`);
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/full-invoice/${orderId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      console.log('Full invoice response:', response.data);
-      if (response.data && response.data.invoice) {
-        setFullInvoice(response.data.invoice);
-        console.log('Full invoice set:', response.data.invoice);
-      } else {
-        console.error('Invalid response format:', response.data);
-        setError('Invalid response format from server');
-      }
-    } catch (error) {
-      console.error('Error fetching full invoice:', error);
-      setError(
-        `Failed to fetch full invoice: ${error.response?.data?.error || error.message}`
-      );
-    } finally {
-      setLoading(false);
-    }
+interface FullInvoiceProps {
+  invoice: {
+    bolt11: string;
+    invoice_id: string;
+    order_id: number;
+    amount_msat: string;
+    description: string;
+    status: string;
+    created_at: string;
+    expires_at: string;
+    payment_hash: string;
   };
+  onCheckStatus: () => void;
+  loading: boolean;
+}
 
-  const checkFullInvoice = async () => {
-    if (!orderId) return;
-    try {
-      setLoading(true);
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${orderId}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      console.log('Check full invoice response:', response.data);
-      if (response.data && response.data.status) {
-        setFullInvoice((prevInvoice) => ({
-          ...prevInvoice,
-          status: response.data.status,
-        }));
-      }
-    } catch (error) {
-      console.error('Error checking full invoice:', error);
-      setError(
-        `Failed to check full invoice: ${error.response?.data?.error || error.message}`
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
+const FullInvoice: React.FC<FullInvoiceProps> = ({ 
+  invoice, 
+  onCheckStatus,
+  loading 
+}) => {
+  // Add status change debugging
   useEffect(() => {
-    if (router.isReady && orderId) {
-      fetchFullInvoice();
-    }
-  }, [router.isReady, orderId]);
+    console.log('Invoice status changed:', invoice?.status);
+  }, [invoice?.status]);
 
-  useEffect(() => {
-    let intervalId;
-    if (fullInvoice && fullInvoice.status !== 'paid') {
-      intervalId = setInterval(checkFullInvoice, 5000); // Check every 5 seconds
-    }
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [fullInvoice, orderId]);
+  // Add automatic status checking
+  useInvoiceStatusCheck(invoice, (updatedInvoice) => {
+    onCheckStatus(updatedInvoice);
+  });
+
+  if (loading) {
+    return (
+      <div className='flex items-center justify-center'>
+        <Spinner /> Loading...
+      </div>
+    );
+  }
 
   return (
-    <div className='flex h-full w-full max-w-md flex-col gap-4 rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
-      {loading ? (
-        <div className='flex items-center justify-center gap-2 text-gray-500'>
-          <Spinner /> Loading...
+    <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg'>
+      <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>
+        Full Invoice Details
+      </h2>
+      
+      {/* Invoice and QR Code */}
+      <div className='mb-4'>
+        <label className='mb-2 block font-bold text-gray-700'>Invoice:</label>
+        <div className='break-words rounded bg-gray-100 p-2'>
+          <p className='text-xs'>{invoice.bolt11}</p>
         </div>
-      ) : error ? (
-        <div className='text-center text-red-500'>
-            {error}
-          </div>
-        ) : !fullInvoice ? (
-          <div className='text-center text-gray-500'>
-            No invoice data available.
-          </div>
-        ) : (
-          <>
-            <h1 className='mb-6 text-center text-2xl font-bold text-gray-600'>
-              Full Invoice Details
-            </h1>
-            <div className='mb-4'>
-              <label className='mb-2 block font-bold text-gray-700'>
-                Invoice (Full):
-              </label>
-              <div className='break-words rounded bg-gray-100 p-2'>
-                <p className='text-xs'>{fullInvoice.bolt11}</p>
-              </div>
-            </div>
-            <div className='my-4 flex justify-center'>
-              <QRCode value={fullInvoice.bolt11} />
-            </div>
-            <div className='mt-4'>
-              <p>
-                <strong>Invoice ID:</strong> {fullInvoice.invoice_id}
-              </p>
-              <p>
-                <strong>Order ID:</strong> {fullInvoice.order_id}
-              </p>
-              <p>
-                <strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000}{' '}
-                sats
-              </p>
-              <p>
-                <strong>Description:</strong> {fullInvoice.description}
-              </p>
-              <p>
-                <strong>Status:</strong> {fullInvoice.status}
-              </p>
-              <p>
-                <strong>Created At:</strong>{' '}
-                {new Date(fullInvoice.created_at).toLocaleString()}
-              </p>
-              <p>
-                <strong>Expires At:</strong>{' '}
-                {new Date(fullInvoice.expires_at).toLocaleString()}
-              </p>
-              <p>
-                <strong>Payment Hash:</strong> {fullInvoice.payment_hash}
-              </p>
-            </div>
-            <button
-              onClick={checkFullInvoice}
-              className='mt-4 w-full rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700'
-            >
-              Check Invoice Status
-            </button>
-          </>
-        )}
+      </div>
+      
+      <div className='my-4 flex justify-center'>
+        <QRCode value={invoice.bolt11} size={200} />
+      </div>
+
+      {/* Invoice Details */}
+      <div className='mt-4 space-y-2'>
+        <p><strong>Invoice ID:</strong> {invoice.invoice_id}</p>
+        <p><strong>Order ID:</strong> {invoice.order_id}</p>
+        <p><strong>Amount:</strong> {parseInt(invoice.amount_msat) / 1000} sats</p>
+        <p><strong>Description:</strong> {invoice.description}</p>
+        <p>
+          <strong>Status:</strong>{' '}
+          <span className={`font-bold ${
+            invoice.status === 'paid' ? 'text-green-600' : 'text-orange-500'
+          }`}>
+            {invoice.status}
+          </span>
+        </p>
+        <p><strong>Created At:</strong> {new Date(invoice.created_at).toLocaleString()}</p>
+        <p><strong>Expires At:</strong> {new Date(invoice.expires_at).toLocaleString()}</p>
+        <p><strong>Payment Hash:</strong> {invoice.payment_hash}</p>
+      </div>
+
+      {/* Only show button if not paid */}
+      {invoice.status !== 'paid' && (
+        <button
+          onClick={() => {
+            onCheckStatus();
+          }}
+          className='mt-6 w-full rounded-lg bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600'
+        >
+          Check Invoice Status
+        </button>
+      )}
+
+      {/* Show paid message if applicable */}
+      {invoice.status === 'paid' && (
+        <div className='mt-4 text-center text-green-600 font-bold'>
+          Invoice has been paid!
+        </div>
+      )}
     </div>
   );
+};
+const useInvoiceStatusCheck = (invoice, onStatusChange) => {
+  useEffect(() => {
+    // Stop checking if invoice is paid
+    if (!invoice?.payment_hash || invoice.status === 'paid') return;
+
+    const checkStatus = async () => {
+      try {
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${invoice.order_id}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        if (response.data.invoice.status !== invoice.status) {
+          onStatusChange(response.data.invoice);
+        }
+      } catch (error) {
+        console.error('Error checking invoice status:', error);
+      }
+    };
+
+    const interval = setInterval(checkStatus, 5000);
+    return () => clearInterval(interval);
+  }, [invoice?.payment_hash, invoice?.status]);
 };
 
 export default FullInvoice;

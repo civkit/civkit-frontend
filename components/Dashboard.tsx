@@ -41,6 +41,7 @@ import FiatReceived from '../pages/fiat-received';
 import TradeComplete from '../pages/trade-complete';
 import TakerFullInvoice from '../pages/taker-full-invoice';
 import Ratings from '../pages/Ratings';
+import FullInvoice from '../pages/full-invoice';
 
 // Dynamically import the OrderDetails component
 const OrderDetails = dynamic(() => import('../pages/orders/[orderId]'), {
@@ -713,29 +714,39 @@ const Dashboard: React.FC<{
     }
   }, [currentStep, order]);
 
-  const checkFullInvoice = async () => {
-    if (!selectedOrder) return;
-    try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${selectedOrder.order_id}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      console.log('Check full invoice response:', response.data);
-      if (response.data && response.data.status) {
-        setFullInvoice((prevInvoice) => ({
-          ...prevInvoice,
-          status: response.data.status,
-        }));
+const checkFullInvoice = async () => {
+  if (!order) return;
+  try {
+    console.log('Checking full invoice status for order:', order.order_id);
+    const response = await axios.post(
+      // Change this line - use order.order_id instead of invoice.order_id
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/check-full-invoice/${order.order_id}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
       }
-    } catch (error) {
-      console.error('Error checking full invoice:', error);
+    );
+    
+    console.log('Status check response:', response.data);
+    
+    setFullInvoice(prevInvoice => ({
+      ...prevInvoice,
+      ...response.data.invoice
+    }));
+
+    if (response.data.invoice.status === 'paid') {
+      setOrder(prevOrder => ({
+        ...prevOrder!,
+        status: 'paid'
+      }));
+      setCurrentStep(4);
     }
-  };
+  } catch (error) {
+    console.error('Error checking full invoice:', error);
+  }
+};
 
   const fetchOrderDetails = async (orderId: string) => {
     try {
@@ -878,6 +889,21 @@ const Dashboard: React.FC<{
       console.error('Failed to determine user role:', error);
     }
   };
+
+  // Add this useEffect for polling full invoice status
+  useEffect(() => {
+    if (currentStep === 3 && order && fullInvoice && fullInvoice.status !== 'paid') {
+      console.log('Starting full invoice polling');
+      const interval = setInterval(() => {
+        checkFullInvoice();
+      }, 5000); // Check every 5 seconds
+      
+      return () => {
+        console.log('Clearing full invoice polling');
+        clearInterval(interval);
+      };
+    }
+  }, [currentStep, order, fullInvoice]);
 
   return (
     <div className={`flex ${darkMode ? 'dark' : ''}`}>
@@ -1092,40 +1118,15 @@ const Dashboard: React.FC<{
                 {currentStep === 3 && order && (
                   <div className='w-full max-w-md rounded-lg bg-white p-8 shadow-lg ml-12 mt-4'>
                     {order?.type === 1 ? (
-                      <div>
-                        <h2 className='mb-6 text-center text-2xl font-bold text-orange-500'>Full Invoice Details</h2>
-                        {fullInvoice ? (
-                          <>
-                            <div className='mb-4'>
-                              <label className='mb-2 block font-bold text-gray-700'>Invoice (Full):</label>
-                              <div className='break-words rounded bg-gray-100 p-2'>
-                                <p className='text-xs'>{fullInvoice.bolt11}</p>
-                              </div>
-                            </div>
-                            <div className='my-4 flex justify-center'>
-                              <QRCode value={fullInvoice.bolt11} />
-                            </div>
-                            <div className='mt-4'>
-                              <p><strong>Invoice ID:</strong> {fullInvoice.invoice_id}</p>
-                              <p><strong>Order ID:</strong> {fullInvoice.order_id}</p>
-                              <p><strong>Amount:</strong> {parseInt(fullInvoice.amount_msat) / 1000} sats</p>
-                              <p><strong>Description:</strong> {fullInvoice.description}</p>
-                              <p><strong>Status:</strong> {fullInvoice.status}</p>
-                              <p><strong>Created At:</strong> {new Date(fullInvoice.created_at).toLocaleString()}</p>
-                              <p><strong>Expires At:</strong> {new Date(fullInvoice.expires_at).toLocaleString()}</p>
-                              <p><strong>Payment Hash:</strong> {fullInvoice.payment_hash}</p>
-                            </div>
-                            <button
-                              onClick={checkFullInvoice}
-                              className='mt-4 w-full rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700'
-                            >
-                              Check Invoice Status
-                            </button>
-                          </>
-                        ) : (
-                          <p>Loading full invoice...</p>
-                        )}
-                      </div>
+                      <FullInvoice 
+                        invoice={fullInvoice}
+                        onCheckStatus={() => {
+                          checkFullInvoice();
+                          // Optional: Add feedback that status check is in progress
+                          console.log('Checking invoice status...');
+                        }}
+                        loading={!fullInvoice}
+                      />
                     ) : (
                       <SubmitPayout 
                         orderId={order.order_id.toString()}

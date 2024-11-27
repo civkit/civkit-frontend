@@ -185,7 +185,7 @@ const SubmitPayout: React.FC<SubmitPayoutProps> = ({ orderId, onPayoutSubmitted 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="lnInvoice" className="block text-sm font-medium text-gray-700">
-              Lightning Invoice (Signet)
+              Lightning Invoice 
             </label>
             <input
               type="text"
@@ -193,7 +193,7 @@ const SubmitPayout: React.FC<SubmitPayoutProps> = ({ orderId, onPayoutSubmitted 
               value={lnInvoice}
               onChange={(e) => setLnInvoice(e.target.value)}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              placeholder="Enter Signet Lightning Invoice"
+              placeholder="Enter Lightning Invoice"
               required
             />
           </div>
