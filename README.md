@@ -105,6 +105,6 @@ Trade Complete - WIth Nostr Prompt
 
 This code is 100% open source and relies on the contributions of other open source developers. Feel free to look through the issues, open new issues and submit PR's to improve the experience. This project has been tested and validated on mainnet, but the ideas of the crowd will get us closer to a flawless UI/UX experience.
 
-I have created a list of issues but please take these as a starting point. Frontend is not my strong suit and I know that a solidly skilled FE developer could really enhance this product. I encourage and welcome all contributions. Feel welcome to open issues. We also have a telegram community here: 
+I have created a list of issues but please take these as a starting point. Frontend is not my strong suit and I know that a solidly skilled FE developer could really enhance this product. I encourage and welcome all contributions. Feel welcome to open issues. We also have a telegram community here: https://t.me/civkittv
 
 
