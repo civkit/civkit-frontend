@@ -3,8 +3,8 @@
 This is a sample client for a Civkit Node. It provides a UI to create P2P trade orders. 
 
 The application is using:
-civkit-api: https://github.com/civkit/civkit-api 
-civkit-chat: https://github.com/civkit/civkit-chat
+- civkit-api: https://github.com/civkit/civkit-api 
+- civkit-chat: https://github.com/civkit/civkit-chat
 
 ### The UI requires 
 - next.js
