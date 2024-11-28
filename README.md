@@ -53,7 +53,7 @@ bun dev
 
 If you have set this up correctly, you will see the civkit home page. This will not load invoices or have much functionality until you install API code so if you get as far as the screenshot below, its time to setup the API https://github.com/civkit/civkit-api
 
-If you see this, you've got the frontend going.
+If you see this, you've got the frontend going!!! 
 
 ![image](https://github.com/user-attachments/assets/d23c12b4-4897-47a6-a15f-0c7430fce20b)
 
@@ -63,6 +63,43 @@ The code assumes the following ports are assigned the following applications
 - 3456: Chat
 
 You can look through the key components such as the pages folder and dashboard to see where the bulk of user face code is.
+
+Proceed to Register
+
+![register](https://github.com/user-attachments/assets/799ff046-00eb-4baa-a818-d3e198edd24f)
+
+Pay The Registration Invoice. It will redirect automatically.
+
+![registerPayment](https://github.com/user-attachments/assets/127f200b-208e-468f-a4c6-cc9a984dc749)
+
+View and Take Pending Orders
+
+![Screenshot from 2024-11-28 12-03-19](https://github.com/user-attachments/assets/e26869a4-ab78-4e3d-bd56-4d6c7dcb0e91)
+
+View Your Own Orders
+
+![myOrders](https://github.com/user-attachments/assets/b6e407c2-c814-47af-b387-a3bf6919398c)
+
+View Ratings (Internal only)
+
+![internalRatings](https://github.com/user-attachments/assets/dda5c5af-da4f-419c-8ce0-2a5a75e2b282)
+
+Submit Payout Invoice
+
+![submitPayout](https://github.com/user-attachments/assets/bf61a855-08f1-4b9e-8244-536dbc4ff596)
+
+Open Chat 
+
+![openChat](https://github.com/user-attachments/assets/8865f8b5-1fd8-4ba8-8b51-6ec748b1c4d3)
+
+Redirect to Chatroom
+
+![makeOfferredirect](https://github.com/user-attachments/assets/9dd4483c-2ad7-4c95-b5c8-2291ea4750c2)
+
+
+Trade Complete - WIth Nostr Prompt
+
+![ratingwithNostr](https://github.com/user-attachments/assets/980753ff-4dc0-4e40-8d88-cc2232cf6bc7)
 
 ## How to Contribute
 
