@@ -1,22 +1,18 @@
-** Civkit Frontend **
+## Civkit Frontent
 
 This is a sample client for a Civkit Node. It provides a UI to create P2P trade orders. The application is using the civkit-api backend code which is here: [https://github.com/civkit/civkit-api] as well as civkit-chat which is here [https://github.com/civkit/civkit-chat].
 
-The UI requires 
+### The UI requires 
 - next.js
-- API/Chat app running
+- typescript
 - nos2x plugin https://github.com/fiatjaf/nos2x
 
 
 You can use this to create buy/sell orders for peer-to-peer trades, pay the hold invoices, chat with the trading partner, confirm fiat received to release payment, raise disputes (in chat app) and view other trade orders. You have the option to sign orders as a custom nostr event type 1506. This allows orders to be shared amongst nostr relays accepting these types to create a global orderbook. 
 
-The escrow system will return bolt11 invoices. You lock 5% of the amount of the trade in a hold invoice which is released when the trade is completed. You will be provided with URL's to access the encrypted chat which has some basic dispute features. The code for that is listed above and seperate. 
+The escrow system will return bolt11 invoices. You lock 5% of the amount of the trade in a hold invoice which is released when the trade is completed. You will be provided with URL's to access the encrypted chat which has some basic dispute features. The code for that is listed above and seperate. You can register a user at the /register endpoint then login. From there you can create buy/sell orders and make trades.
 
-You can register a user at the /register endpoint then login. From there you can create buy/sell orders and make trades.
-
-This is all on testnet and should not be used for real trades. We encourage further client development and this is intended as a reference guide for further development. 
-
-Running the code is pretty simple as described below. It assumes the API is on localhost:3000 and chat on localhost:3456. Its a good idea to get the api running first. 
+This has been validated on testnet, regtest, signet and mainnet. We encourage further client development and this is intended as a reference guide for further development. Running the code is pretty simple as described below.
 
 If you run into any issues with the code, feel free to raise an issue so we can improve its useability and make it more mainnet ready.
 
@@ -33,27 +29,23 @@ pnpm dev
 bun dev
 ```
 
-This application runs by default on 3000 but you should run civkit-api first, on pot 3000 and this should run on 3001. Theser are still harcoded so its managed like that at the moments. Ports can be confusing so for reference
+If you have set this up correctly, you will see the civkit home page. This will not load invoices or have much functionality until you install API code so if you get as far as the screenshot below, its time to setup the API https://github.com/civkit/civkit-api
 
+If you see this, you've got the frontend going.
+
+![image](https://github.com/user-attachments/assets/548b3df7-77c3-4f4a-bdcf-66af6b174e8f)
+
+This application runs by default on 3000 but you should run civkit-api first, on port 3000 and this should run on 3001. It must run on 3001 dfor the code to work.
 3001: Frontend
 3000: API
 3456: Chat
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can look through the key components such as the pages folder and dashboard to see where the bulk of user face code is.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## How to Contribute
 
-## Learn More
+This code is 100% open source and relies on the contributions of other open source developers. Feel free to look through the issues, open new issues and submit PR's to improve the experience. This project has been tested and validated on mainnet, but the ideas of the crowd will get us closer to a flawless UI/UX experience.
 
-To learn more about Next.js, take a look at the following resources:
+I have created a list of issues but please take these as a starting point. Frontend is not my strong suit and I know that a solidly skilled FE developer could really enhance this product. I encourage and welcome all contributions. Feel welcome to open issues. We also have a telegram community here: 
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
