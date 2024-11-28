@@ -1,3 +1,22 @@
+## Start Here!
+
+### What is civkit?
+Civkit is Open Source. Forever. The goal is simple. Create the building blocks of unstoppable peer-to-peer marketplaces. 
+
+All releases are on Github. As a user, you only need to install the Nos2x plugin. We will add other options for now but this is currently the method. Install this on your browser and navigate to Register. You will purchase a staking credential and be able to login and take orders. Both orderbook and reputation are visible at frontend.civkit.africa/filteredOrders and frontend.civkit.africa/filteredRatings. 
+
+Taking these orders requires a small committment of paying a hold invoice, which is relesed back if the trade is successful. The purpose of this is to prevent cheating and time wasters. Your sats will be returned and are only a small % of the trade amount. Your trades will be displayed on the internal orderbook but also sent as nostr event types to the relays accepting nostr trades. 
+
+We use these event types 
+- 1505: Announcing a civkit node is live (for marketplace runners to tell users they exist)
+- 1506: An order has been placed with link to where to take it. This is relayed across nostr to other relays so even if 1 market goes down, another market can spin up and find a partner for the trade
+- 1507: An order has been taken by a counterparty
+- 1508: A trade has been completed and each user ranks the other. Reputations are tied to your nostr identity. The PGP chatroom is encrypted and anonymous.
+  
+If a dispute occurs, the chat is locked and exported to the moderator to resolve. This decentralizes chat back to core PGP principles and keeps you safe from prying eyes. If a trade is successful, the sats are released to the sats buyer when fiat or product is received. You are ranked and this is sent to nostr.
+
+Have fun trading, stay safe and guard your reputation without trading over your privacy. Be a good human.
+
 ## Civkit Frontend
 
 This is a sample client for a Civkit Node. It provides a UI to create P2P trade orders. 
