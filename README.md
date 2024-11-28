@@ -37,7 +37,7 @@ If you have set this up correctly, you will see the civkit home page. This will 
 
 If you see this, you've got the frontend going.
 
-![image](https://github.com/user-attachments/assets/548b3df7-77c3-4f4a-bdcf-66af6b174e8f)
+![image](https://github.com/user-attachments/assets/d23c12b4-4897-47a6-a15f-0c7430fce20b)
 
 This application runs by default on 3000 but you should run civkit-api first, on port 3000 and this should run on 3001. It must run on 3001 dfor the code to work.
 3001: Frontend
