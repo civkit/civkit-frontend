@@ -78,7 +78,7 @@ View and Take Pending Orders
 
 View Your Own Orders
 
-![myOrders](https://github.com/user-attachments/assets/b6e407c2-c814-47af-b387-a3bf6919398c)
+![myOrderV2](https://github.com/user-attachments/assets/ddfc5db4-f2f8-45ba-969d-ff3957e2b4f8)
 
 View Ratings (Internal only)
 
