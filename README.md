@@ -1,6 +1,5 @@
 ## Start Here!
 
-### What is civkit?
 Civkit is Open Source. Forever. The goal is simple. Create the building blocks of unstoppable peer-to-peer marketplaces. 
 
 All releases are on Github. As a user, you only need to install the Nos2x plugin. We will add other options for now but this is currently the method. Install this on your browser and navigate to Register. You will purchase a staking credential and be able to login and take orders. Both orderbook and reputation are visible at frontend.civkit.africa/filteredOrders and frontend.civkit.africa/filteredRatings. 
